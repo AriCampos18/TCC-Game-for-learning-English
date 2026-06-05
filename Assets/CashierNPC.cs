@@ -1,0 +1,545 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.Networking;
+using System.IO;
+using TMPro;
+using System;
+
+public class CashierNPC : InteracaoNPC
+{
+    int horaAtual = DateTime.Now.Hour;
+
+    string nivelAtual;
+
+    public UnityEngine.AI.NavMeshAgent navMeshAgent; 
+    public Transform pontoProduto;         // Arraste o Objeto Vazio da prateleira aqui
+    public Transform pontoOriginalCaixa;   // Arraste um Objeto Vazio na posição inicial do Caixa aqui
+    public GameObject produtoChocolate;
+    List<string> dialogoAtual;
+    private Animator animator;
+    
+    public TextMeshProUGUI textoPularDialogo;
+    string cumprimento;
+
+    public string idNpcParaVoz = "mulher"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
+    public string nomeExibicaoLegenda = "Cashier Attendant";
+    double valorTotal;
+    private AudioSource audioSource;
+    public ModalExercicio modalExercicio;
+    private BackendManager backendManager;
+
+    public List<ExercicioBase> exerciciosBlocos;
+    public List<ExercicioBase> exerciciosSpeaking;
+    public string ultimaFraseDita = "";
+    public List<ExercicioBase> exerciciosAlternativas;
+    public ExercicioBase exAtual;
+    public GameObject modalLegenda;
+
+    protected override void Start()
+    {
+        base.Start();
+        backendManager = new BackendManager();
+        audioSource = GetComponent<AudioSource>();
+        exerciciosBlocos = new List<ExercicioBase>();
+        exerciciosSpeaking = new List<ExercicioBase>();
+        animator = GetComponent<Animator>();
+        exerciciosAlternativas = new List<ExercicioBase>();
+        nivelAtual = DadosJogador.nivelUsuario;
+
+        if (horaAtual < 12)
+        {
+            cumprimento = "Good morning!";
+        }
+        else if (horaAtual < 18)
+        {
+            cumprimento = "Good afternoon!";
+        }
+        else
+        {
+            cumprimento = "Good evening!";
+        }
+    }
+
+    private void InicializarConteudosPorNivel()
+    {
+        if (nivelAtual == "A1")
+        {
+            valorTotal = 10.00;
+            dialogoAtual = new List<string>()
+            {
+                cumprimento,
+                "Do you want anything else too?",
+                "The total is ten dollars",
+                "What are you paying with today?",
+                "Thank you.",
+            };
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say hello like the cashier:",
+                    opcoesFala = new List<string>() { cumprimento+"\n" },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosBlocos.Add(
+                new ExercicioBlocos() 
+                { 
+                    enunciado = "Arrange the words to form the correct sentence in english: Sim, eu quero algum chocolate",
+                    blocosPalavras = new List<string>() { "No", "Yes", "thank", "you", "that", "chocolate", "was", "want", "all", "hello", "thank", "I", "maybe", "some" },
+                    respostaCorreta = "Yes, I want some chocolate\n",
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "What is the total amount?",
+                    alternativas = new List<string>() { "3 dollars\r\n", "19 dollars\r\n", "10 dollars\r\n", "16 dollars\r\n" },
+                    alternativaCorreta = 2
+                });
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say the right sentence:",
+                    opcoesFala = new List<string>() { "I’m paying with my card, please.\n", "There is a chair near the door.\n", "He plays soccer every week.\n" },
+                    respostaCorreta = 0
+                }
+            );
+        }
+        else if (nivelAtual == "A2")
+        {
+            valorTotal = 14.50;
+            dialogoAtual = new List<string>()
+            {
+                cumprimento,
+                "Your total is fourteen dollars and fifty cents",
+                "Do you usually bring your own bags, or do you need some today?",
+                "Can I help you with anything else, or do you already have everything you need too?",
+                "What are you paying with today: cash or card?",
+                "Thank you."
+            };
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Repeat the cashier greeting:",
+                    opcoesFala = new List<string>() { cumprimento+"\n" },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "What is the total amount?",
+                    alternativas = new List<string>() { "14.50 dollars\r\n", "40.50 dollars\r\n", "4.05 dollars\r\n", "4.50 dollars\r\n" },
+                    alternativaCorreta = 0
+                });
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Speak the total purchase price: "+valorTotal+"\n",
+                    opcoesFala = new List<string>() { valorTotal+"\n" },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say the right sentence to respond the cashier:",
+                    opcoesFala = new List<string>() { "I am waiting for my friend near the entrance.\n", "There are some magazines under the counter.\n", "I usually bring my own bags, but I need one today.\n" },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say the right sentence to respond the cashier:",
+                    opcoesFala = new List<string>() { "There are many cars in the parking lot.\n", "He is standing between the shelves.\n", "No, I already have everything I need.\n" },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "Answer choosing the right sentence:",
+                    alternativas = new List<string>() { "We are watching a movie tonight.\r\n", "He doesn’t drink coffee either.\r\n", "I’m paying with my debit card.\r\n", "There is a long line at the bakery.\r\n" },
+                    alternativaCorreta = 2
+                });
+        }
+        else
+        {
+            valorTotal = 16.75;
+            dialogoAtual = new List<string>()
+            { 
+                cumprimento+" Did you find everything you were looking for today?",
+                "Your total is sixteen dollars and seventy-five cents",
+                "There are reusable bags left near the register, or would you prefer paper bags instead?",
+                "What payment method are you using today, and would you also like a printed receipt?",
+                "Thank you for shopping with us. Have a great day!"
+            };
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "After listening to the cashier greetings, repeat what she said and say the right answer:",
+                    opcoesFala = new List<string>() { cumprimento+"Yes, I found everything I needed, thank you.\n", cumprimento+"I like chocolate cake and pizza.\n", cumprimento+"The cat is under the table.\n" },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "What is the total amount?",
+                    alternativas = new List<string>() { "14.50 dollars\r\n", "16.50 dollars\r\n", "60.75 dollars\r\n", "16.75 dollars\r\n" },
+                    alternativaCorreta = 3
+                });
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say the total amount for the purchase: " + valorTotal + "\n",
+                    opcoesFala = new List<string>() { valorTotal+"\n" },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say the right sentence to respond the cashier:",
+                    opcoesFala = new List<string>() { "She was reading a magazine in the waiting room earlier.\n", "It’s fine, I prefer the reusable bags near the register.\n", "I usually exercise at the gym three times a week.\n" },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say the right sentence to respond the cashier:",
+                    opcoesFala = new List<string>() { "I’m paying with my credit card, and I’d like the receipt too.\n", "He doesn’t enjoy crowded supermarkets either.\n", "There is a long line near the bakery section.\n" },
+                    respostaCorreta = 0
+                }
+            );
+        }
+    }
+
+    protected override async Task IniciarInteracao()
+    {
+        if (GameProgress.Instance.PodeFalarComCaixa())
+        {
+            GameProgress.EstaEmDialogo = true;
+            nivelAtual = DadosJogador.nivelUsuario;
+            InicializarConteudosPorNivel();
+
+            if (nivelAtual == "A1")
+                await interacaoA1();
+            else if (nivelAtual == "A2")
+                await interacaoA2();
+            else
+                await interacaoB1();
+
+            GameProgress.EstaEmDialogo = false;
+        }
+    }
+
+    private async Task interacaoA1()
+    {
+        int i = 0;
+        // Usuário deve interagir com o caixa para colocar os produtos primeiro, e depois começa a conversa automaticamente
+
+        await PlayAudioETexto(i++, mostrarLegenda: false); 
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);  
+        
+        // Abre o exercício de blocos ("Yes, I want some chocolate")
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosAlternativas[0]); 
+        await CaminharAteDestino(pontoProduto);
+
+        if (produtoChocolate != null)
+        {
+            produtoChocolate.SetActive(false);
+        }
+
+        // 3. NPC volta para o local original do caixa
+        await CaminharAteDestino(pontoOriginalCaixa);
+        
+        // Ajusta a rotação final para encarar o jogador novamente se necessário
+        this.transform.rotation = pontoOriginalCaixa.rotation;
+
+        await PlayAudioETexto(i++);  
+        
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+    }
+
+    private async Task interacaoA2() 
+    {
+        int i = 0;
+        //usuario deve interagir com o caixa para colocar os produtos primeiro, e depois começa a conversa automaticamente
+        
+        await PlayAudioETexto(i++, mostrarLegenda: false); 
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+        exAtual = exerciciosAlternativas[1];
+        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+    }
+
+    private async Task interacaoB1()
+    {
+        int i = 0;
+        //usuario deve interagir com o caixa para colocar os produtos primeiro, e depois começa a conversa automaticamente
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+    }
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    {
+        Debug.Log("Abrindo exercício...");
+
+        ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+        // Removeu a linha antiga: legenda.MoverParaExercicio();
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
+        }
+
+        await EntrarModoExercicio();
+
+        modalExercicio.Abrir(tipo, ex);
+
+        // ✨ Força a legenda a recalcular a posição agora que o modal abriu de fato
+        if (legenda != null) 
+        {
+            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
+        }
+
+        while (!modalExercicio.exercicioFinalizado)
+        {
+            await Task.Yield();
+        }
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
+        }
+
+        await SairModoExercicio();
+
+        // ✨ Força a legenda a voltar para o centro agora que o modal fechou de fato
+        if (legenda != null)
+        {
+            legenda.AjustarPosicaoPeloEstadoDoJogo();
+        }
+    }
+
+    private async Task CaminharAteDestino(Transform destino)
+    {
+        if (navMeshAgent == null || destino == null) 
+        {
+            return;
+        }
+
+        navMeshAgent.SetDestination(destino.position);
+        
+        // Liga a animação de andar se você tiver uma configurada no seu Animator
+        if (animator != null) 
+        {
+            animator.SetBool("IsWalking", true);
+        }
+
+        // Aguarda até que o agente chegue bem perto do destino
+        while (navMeshAgent.pathPending || navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
+        {
+            await Task.Yield();
+        }
+
+        // Desliga a animação de andar ao chegar
+        if (animator != null) animator.SetBool("IsWalking", false); 
+    }
+
+    private async Task PlayAudioETexto(int i, bool mostrarLegenda = true)
+{
+    ultimaFraseDita = dialogoAtual[i];
+    byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+    
+    if (audioBytes != null && audioBytes.Length > 0)
+    {
+        Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
+        string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
+        File.WriteAllBytes(caminho, audioBytes);
+        
+        UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+        var operation = www.SendWebRequest();
+        
+        while (!operation.isDone)
+            await Task.Yield();
+
+        AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+        audioSource.clip = clip;
+
+        if (mostrarLegenda)
+        {
+            textoPularDialogo.gameObject.SetActive(false);
+            // Usa o nome dinâmico do NPC na legenda
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+        }
+
+        audioSource.Play();
+        while (audioSource.isPlaying)
+        {
+            await Task.Yield();
+        }
+
+        if (textoPularDialogo != null)
+        {
+            textoPularDialogo.gameObject.SetActive(true);
+        }
+
+        await Task.Yield();
+
+        bool clicou = false;
+        while (!clicou)
+        {
+            if (Input.GetMouseButtonDown(0)) 
+            {
+                clicou = true; 
+            }
+            else
+            {
+                await Task.Yield(); 
+            }
+        }
+
+        if (textoPularDialogo != null)
+        {
+            textoPularDialogo.gameObject.SetActive(false);
+        }
+    }
+    else
+    {
+        Debug.LogError("O servidor retornou um array de bytes vazio.");
+        if (mostrarLegenda)
+        {
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+        }
+    }
+}
+
+public async Task FalarFraseCustomizada(string textoParaFalar)
+{
+    if (string.IsNullOrEmpty(textoParaFalar)) return;
+
+    // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND TAMBÉM NO FEEDBACK
+    byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+    
+    if (audioBytes != null && audioBytes.Length > 0)
+    {
+        string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
+        File.WriteAllBytes(caminho, audioBytes);
+        
+        UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+        var operation = www.SendWebRequest();
+        
+        while (!operation.isDone)
+            await Task.Yield();
+
+        AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+        audioSource.clip = clip;
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(true); 
+            if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
+            
+            // Usa o nome dinâmico do NPC na legenda
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+        }
+
+        animator.SetBool("IsTalking", true);
+        audioSource.Play();
+        
+        while (audioSource.isPlaying)
+        {
+            await Task.Yield();
+        }
+        animator.SetBool("IsTalking", false);
+    }
+}
+
+    public override bool PodeInteragir()
+    {
+        if (GameProgress.Instance == null)
+        {
+            Debug.LogWarning("GameProgress.Instance está null. Adicione GameProgress em um GameObject da cena.");
+            return false;
+        }
+
+        return GameProgress.Instance.PodeFalarComCaixa();
+    }
+}
