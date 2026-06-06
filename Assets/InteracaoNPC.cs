@@ -7,12 +7,14 @@ public class InteracaoNPC : MonoBehaviour
     public Transform playerCamera;
     public FirstPlayerController movimentoPlayer;
     public float alturaFocoCamera = 0.82f;
+    public GameObject crosshair;
 
     // ✨ Mudado para protected para que ShelfNPC consiga atualizar a posição base após andar
     protected Vector3 npcPosicaoOriginal;
     protected Quaternion npcRotacaoOriginal;
 
     private Quaternion cameraRotacaoOriginal;
+    public string ultimaFraseDita = "";
     private Vector3 cameraPosicaoOriginal;
 
     protected virtual void Start()
@@ -155,7 +157,11 @@ public class InteracaoNPC : MonoBehaviour
     // ✨ Métodos utilitários para controle manual externo
     public void LiberarControlePlayer()
     {
-        if (movimentoPlayer != null) movimentoPlayer.AtivarControle();
+        if (movimentoPlayer != null) 
+        {
+            movimentoPlayer.AtivarControle();
+        }
+        crosshair.SetActive(true); 
     }
 
     public void TravarControlePlayer()
@@ -171,5 +177,11 @@ public class InteracaoNPC : MonoBehaviour
     public virtual bool PodeInteragir()
     {
         return true;
+    }
+
+    public virtual async Task FalarFraseCustomizada(string textoParaFalar)
+    {
+        // Se a lógica de gerar áudio for idêntica para todos, ela pode ficar direto aqui!
+        await Task.CompletedTask;
     }
 }

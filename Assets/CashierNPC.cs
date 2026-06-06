@@ -22,7 +22,7 @@ public class CashierNPC : InteracaoNPC
     public TextMeshProUGUI textoPularDialogo;
     string cumprimento;
 
-    public string idNpcParaVoz = "mulher"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
+    public string idNpcParaVoz = "cashier"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
     public string nomeExibicaoLegenda = "Cashier Attendant";
     double valorTotal;
     private AudioSource audioSource;
@@ -31,7 +31,6 @@ public class CashierNPC : InteracaoNPC
 
     public List<ExercicioBase> exerciciosBlocos;
     public List<ExercicioBase> exerciciosSpeaking;
-    public string ultimaFraseDita = "";
     public List<ExercicioBase> exerciciosAlternativas;
     public ExercicioBase exAtual;
     public GameObject modalLegenda;
@@ -356,24 +355,30 @@ public class CashierNPC : InteracaoNPC
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
     }
+
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {
-        Debug.Log("Abrindo exercício...");
+        Debug.Log("Abrindo exercício: " + tipo);
 
         ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
-
-        // Removeu a linha antiga: legenda.MoverParaExercicio();
 
         if (modalLegenda != null)
         {
             modalLegenda.SetActive(false);
         }
 
+        if (modalExercicio != null)
+        {
+            modalExercicio.titulo.text = ex.enunciado;
+        }
+
         await EntrarModoExercicio();
 
-        modalExercicio.Abrir(tipo, ex);
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
-        // ✨ Força a legenda a recalcular a posição agora que o modal abriu de fato
+        modalExercicio.Abrir(tipo, ex, this);
+
         if (legenda != null) 
         {
             legenda.AjustarPosicaoPeloEstadoDoJogo(); 
@@ -391,7 +396,9 @@ public class CashierNPC : InteracaoNPC
 
         await SairModoExercicio();
 
-        // ✨ Força a legenda a voltar para o centro agora que o modal fechou de fato
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         if (legenda != null)
         {
             legenda.AjustarPosicaoPeloEstadoDoJogo();
@@ -491,7 +498,7 @@ public class CashierNPC : InteracaoNPC
     }
 }
 
-public async Task FalarFraseCustomizada(string textoParaFalar)
+public override async Task FalarFraseCustomizada(string textoParaFalar)
 {
     if (string.IsNullOrEmpty(textoParaFalar)) return;
 

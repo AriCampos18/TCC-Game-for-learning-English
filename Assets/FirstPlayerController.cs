@@ -9,26 +9,26 @@ public class FirstPlayerController : MonoBehaviour
 
     public Transform playerCamera;
 
+    [Header("Animação")]
+    public Animator animator;
+
     private CharacterController controller;
     private float cameraRotationX = 0f;
     private float velocityY = 0f;
 
-    // ✨ Nova variável de controle para não precisar desativar o componente inteiro (enabled = false)
     private bool controleAtivo = true;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         Time.timeScale = 1;
-        
-        // Garante o estado inicial do cursor
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     void Update()
     {
-        // ✨ Agora checa se o controle está ativo e se não está em modo UI
         if (controleAtivo && !ModoJogoManager.Instance.uiMode)
         {
             // MOVIMENTO
@@ -37,6 +37,14 @@ public class FirstPlayerController : MonoBehaviour
 
             Vector3 move = transform.TransformDirection(new Vector3(x, 0, z));
             move *= speed;
+
+            // ANIMAÇÃO
+            bool andando = Mathf.Abs(x) > 0.1f || Mathf.Abs(z) > 0.1f;
+
+            if (animator != null)
+            {
+                animator.SetBool("andando", andando);
+            }
 
             // Gravidade
             if (controller.isGrounded && velocityY < 0)
@@ -60,23 +68,27 @@ public class FirstPlayerController : MonoBehaviour
 
             playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
+        else
+        {
+            if (animator != null)
+            {
+                animator.SetBool("andando", false);
+            }
+        }
     }
 
-    // ✨ FUNÇÃO MÁGICA: Sincroniza a rotação interna após o InteracaoNPC forçar o olhar
     public void SincronizarRotacaoInterna()
     {
-        // Extrai a rotação X atual que a câmera recebeu de fora e atualiza a variável do mouse
         float angulo = playerCamera.localEulerAngles.x;
-        
-        // O Unity trabalha com ângulos de 0 a 360. Convertemos para a escala de -180 a 180 que o Clamp usa
+
         if (angulo > 180f) angulo -= 360f;
-        
+
         cameraRotationX = angulo;
     }
 
     public void AtivarControle()
     {
-        controleAtivo = true; // ✨ Ativa as checagens no Update sem desligar o script
+        controleAtivo = true;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -84,7 +96,12 @@ public class FirstPlayerController : MonoBehaviour
 
     public void DesativarControle()
     {
-        controleAtivo = false; // ✨ Trava teclado e mouse de andar, mas o script continua "vivo" para atualizações
+        controleAtivo = false;
+
+        if (animator != null)
+        {
+            animator.SetBool("andando", false);
+        }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

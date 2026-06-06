@@ -12,6 +12,7 @@ public class SpeakingUI : MonoBehaviour
 {
     public Button botaoMicrofone;
     public GameObject microfoneIcon;
+    private InteracaoNPC npcAtivo;
     public GameObject ondasSom;
     public bool gravando = false;
     private AudioClip clipGravado;
@@ -26,6 +27,7 @@ public class SpeakingUI : MonoBehaviour
     private byte[] dadosAudioWav; 
     
     public Button botaoRepetirFalaNPC; 
+    private string microfoneDispositivo = null;
     private int tentativesRestantes = 3;
     private ExercicioSpeaking dadosExercicioAtual;
 
@@ -46,24 +48,89 @@ public class SpeakingUI : MonoBehaviour
 
         if (Microphone.devices.Length == 0)
         {
-            Debug.LogWarning("Nenhum microfone encontrado!");
+            Debug.LogWarning("Nenhum microfone encontrado no sistema!");
             botaoMicrofone.interactable = false;
             statusGravacao.text = "Microfone não disponível. Verifique as configurações.";
+            return;
+        }
+
+        // ✨ SISTEMA DE PRIORIDADE INTELIGENTE
+        string microfoneNotebook = null;
+        string microfoneFone = null;
+
+        foreach (string device in Microphone.devices)
+        {
+            string nomeMinusculo = device.ToLower();
+            Debug.Log("Microfone detectado: " + device);
+
+            // 1. Identifica se é o microfone interno do notebook
+            if (nomeMinusculo.Contains("realtek") || 
+                nomeMinusculo.Contains("array") || 
+                nomeMinusculo.Contains("built-in") || 
+                nomeMinusculo.Contains("interno"))
+            {
+                microfoneNotebook = device;
+            }
+            // 2. Se não bate com os nomes do notebook, grandes chances de ser um fone/headset plugado
+            else if (nomeMinusculo.Contains("headset") || 
+                     nomeMinusculo.Contains("fone") || 
+                     nomeMinusculo.Contains("wireless") || 
+                     nomeMinusculo.Contains("usb") || 
+                     nomeMinusculo.Contains("bluetooth"))
+            {
+                microfoneFone = device;
+            }
+        }
+
+        // ✨ Aplica a regra de prioridade:
+        if (!string.IsNullOrEmpty(microfoneFone))
+        {
+            // Se achou um fone/headset conectado, ele vira a prioridade máxima!
+            microfoneDispositivo = microfoneFone;
+            Debug.Log($"<color=green>✨ Prioridade Máxima Ativada: Usando Fone/Headset -> {microfoneDispositivo}</color>");
+        }
+        else if (!string.IsNullOrEmpty(microfoneNotebook))
+        {
+            // Se não tem fone, mas achou o do notebook, usa ele
+            microfoneDispositivo = microfoneNotebook;
+            Debug.Log($"<color=yellow>💻 Usando o Microfone Embutido do Notebook -> {microfoneDispositivo}</color>");
+        }
+        else
+        {
+            // Fallback de segurança: caso os nomes sejam genéricos demais, pega o padrão do sistema
+            microfoneDispositivo = Microphone.devices[0];
+            Debug.Log($"Usando microfone padrão da lista: {microfoneDispositivo}");
         }
     }
 
-    public void InicializarExercicio(ExercicioSpeaking ex)
+    public void InicializarExercicio(ExercicioSpeaking ex, InteracaoNPC npcQueChamou)
     {
         dadosExercicioAtual = ex;
+        npcAtivo = npcQueChamou; // Guarda a referência genérica
         tentativesRestantes = 3;
         dadosAudioWav = null;
         audioTranscricao.text = "";
         statusGravacao.text = "Press the microphone to start recording.";
         
         if (botaoRepetirFalaNPC != null)
-            botaoRepetirFalaNPC.gameObject.SetActive(false);
+            botaoRepetirFalaNPC.gameObject.SetActive(true);
     }
 
+    private async void RepetirFalaDoNPC()
+    {
+        // ✨ Funciona dinamicamente com qualquer NPC do jogo!
+        if (npcAtivo != null)
+        {
+            botaoRepetirFalaNPC.interactable = false;
+            statusGravacao.text = "Listening to the NPC...";
+            
+            // O C# vai descobrir sozinho se deve rodar o áudio do Shelf, do Bakery, etc.
+            await npcAtivo.FalarFraseCustomizada(npcAtivo.ultimaFraseDita);
+            
+            statusGravacao.text = "Try recording your response now!";
+            botaoRepetirFalaNPC.interactable = true;
+        }
+    }
     public int ObterIndiceCorreto() => dadosExercicioAtual.respostaCorreta;
     public int ObterTentativasRestantes() => tentativesRestantes;
     public void ReduzirTentativa() => tentativesRestantes--;
@@ -79,11 +146,7 @@ public class SpeakingUI : MonoBehaviour
 
         statusGravacao.text = "Analyzing speech accuracy...";
 
-        // 1. Cria o formulário MultiPart HTTP (Igual ao Postman/HTML form)
-        WWWForm form = new WWWForm();
-        form.AddBinaryData("audio", dadosAudioWav, "audio_gravado.wav", "audio/wav");
-
-        // 2. Limpa e empacota a lista de strings em um formato JSON nativo legível para o Python
+        // 1. Limpa e empacota a lista de strings em um formato JSON nativo legível para o Python
         List<string> frasesLimpas = new List<string>();
         foreach (var frase in dadosExercicioAtual.opcoesFala)
         {
@@ -92,31 +155,24 @@ public class SpeakingUI : MonoBehaviour
         
         // Cria a string JSON manual ["frase1", "frase2", "frase3"]
         string jsonFrases = "[\"" + string.Join("\",\"", frasesLimpas) + "\"]";
-        form.AddField("textos", jsonFrases);
 
-        // 3. Envia os dados para a API Flask
-        using (UnityWebRequest www = UnityWebRequest.Post("http://localhost:5000/whisperFast", form))
+        // 2. Chama o gerenciador de backend para fazer a requisição pesada
+        BackendManager backendManager = new BackendManager();
+        string jsonResposta = await backendManager.EnviarAudioWhisperFast(dadosAudioWav, jsonFrases);
+
+        // 3. Processa a string de resposta que veio do backend
+        if (!string.IsNullOrEmpty(jsonResposta))
         {
-            var operacao = www.SendWebRequest();
-
-            while (!operacao.isDone)
-                await Task.Yield();
-
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                string jsonResposta = www.downloadHandler.text;
-                Debug.Log($"Resposta do Servidor: {jsonResposta}");
-                
-                // Conversão direta de JSON string para o objeto C#
-                SpeakingResult resultado = JsonUtility.FromJson<SpeakingResult>(jsonResposta);
-                return resultado;
-            }
-            else
-            {
-                Debug.LogError("Erro de rede/servidor ao enviar áudio: " + www.error);
-                statusGravacao.text = "<color=red>Server connection error.</color>";
-                return null;
-            }
+            Debug.Log($"Resposta do Servidor recebida via BackendManager: {jsonResposta}");
+            
+            // Conversão direta de JSON string para o objeto C# (mantendo o JsonUtility nativo da sua UI)
+            SpeakingResult resultado = JsonUtility.FromJson<SpeakingResult>(jsonResposta);
+            return resultado;
+        }
+        else
+        {
+            statusGravacao.text = "<color=red>Server connection error.</color>";
+            return null;
         }
     }
 
@@ -152,22 +208,6 @@ public class SpeakingUI : MonoBehaviour
         audioTranscricao.text = $"Great pronunciation! Accuracy: {acuracia}%";
     }
 
-    private async void RepetirFalaDoNPC()
-    {
-        // Alterado de 'ShelfNPC' para 'BakeryNPC' já que este é o script da padaria!
-        BakeryNPC npc = FindObjectOfType<BakeryNPC>();
-        if (npc != null)
-        {
-            botaoRepetirFalaNPC.interactable = false;
-            statusGravacao.text = "Listening to the NPC...";
-            
-            await npc.FalarFraseCustomizada(npc.ultimaFraseDita);
-            
-            statusGravacao.text = "Try recording your response now!";
-            botaoRepetirFalaNPC.interactable = true;
-        }
-    }
-
     void ToggleGravacao()
     {
         if (!gravando) IniciarGravacao();
@@ -182,7 +222,7 @@ public class SpeakingUI : MonoBehaviour
         statusGravacao.text = "Recording...";
         audioTranscricao.text = "";
 
-        clipGravado = Microphone.Start(null, false, tempoMaximoGravacao, frequenciaAmostragem);
+        clipGravado = Microphone.Start(microfoneDispositivo, false, tempoMaximoGravacao, frequenciaAmostragem);
     }
 
     void PararGravacao()
@@ -191,7 +231,8 @@ public class SpeakingUI : MonoBehaviour
         microfoneIcon.SetActive(true);
         ondasSom.SetActive(false);
 
-        if (Microphone.IsRecording(null)) Microphone.End(null);
+        if (Microphone.IsRecording(microfoneDispositivo)) 
+            Microphone.End(microfoneDispositivo);
 
         if (clipGravado != null)
         {

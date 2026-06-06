@@ -31,10 +31,6 @@ public class ModalExercicio : MonoBehaviour
     public async void Confirmar()
     {
         confirmarResposta.interactable = false; 
-
-        // ==========================================
-        // 1. LÓGICA DE ALTERNATIVAS
-        // ==========================================
         if (exercicioAlternativas.activeSelf)
         {
             if (!alternativasUI.Respondeu())
@@ -75,9 +71,6 @@ public class ModalExercicio : MonoBehaviour
                 }
             }
         }
-        // ==========================================
-        // 2. LÓGICA DE SPEAKING (FALA)
-        // ==========================================
         else if (exercicioSpeaking.activeSelf)
         {
             if (speakingUI != null)
@@ -135,9 +128,6 @@ public class ModalExercicio : MonoBehaviour
                 }
             }
         }
-        // ==========================================
-        // 3. LÓGICA DE BLOCOS
-        // ==========================================
         else if (exercicioBlocos.activeSelf)
         {
             if (blocosUI != null)
@@ -169,20 +159,13 @@ public class ModalExercicio : MonoBehaviour
         Fechar();
     }
 
-    public void Abrir(TipoExercicio tipo, ExercicioBase ex)
+    public void Abrir(TipoExercicio tipo, ExercicioBase ex, InteracaoNPC npc)
     {
+        crosshair.SetActive(false); // ✨ Esconde a mira ao abrir o modal de exercício
+
+         // ✨ Correção geral: Garante que o modal de legenda esteja fechado ao abrir um exercício, para evitar sobreposição de UI
         exercicioFinalizado = false;
         panel.SetActive(true);
-        Time.timeScale = 0f;
-        crosshair.SetActive(false);
-
-        // ✨ Ajuste de segurança: Sempre esconde o botão de repetição ao abrir um exercício novo
-        if (botaoRepetirVoz != null)
-            botaoRepetirVoz.SetActive(false);
-
-        // Liberar o mouse para clicar no modal
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
 
         exercicioAlternativas.SetActive(false);
         exercicioSpeaking.SetActive(false);
@@ -191,23 +174,20 @@ public class ModalExercicio : MonoBehaviour
         if (tipo == TipoExercicio.Alternativas)
         {
             exercicioAlternativas.SetActive(true);
-            titulo.text = "Multiple Choice Exercise";
             alternativasUI.Setup((ExercicioAlternativas)ex);
         }
         else if (tipo == TipoExercicio.Speaking)
         {
             exercicioSpeaking.SetActive(true);
-            titulo.text = "Speaking Exercise";
-            speakingUI.InicializarExercicio((ExercicioSpeaking)ex); 
+            // ✨ Repassa o NPC genérico para a UI de fala
+            speakingUI.InicializarExercicio((ExercicioSpeaking)ex, npc); 
         }
         else if (tipo == TipoExercicio.Blocos)
         {
             exercicioBlocos.SetActive(true);
-            titulo.text = "Sentence Formation Exercise";
             blocosUI.InicializarExercicio((ExercicioBlocos)ex);
         }
     }
-
     public void Fechar()
     {
         exercicioFinalizado = true;

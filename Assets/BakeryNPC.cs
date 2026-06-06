@@ -17,14 +17,12 @@ public class BakeryNPC : InteracaoNPC
     List<string> dialogoAtual;
     private Animator animator;
 
-
     string nivelAtual;
     private AudioSource audioSource;
     public ModalExercicio modalExercicio;
-    public string idNpcParaVoz = "mulher"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
+    public string idNpcParaVoz = "bakery"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
     public string nomeExibicaoLegenda = "Bakery Attendant";
     private MissionManager missaoManager;
-    public string ultimaFraseDita = "";
     public List<ExercicioBase> exerciciosSpeaking;
 
     public TextMeshProUGUI textoPularDialogo;
@@ -371,22 +369,27 @@ public class BakeryNPC : InteracaoNPC
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {
-        Debug.Log("Abrindo exercício...");
+        Debug.Log("Abrindo exercício: " + tipo);
 
         ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
-
-        // Removeu a linha antiga: legenda.MoverParaExercicio();
 
         if (modalLegenda != null)
         {
             modalLegenda.SetActive(false);
         }
 
+        if (modalExercicio != null)
+        {
+            modalExercicio.titulo.text = ex.enunciado;
+        }
+
         await EntrarModoExercicio();
 
-        modalExercicio.Abrir(tipo, ex);
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
-        // ✨ Força a legenda a recalcular a posição agora que o modal abriu de fato
+        modalExercicio.Abrir(tipo, ex, this);
+
         if (legenda != null) 
         {
             legenda.AjustarPosicaoPeloEstadoDoJogo(); 
@@ -404,14 +407,17 @@ public class BakeryNPC : InteracaoNPC
 
         await SairModoExercicio();
 
-        // ✨ Força a legenda a voltar para o centro agora que o modal fechou de fato
+        // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         if (legenda != null)
         {
             legenda.AjustarPosicaoPeloEstadoDoJogo();
         }
     }
 
-    private async Task PlayAudioETexto(int i, bool mostrarLegenda = true)
+    private async Task PlayAudioETexto(int i, bool mostrarLegenda)
 {
     ultimaFraseDita = dialogoAtual[i];
     // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
@@ -480,7 +486,7 @@ public class BakeryNPC : InteracaoNPC
     }
 }
 
-public async Task FalarFraseCustomizada(string textoParaFalar)
+public override async Task FalarFraseCustomizada(string textoParaFalar)
 {
     if (string.IsNullOrEmpty(textoParaFalar)) return;
 

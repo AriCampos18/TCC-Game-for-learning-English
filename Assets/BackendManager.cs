@@ -14,14 +14,13 @@ public class BackendManager
     {
         try
         {
-            // 2. INCLUÍDO O PARÂMETRO 'npc' NO OBJETO ANÔNIMO
-            // Isso gera exatamente o JSON esperado pelo Flask: {"texto": "...", "npc": "..."}
             var dados = new { texto = texto, npc = npcId };
             string json = JsonConvert.SerializeObject(dados);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             Debug.Log($"Enviando requisição para o servidor... NPC: {npcId} | Texto: {texto}");
-            var response = await client.PostAsync("http://localhost:5000/coquiGlow", content);
+
+            var response = await client.PostAsync("http://localhost:5000/coquiVits", content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -29,7 +28,8 @@ public class BackendManager
             }
             else
             {
-                Debug.LogError($"Erro no Servidor: {response.StatusCode}");
+                string erro = await response.Content.ReadAsStringAsync();
+                Debug.LogError($"Erro no Servidor: {response.StatusCode} | {erro}");
                 return null;
             }
         }
@@ -40,39 +40,41 @@ public class BackendManager
         }
     }
 
-    public async Task<string> GerarTextoSTT(byte[] audioBytes)
+    public async Task<string> EnviarAudioWhisperFast(byte[] audioBytes, string jsonFrases)
     {
         try
         {
-            var content = new ByteArrayContent(audioBytes);
-            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/wav");
-            Debug.Log("Enviando áudio para o servidor...");
-
-            var response = await client.PostAsync("http://localhost:5000/whisperFast", content);
-
-            if(!response.IsSuccessStatusCode)
+            // Cria o formulário MultiPart equivalente ao WWWForm do Unity
+            using (var multipartForm = new MultipartFormDataContent())
             {
-                Debug.LogWarning($"Whisper Fast falhou (Status: {response.StatusCode}). Tentando Vosk...");
-                response = await client.PostAsync("http://localhost:5000/vosk", content);
-            }
+                // 1. Adiciona o arquivo de áudio em bytes
+                var audioContent = new ByteArrayContent(audioBytes);
+                audioContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/wav");
+                multipartForm.Add(audioContent, "audio", "audio_gravado.wav");
 
-            if (response.IsSuccessStatusCode)
-            {
-                string resultado = await response.Content.ReadAsStringAsync();
-                Debug.Log($"Transcrição: {resultado}");
-                return resultado;
-            }
-            else
-            {
-                Debug.LogError($"Erro no Servidor: {response.StatusCode}");
-                return null;
+                // 2. Adiciona o campo de texto com a string JSON das frases
+                var textoContent = new StringContent(jsonFrases, Encoding.UTF8);
+                multipartForm.Add(textoContent, "textos");
+
+                Debug.Log("Enviando áudio e opções de fala para o whisperFast via BackendManager...");
+                var response = await client.PostAsync("http://localhost:5000/whisperFast", multipartForm);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    Debug.LogError($"Erro no Servidor WhisperFast: {response.StatusCode}");
+                    return null;
+                }
             }
         }
         catch (Exception ex)
         {
-            Debug.LogError($"Erro de Conexão: {ex.Message}");
+            Debug.LogError($"Erro de Conexão no WhisperFast: {ex.Message}");
             return null;
-        }   
+        }
     }
 
     public async Task<RetornoIANivelamento> ProcessarRespostasNivelamento(string json)
@@ -108,5 +110,42 @@ public class BackendManager
             Debug.LogError(ex.Message);
             return null;
         }
+    }
+
+    public async Task<string> TraduzirTextoDeepL(string textoOriginal)
+    {
+        try
+        {
+            // Escapa aspas duplas para não quebrar o formato JSON
+            string json = "{\"texto\":\"" + textoOriginal.Replace("\"", "\\\"") + "\"}";
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            // Faz o POST assíncrono para o seu app.py
+            var response = await client.PostAsync("http://localhost:5000/traduzir", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string jsonResposta = await response.Content.ReadAsStringAsync();
+                // Deserializa usando a classe utilitária abaixo
+                RespostaDeepL dados = JsonConvert.DeserializeObject<RespostaDeepL>(jsonResposta);
+                return dados.traduzido;
+            }
+            else
+            {
+                Debug.LogError($"Erro no Servidor DeepL: {response.StatusCode}");
+                return "";
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Erro de Conexão ao tentar traduzir: {ex.Message}");
+            return "";
+        }
+    }
+
+    // Classe utilitária auxiliar externa ou interna na mesma folha
+    private class RespostaDeepL
+    {
+        public string traduzido;
     }
 }

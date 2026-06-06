@@ -12,111 +12,119 @@ public class RaioCentralInteracao : MonoBehaviour
     private GameObject objetoAtual;
 
     void Update()
+{
+    // ✨ NOVA TRAVA GLOBAL: Se já estiver em diálogo (Shelf andando, fazendo exercício, etc), 
+    // desativa os avisos visuais, limpa o último alvo e impede qualquer nova interação.
+    if (GameProgress.EstaEmDialogo)
     {
-        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        RaycastHit hit;
+        if (modalAvisoMouse != null) modalAvisoMouse.SetActive(false);
+        ClearLast();
+        return; 
+    }
 
-        bool hitSomething = Physics.Raycast(ray, out hit, distance, interactLayer);
+    Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+    RaycastHit hit;
 
-        DestacarObjeto h = null;
-        InteracaoNPC npc = null;
-        GameObject novoObjeto = null;
+    bool hitSomething = Physics.Raycast(ray, out hit, distance, interactLayer);
 
-        bool podeInteragirObjeto = false;
+    DestacarObjeto h = null;
+    InteracaoNPC npc = null;
+    GameObject novoObjeto = null;
 
-        if (hitSomething)
+    bool podeInteragirObjeto = false;
+
+    if (hitSomething)
+    {
+        GameObject obj = hit.collider.gameObject;
+
+        h = obj.GetComponentInParent<DestacarObjeto>();
+        npc = obj.GetComponentInParent<InteracaoNPC>();
+        if (npc != null)
         {
-            GameObject obj = hit.collider.gameObject;
+            bool podeInteragirNPC = npc.PodeInteragir();
 
-            h = obj.GetComponentInParent<DestacarObjeto>();
-            npc = obj.GetComponentInParent<InteracaoNPC>();
-            if (npc != null)
+            if (!MissionManager.Instance.MissaoConcluida("pegar_cesta") || !podeInteragirNPC)
             {
-                bool podeInteragirNPC = npc.PodeInteragir();
-
-                if (!MissionManager.Instance.MissaoConcluida("pegar_cesta") || !podeInteragirNPC)
-                {
-                    h = null;
-                    npc = null;
-                }
-            }
-            else if (npc == null && h != null)
-            {
-                novoObjeto = obj;
-                podeInteragirObjeto = true;
-            }
-        }
-
-        // mudou alvo
-        if (h != lastHighlighted)
-        {
-            ClearLast();
-
-            if (h != null)
-            {
-                lastHighlighted = h;
-                lastNPC = npc;
-                objetoAtual = novoObjeto;
-
-                lastHighlighted.SetHighlight(true);
-
-                if (lastNPC != null)
-                {
-                    lastNPC.MostrarAviso(true);
-                    modalAvisoMouse.SetActive(false);
-                }
-                else
-                {
-                    modalAvisoMouse.SetActive(podeInteragirObjeto);
-                }
+                h = null;
+                npc = null;
             }
         }
-
-        // INTERAÇÃO NPC
-        if (Input.GetKeyDown(KeyCode.F))
+        else if (npc == null && h != null)
         {
+            novoObjeto = obj;
+            podeInteragirObjeto = true;
+        }
+    }
+
+    // mudou alvo
+    if (h != lastHighlighted)
+    {
+        ClearLast();
+
+        if (h != null)
+        {
+            lastHighlighted = h;
+            lastNPC = npc;
+            objetoAtual = novoObjeto;
+
+            lastHighlighted.SetHighlight(true);
+
             if (lastNPC != null)
-                _ = lastNPC.Interagir();
-        }
-
-        // PEGAR OBJETO
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (objetoAtual != null && lastNPC == null)
             {
-
-                Destroy(objetoAtual);
-
-                // missão 1 completa
-                if (!MissionManager.Instance.MissaoConcluida("pegar_cesta"))
-                {
-                    MissionManager.Instance.ConcluirMissao("pegar_cesta");
-
-                    // libera próximas missões
-                    MissionManager.Instance.AdicionarMissao(
-                        "falar_atendente",
-                        "Talk to the market attendant",
-                        "Fale com o atendente do mercado"
-                    );
-
-                    MissionManager.Instance.AdicionarMissao(
-                        "falar_padaria",
-                        "Talk to the bakery attendant",
-                        "Fale com o atendente da padaria"
-                    );
-                }
-
+                lastNPC.MostrarAviso(true);
                 modalAvisoMouse.SetActive(false);
-                ClearLast();
+            }
+            else
+            {
+                modalAvisoMouse.SetActive(podeInteragirObjeto);
             }
         }
+    }
 
-        if (!hitSomething)
+    // INTERAÇÃO NPC
+    if (Input.GetKeyDown(KeyCode.F))
+    {
+        if (lastNPC != null)
+            _ = lastNPC.Interagir();
+    }
+
+    // PEGAR OBJETO
+    if (Input.GetMouseButtonDown(0))
+    {
+        if (objetoAtual != null && lastNPC == null)
         {
+            Destroy(objetoAtual);
+
+            // missão 1 completa
+            if (!MissionManager.Instance.MissaoConcluida("pegar_cesta"))
+            {
+                MissionManager.Instance.ConcluirMissao("pegar_cesta");
+
+                // libera próximas missões
+                MissionManager.Instance.AdicionarMissao(
+                    "falar_atendente",
+                    "Talk to the market attendant",
+                    "Fale com o atendente do mercado"
+                );
+
+                MissionManager.Instance.AdicionarMissao(
+                    "falar_padaria",
+                    "Talk to the bakery attendant",
+                    "Fale com o atendente da padaria"
+                );
+            }
+
             modalAvisoMouse.SetActive(false);
             ClearLast();
         }
     }
+
+    if (!hitSomething)
+    {
+        modalAvisoMouse.SetActive(false);
+        ClearLast();
+    }
+}
 
     void ClearLast()
     {

@@ -11,16 +11,15 @@ public class ShelfNPC : InteracaoNPC
 {
     List<string> dialogoAtual;
     string nivelAtual;
-    HttpClient client = new HttpClient();
     private Animator animator;
 
-    public string ultimaFraseDita = "";
     private AudioSource audioSource;
     public ModalExercicio modalExercicio;
 
     public NavMeshAgent agent; 
     public float distanciaParaRetomarConversa = 2.5f; 
     public List<Transform> pontosPrateleiraA1;
+    //ok
     public List<Transform> pontosPrateleiraA2;
     public List<Transform> pontosPrateleiraB1;
 
@@ -33,7 +32,7 @@ public class ShelfNPC : InteracaoNPC
     private bool podeInteragirCenario = true;
     public TextMeshProUGUI textoPularDialogo;
 
-    public string idNpcParaVoz = "homem"; 
+    public string idNpcParaVoz = "shelf"; 
     public string nomeExibicaoLegenda = "Shelf Attendant";
     private BackendManager backendManager;
     private MissionManager missaoManager; 
@@ -71,8 +70,8 @@ public class ShelfNPC : InteracaoNPC
 
     protected override async Task IniciarInteracao()
     {
-        GameProgress.EstaEmDialogo = true;
-        podeInteragirCenario = false; // ✨ Bloqueia cliques em outros itens interativos do mercado
+        GameProgress.EstaEmDialogo = true; // ✨ Trava tudo aqui
+        podeInteragirCenario = false;
         
         nivelAtual = DadosJogador.nivelUsuario;
         Debug.Log("Nível do jogador capturado na Interação: " + nivelAtual);
@@ -91,10 +90,6 @@ public class ShelfNPC : InteracaoNPC
         {
             await interacaoB1();
         }
-
-        GameProgress.Instance.falouAtendente = true;
-        GameProgress.EstaEmDialogo = false;
-        podeInteragirCenario = true; // ✨ Devolve a permissão de interagir com o cenário
         
         MissionManager.Instance.ConcluirMissao("falar_atendente");
         
@@ -107,6 +102,10 @@ public class ShelfNPC : InteracaoNPC
             );
         }
 
+        GameProgress.Instance.falouAtendente = true;
+        GameProgress.EstaEmDialogo = false; // ✨ Só destrava aqui no final de TUDO
+        podeInteragirCenario = true;
+    
         LiberarControlePlayer(); // ✨ Agora sim o controle do jogador é liberado em definitivo!
     }
 
@@ -121,7 +120,9 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Follow me."
 
         // ✨ INÍCIO DO PROCESSO "SIGA-ME"
+        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
+        crosshair.SetActive(false); 
 
         await PlayAudioETexto(i++); // "The milk is here. Do you need anything else?"
 
@@ -129,7 +130,9 @@ public class ShelfNPC : InteracaoNPC
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
         await PlayAudioETexto(i++); // "Ok, I will show you"
+        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
+        crosshair.SetActive(false); // ✨ Volta a mostrar a mira após o "siga-me"
         await PlayAudioETexto(i++); // "The fruits are here. Can I do anything else for you?"
         await AbrirExercicio(TipoExercicio.Alternativas, exerciciosAlternativas[0]);
 
@@ -151,7 +154,9 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Sure. Follow me, please."
 
         // ✨ INÍCIO DO PROCESSO "SIGA-ME"
+        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
+        crosshair.SetActive(false); 
 
         await PlayAudioETexto(i++); // "The milk is on this shelf..."
 
@@ -161,7 +166,9 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Do you often buy snacks from this aisle..."
         await AbrirExercicio(TipoExercicio.Speaking, exerciciosSpeaking[1]);
 
+        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
+        crosshair.SetActive(false); 
         await PlayAudioETexto(i++); // "I see. Is there anything else you need?"
         await AbrirExercicio(TipoExercicio.Alternativas, exerciciosAlternativas[0]);
 
@@ -183,8 +190,9 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Yes, there are still some discounts..."
         await AbrirExercicio(TipoExercicio.Speaking, exerciciosSpeaking[1]);
 
-        // ✨ INÍCIO DO PROCESSO "SIGA-ME"
+        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
+        crosshair.SetActive(false); 
 
         await PlayAudioETexto(i++); // "The soda is on this shelf..."
 
@@ -291,24 +299,60 @@ public class ShelfNPC : InteracaoNPC
 
         TravarControlePlayer();
 
-        // ✨ CORREÇÃO DO OLHAR: Faz uma rotação suave para encarar o player de verdade antes de abrir o exercício!
-        Vector3 direcaoOlhar = movimentoPlayer.transform.position - transform.position;
-        direcaoOlhar.y = 0;
-        if (direcaoOlhar != Vector3.zero)
+        // =========================================================================
+        // ✨ CORREÇÃO INTEGRAL DE ENQUADRAMENTO (IGUAL AO SISTEMA DO BOTÃO F)
+        // =========================================================================
+        if (movimentoPlayer != null)
         {
-            Quaternion rotacaoAlvo = Quaternion.LookRotation(direcaoOlhar);
+            // 1. Descobre onde está o centro do NPC para mirar a câmera
+            Vector3 alvoFoco;
+            Renderer r = GetComponentInChildren<Renderer>();
+            if (r != null)
+            {
+                Bounds bounds = r.bounds;
+                alvoFoco = bounds.center;
+                alvoFoco.y = Mathf.Lerp(bounds.min.y, bounds.max.y, alturaFocoCamera);
+            }
+            else
+            {
+                alvoFoco = transform.position + Vector3.up * 1.4f;
+            }
+
+            // 2. Força o corpo do Jogador a virar de frente para o NPC
+            Vector3 direcaoCorpoPlayer = alvoFoco - movimentoPlayer.transform.position;
+            Quaternion rotacaoCorpoAlvo = Quaternion.LookRotation(direcaoCorpoPlayer);
+            movimentoPlayer.transform.rotation = Quaternion.Euler(0, rotacaoCorpoAlvo.eulerAngles.y, 0);
+
+            // 3. Força a Câmera do Jogador a olhar verticalmente para o rosto do NPC
+            Vector3 direcaoCameraPlayer = alvoFoco - movimentoPlayer.playerCamera.position;
+            float anguloX = Mathf.Asin(direcaoCameraPlayer.normalized.y) * Mathf.Rad2Deg;
+            movimentoPlayer.playerCamera.localRotation = Quaternion.Euler(-anguloX, 0, 0);
+
+            // 4. Avisa o controlador interno do FirstPerson para não resetar a câmera ao mover o mouse
+            movimentoPlayer.SincronizarRotacaoInterna();
+        }
+
+        // 5. Faz o NPC também virar de frente para o Jogador suavemente
+        Vector3 direcaoOlharNpc = movimentoPlayer.transform.position - transform.position;
+        direcaoOlharNpc.y = 0;
+        if (direcaoOlharNpc != Vector3.zero)
+        {
+            Quaternion rotacaoAlvoNpc = Quaternion.LookRotation(direcaoOlharNpc);
             float tempoRotacao = 0f;
-            while (tempoRotacao < 0.3f) // 0.3 segundos girando suavemente
+            while (tempoRotacao < 0.25f) // Slerp suave de 0.25 segundos
             {
                 tempoRotacao += Time.deltaTime;
-                transform.rotation = Quaternion.Slerp(transform.rotation, rotacaoAlvo, tempoRotacao / 0.3f);
+                transform.rotation = Quaternion.Slerp(transform.rotation, rotacaoAlvoNpc, tempoRotacao / 0.25f);
                 await Task.Yield();
             }
         }
 
-        // ✨ LIMPEZA DE CLIQUE: Consome qualquer clique de mouse que tenha acontecido durante a caminhada
-        // Isso evita que o diálogo pule de fase instantaneamente!
-        Input.ResetInputAxes();
+        // ✨ NOVA LIMPEZA DE MOUSE COMPLETA:
+        // Se o player chegou perto clicando ou segurando o mouse, espera ele soltar.
+        while (Input.GetMouseButton(0) || Input.GetMouseButtonDown(0))
+        {
+            await Task.Yield();
+        }
 
         missaoManager.ConcluirMissao("seguir_atendente");
         if (modalLegenda != null) modalLegenda.SetActive(true);
@@ -447,7 +491,15 @@ public class ShelfNPC : InteracaoNPC
                 textoPularDialogo.gameObject.SetActive(true);
             }
 
-            await Task.Yield();
+            // ✨ ESPERA SEGURA: Aguarda 150ms antes de começar a ouvir o clique.
+            // Isso evita que o clique que fechou o modal ou moveu o player passe para cá.
+            await Task.Delay(150);
+
+            // ✨ Garante que o jogador soltou o botão antes de aceitar um novo clique
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
+            }
 
             bool clicou = false;
             while (!clicou)
@@ -477,7 +529,7 @@ public class ShelfNPC : InteracaoNPC
         }
     }
 
-    public async Task FalarFraseCustomizada(string textoParaFalar)
+    public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
@@ -524,7 +576,6 @@ public class ShelfNPC : InteracaoNPC
             modalLegenda.SetActive(false);
         }
 
-        // ✨ CORREÇÃO DO ENUNCIADO: Alimenta o título do modal com o enunciado do exercício atual!
         if (modalExercicio != null)
         {
             modalExercicio.titulo.text = ex.enunciado;
@@ -532,11 +583,10 @@ public class ShelfNPC : InteracaoNPC
 
         await EntrarModoExercicio();
 
-        // ✨ CORREÇÃO DO MOUSE: Libera o cursor para o jogador interagir com a UI do exercício
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        modalExercicio.Abrir(tipo, ex);
+        modalExercicio.Abrir(tipo, ex, this);
 
         if (legenda != null) 
         {
