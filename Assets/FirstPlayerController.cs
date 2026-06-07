@@ -7,6 +7,12 @@ public class FirstPlayerController : MonoBehaviour
     public float jumpHeight = 1.5f;
     public float gravity = -15f;
 
+    public AudioSource audioPassos;
+    public AudioClip somPasso;
+
+    private float timerPasso;
+    public float intervaloPasso = 0.5f;
+
     public Transform playerCamera;
 
     [Header("Animação")]
@@ -35,11 +41,36 @@ public class FirstPlayerController : MonoBehaviour
             float x = Input.GetAxis("Horizontal");
             float z = Input.GetAxis("Vertical");
 
+            bool andando = Mathf.Abs(x) > 0.1f || Mathf.Abs(z) > 0.1f;
+            if (andando && controller.isGrounded)
+            {
+                timerPasso += Time.deltaTime;
+
+                if (timerPasso >= intervaloPasso)
+                {
+                    if (audioPassos != null && somPasso != null)
+                    {
+                        audioPassos.PlayOneShot(somPasso);
+                    }
+
+                    timerPasso = 0f;
+                }
+            }
+            else
+            {
+                timerPasso = intervaloPasso;
+
+                if (audioPassos != null && audioPassos.isPlaying)
+                {
+                    audioPassos.Stop();
+                }
+            }
+
             Vector3 move = transform.TransformDirection(new Vector3(x, 0, z));
             move *= speed;
 
             // ANIMAÇÃO
-            bool andando = Mathf.Abs(x) > 0.1f || Mathf.Abs(z) > 0.1f;
+            andando = Mathf.Abs(x) > 0.1f || Mathf.Abs(z) > 0.1f;
 
             if (animator != null)
             {
