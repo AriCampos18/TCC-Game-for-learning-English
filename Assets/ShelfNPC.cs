@@ -62,6 +62,17 @@ public class ShelfNPC : InteracaoNPC
         }
     }
 
+    void Update()
+    {
+        if (agent != null && animator != null)
+        {
+            bool estaAndando = agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.05f &&
+            agent.velocity.magnitude > 0.05f;
+
+            animator.SetBool("IsWalking", estaAndando);
+        }
+    }
+
     // Sobrescreve a checagem de interação global para travar o cenário se o jogador estiver seguindo o NPC
     public override bool PodeInteragir()
     {
@@ -210,14 +221,9 @@ public class ShelfNPC : InteracaoNPC
     // ✨ MÉTODO QUE GERENCIA O DESLOCAMENTO E ESPERA DO JOGADOR
     private async Task FluxoSeguirNPCAtelarPrateleira()
     {
-        if (agent == null)
+        if (agent != null)
         {
-            Debug.LogError("NavMeshAgent não configurado no Inspector!");
-            return;
-        }
-
-        // ✨ Escolhe o próximo ponto da lista baseado no nível e no índice atual
-        switch (nivelAtual)
+            switch (nivelAtual)
         {
             case "A1":
                 if (pontosPrateleiraA1 != null && indiceDestinoA1 < pontosPrateleiraA1.Count)
@@ -265,15 +271,19 @@ public class ShelfNPC : InteracaoNPC
         LiberarControlePlayer();
 
         // Faz o NPC andar até o destino atual da sequência
-        agent.SetDestination(pontoDestinoEscolhido.position);
-        if (animator != null) animator.SetBool("IsWalking", true); 
+        agent.SetDestination(pontoDestinoEscolhido.position); 
 
         while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
         {
             await Task.Yield();
         }
 
-        if (animator != null) animator.SetBool("IsWalking", false); 
+        agent.ResetPath();
+
+        if (animator != null)
+        {
+            animator.SetBool("IsWalking", false);
+        }
 
         // Atualiza a posição base para o modo exercício funcionar no lugar certo
         npcPosicaoOriginal = pontoDestinoEscolhido.position;
@@ -346,8 +356,6 @@ public class ShelfNPC : InteracaoNPC
                 await Task.Yield();
             }
         }
-
-        // ✨ NOVA LIMPEZA DE MOUSE COMPLETA:
         // Se o player chegou perto clicando ou segurando o mouse, espera ele soltar.
         while (Input.GetMouseButton(0) || Input.GetMouseButtonDown(0))
         {
@@ -356,6 +364,7 @@ public class ShelfNPC : InteracaoNPC
 
         missaoManager.ConcluirMissao("seguir_atendente");
         if (modalLegenda != null) modalLegenda.SetActive(true);
+        } 
     }
 
     private void InicializarConteudosPorNivel()
