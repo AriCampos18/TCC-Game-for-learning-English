@@ -85,7 +85,19 @@ public class RaioCentralInteracao : MonoBehaviour
     if (Input.GetKeyDown(KeyCode.F))
     {
         if (lastNPC != null)
+        {
+            if (lastNPC is CashierNPC)
+            {
+                if (ProdutoColetaManager.Instance != null &&
+                    !ProdutoColetaManager.Instance.MissaoProdutosConcluida())
+                {
+                    ProdutoColetaManager.Instance.MostrarAvisoProdutosFaltando();
+                    return;
+                }
+            }
+
             _ = lastNPC.Interagir();
+        }
     }
 
     // PEGAR OBJETO
@@ -93,7 +105,17 @@ public class RaioCentralInteracao : MonoBehaviour
     {
         if (objetoAtual != null && lastNPC == null)
         {
-            Destroy(objetoAtual);
+            ProdutoInterativo produto = objetoAtual.GetComponentInParent<ProdutoInterativo>();
+
+            if (produto != null)
+            {
+                ProdutoColetaManager.Instance.RegistrarProduto(produto);
+                produto.gameObject.SetActive(false);
+            }
+            else
+            {
+                Destroy(objetoAtual);
+            }
 
             // missão 1 completa
             if (!MissionManager.Instance.MissaoConcluida("pegar_cesta"))

@@ -152,6 +152,8 @@ public class ShelfNPC : InteracaoNPC
             "Get the products from the shelves",
             "Pegue os produtos das prateleiras"
         );
+
+        ProdutoColetaManager.Instance.LiberarProdutos(nivelAtual);
     }
 
     private async Task interacaoA2() 
@@ -188,6 +190,8 @@ public class ShelfNPC : InteracaoNPC
             "Get the products from the shelves",
             "Pegue os produtos das prateleiras"
         );
+
+        ProdutoColetaManager.Instance.LiberarProdutos(nivelAtual);
     }
 
     private async Task interacaoB1()
@@ -216,6 +220,8 @@ public class ShelfNPC : InteracaoNPC
             "Get the products from the shelves",
             "Pegue os produtos das prateleiras"
         );
+
+        ProdutoColetaManager.Instance.LiberarProdutos(nivelAtual);
     }
 
     // ✨ MÉTODO QUE GERENCIA O DESLOCAMENTO E ESPERA DO JOGADOR

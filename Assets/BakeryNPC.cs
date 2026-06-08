@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.IO;
 using TMPro;
-using UnityEngine.AI;
 
 public enum TipoExercicio
 {
@@ -16,21 +15,21 @@ public enum TipoExercicio
 public class BakeryNPC : InteracaoNPC
 {
     List<string> dialogoAtual;
-    private Animator animator;
+
+    public GameObject breadLoaf;
+    public GameObject cake;
+    public GameObject sandwich;
+    public GameObject sourdough;
 
     string nivelAtual;
     private AudioSource audioSource;
     public ModalExercicio modalExercicio;
     public string idNpcParaVoz = "bakery"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
     public string nomeExibicaoLegenda = "Bakery Attendant";
-    public NavMeshAgent agent;
 
     public List<Transform> pontosBakeryA1;
     public List<Transform> pontosBakeryA2;
     public List<Transform> pontosBakeryB1;
-
-    private Vector3 posicaoOrigemBakery;
-    private Quaternion rotacaoOrigemBakery;
     private MissionManager missaoManager;
     public List<ExercicioBase> exerciciosSpeaking;
 
@@ -51,30 +50,10 @@ public class BakeryNPC : InteracaoNPC
         missaoManager = MissionManager.Instance;
 
         audioSource = GetComponent<AudioSource>();
-        animator = GetComponent<Animator>();
-
-        if (agent == null)
-            agent = GetComponent<NavMeshAgent>();
-
-        posicaoOrigemBakery = transform.position;
-        rotacaoOrigemBakery = transform.rotation;
 
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
         exerciciosBlocos = new List<ExercicioBase>();
-    }
-
-    void Update()
-    {
-        if (agent != null && animator != null)
-        {
-            bool estaAndando =
-                agent.hasPath &&
-                agent.remainingDistance > agent.stoppingDistance + 0.05f &&
-                agent.velocity.magnitude > 0.05f;
-
-            animator.SetBool("IsWalking", estaAndando);
-        }
     }
 
     private void InicializarConteudosPorNivel()
@@ -329,9 +308,7 @@ public class BakeryNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await IrAtePonto(pontosBakeryA1[0]); // pão e suco
-        await IrAtePonto(pontosBakeryA1[1]); 
-        await VoltarParaOrigem();
+        await PegarProduto(breadLoaf);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
@@ -340,9 +317,8 @@ public class BakeryNPC : InteracaoNPC
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await IrAtePonto(pontosBakeryA1[2]); // bolo e sanduiche
-        await IrAtePonto(pontosBakeryA1[3]);
-        await VoltarParaOrigem();
+        await PegarProduto(cake);
+        await PegarProduto(sandwich);
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
@@ -369,10 +345,8 @@ public class BakeryNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await IrAtePonto(pontosBakeryA2[0]); // croissant
-        await IrAtePonto(pontosBakeryA2[1]); // sanduiche
-        await IrAtePonto(pontosBakeryA2[2]); // suco
-        await VoltarParaOrigem();
+        await PegarProduto(sandwich);
+        await PegarProduto(sourdough);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
@@ -401,9 +375,8 @@ public class BakeryNPC : InteracaoNPC
         exAtual = exerciciosBlocos[0];
         await AbrirExercicio(TipoExercicio.Blocos, exAtual);
 
-        await IrAtePonto(pontosBakeryB1[0]); // croissant
-        await IrAtePonto(pontosBakeryB1[1]); // sanduiche
-        await VoltarParaOrigem();
+        await PegarProduto(sandwich);
+        await PegarProduto(sourdough);
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
@@ -416,54 +389,14 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: true);
     }
 
-    private async Task IrAtePonto(Transform ponto)
+    private async Task PegarProduto(GameObject produto)
     {
-        if (agent == null || ponto == null) return;
-
-        agent.SetDestination(ponto.position);
-
-        while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
+        if (produto != null)
         {
-            await Task.Yield();
+            await FalarFraseCustomizada("Let me get that for you.");
+            await Task.Delay(1500);
+            produto.SetActive(false);
         }
-
-        agent.ResetPath();
-
-        if (animator != null)
-            animator.SetBool("IsWalking", false);
-
-        transform.position = ponto.position;
-        transform.rotation = ponto.rotation;
-    }
-
-    private async Task IrAteListaDePontos(List<Transform> pontos)
-    {
-        if (pontos == null) return;
-
-        foreach (Transform ponto in pontos)
-        {
-            await IrAtePonto(ponto);
-        }
-    }
-
-    private async Task VoltarParaOrigem()
-    {
-        if (agent == null) return;
-
-        agent.SetDestination(posicaoOrigemBakery);
-
-        while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
-        {
-            await Task.Yield();
-        }
-
-        agent.ResetPath();
-
-        if (animator != null)
-            animator.SetBool("IsWalking", false);
-
-        transform.position = posicaoOrigemBakery;
-        transform.rotation = rotacaoOrigemBakery;
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
@@ -614,15 +547,12 @@ public class BakeryNPC : InteracaoNPC
                 // Usa o nome dinâmico do NPC na legenda
                 modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
-
-            animator.SetBool("IsTalking", true);
             audioSource.Play();
             
             while (audioSource.isPlaying)
             {
                 await Task.Yield();
             }
-            animator.SetBool("IsTalking", false);
         }
     }
 }

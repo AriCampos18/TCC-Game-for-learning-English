@@ -4,9 +4,9 @@ public class DestacarObjeto : MonoBehaviour
 {
     private Outline outline;
 
-    void Start()
+    void Awake()
     {
-        outline = GetComponentInChildren<Outline>();
+        outline = GetComponent<Outline>();
 
         if (outline != null)
             outline.enabled = false;

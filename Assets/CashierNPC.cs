@@ -264,8 +264,11 @@ public class CashierNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: true);  
         
         // Abre o exercício de blocos ("Yes, I want some chocolate")
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosAlternativas[0]); 
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]); 
+
         await CaminharAteDestino(pontoProduto);
+
+        await Task.Delay(2000);
 
         if (produtoChocolate != null)
         {
