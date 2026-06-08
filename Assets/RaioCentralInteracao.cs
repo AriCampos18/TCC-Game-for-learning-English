@@ -86,16 +86,6 @@ public class RaioCentralInteracao : MonoBehaviour
     {
         if (lastNPC != null)
         {
-            if (lastNPC is CashierNPC)
-            {
-                if (ProdutoColetaManager.Instance != null &&
-                    !ProdutoColetaManager.Instance.MissaoProdutosConcluida())
-                {
-                    ProdutoColetaManager.Instance.MostrarAvisoProdutosFaltando();
-                    return;
-                }
-            }
-
             _ = lastNPC.Interagir();
         }
     }
@@ -109,7 +99,7 @@ public class RaioCentralInteracao : MonoBehaviour
 
             if (produto != null)
             {
-                ProdutoColetaManager.Instance.RegistrarProduto(produto);
+                ProdutoManager.Instance.RegistrarProduto(produto);
                 produto.gameObject.SetActive(false);
             }
             else

@@ -149,11 +149,11 @@ public class ShelfNPC : InteracaoNPC
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
-            "Get the products from the shelves",
-            "Pegue os produtos das prateleiras"
+            "Get the milk and the fruit from the shelves",
+            "Pegue o leite e a fruta das prateleiras"
         );
 
-        ProdutoColetaManager.Instance.LiberarProdutos(nivelAtual);
+        ProdutoManager.Instance.LiberarProdutos(nivelAtual);
     }
 
     private async Task interacaoA2() 
@@ -187,11 +187,11 @@ public class ShelfNPC : InteracaoNPC
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
-            "Get the products from the shelves",
-            "Pegue os produtos das prateleiras"
+            "Get the milk, the cereal and the snack from the shelves",
+            "Pegue o leite, o cereal e o salgadinho das prateleiras"
         );
 
-        ProdutoColetaManager.Instance.LiberarProdutos(nivelAtual);
+        ProdutoManager.Instance.LiberarProdutos(nivelAtual);
     }
 
     private async Task interacaoB1()
@@ -217,11 +217,11 @@ public class ShelfNPC : InteracaoNPC
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
-            "Get the products from the shelves",
-            "Pegue os produtos das prateleiras"
+            "Get the vegetable and the soda from the shelves",
+            "Pegue o legumes e o refrigerante das prateleiras"
         );
 
-        ProdutoColetaManager.Instance.LiberarProdutos(nivelAtual);
+        ProdutoManager.Instance.LiberarProdutos(nivelAtual);
     }
 
     // ✨ MÉTODO QUE GERENCIA O DESLOCAMENTO E ESPERA DO JOGADOR
