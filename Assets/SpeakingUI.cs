@@ -3,10 +3,8 @@ using UnityEngine.UI;
 using System.Threading.Tasks;
 using TMPro;
 using System;
-using System.IO;
 using System.Text;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 
 public class SpeakingUI : MonoBehaviour
 {

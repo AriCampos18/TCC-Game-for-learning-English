@@ -2,19 +2,27 @@ using UnityEngine;
 
 public class DestacarObjeto : MonoBehaviour
 {
-    private Outline outline;
+    private Outline[] outlines;
 
     void Awake()
     {
-        outline = GetComponent<Outline>();
+        outlines = GetComponentsInChildren<Outline>(true);
+        SetHighlight(false);
+    }
 
-        if (outline != null)
-            outline.enabled = false;
+    void Start()
+    {
+        SetHighlight(false);
     }
 
     public void SetHighlight(bool value)
     {
-        if (outline != null)
-            outline.enabled = value;
+        if (outlines == null) return;
+
+        foreach (Outline o in outlines)
+        {
+            if (o != null)
+                o.enabled = value;
+        }
     }
 }
