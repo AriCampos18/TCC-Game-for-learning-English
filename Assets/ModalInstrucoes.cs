@@ -5,7 +5,7 @@ public class ModalInstrucoes : MonoBehaviour
 {
     public Button botaoPlay;
     private FirstPlayerController firstPlayerControllerScript;
-    public GameObject modalInstrucoes, modalMissoes;
+    public GameObject modalInstrucoes, modalMissoes, modalBarraProgressao;
     public GameObject crosshair;
     public Button botaoAjuda;
     public GameObject instrucaoIdioma;
@@ -32,6 +32,7 @@ public class ModalInstrucoes : MonoBehaviour
     void ComecarJogo()
     {
         modalInstrucoes.SetActive(false);
+        modalBarraProgressao.SetActive(true);
         botaoAjuda.gameObject.SetActive(true);
         modalMissoes.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;

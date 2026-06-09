@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 public class ModalExercicio : MonoBehaviour
 {
     public bool exercicioFinalizado = false;
+
+    private TipoExercicio tipoAtual;
+    private ExercicioBase exercicioAtual;
+    private InteracaoNPC npcAtual;
+    private bool modoRevisao = false;
+
     public GameObject panel;
     public Button confirmarResposta;
     public TextMeshProUGUI titulo;
@@ -24,13 +30,18 @@ public class ModalExercicio : MonoBehaviour
     void Start()
     {
         panel.SetActive(false);
+
         if (confirmarResposta != null)
-            confirmarResposta.onClick.AddListener(() => Confirmar()); // Sintaxe lambda para chamar a função
+        {
+            confirmarResposta.onClick.AddListener(() => Confirmar());
+        }
     }
 
     public async void Confirmar()
     {
-        confirmarResposta.interactable = false; 
+        bool acertouExercicio = false;
+        confirmarResposta.interactable = false;
+
         if (exercicioAlternativas.activeSelf)
         {
             if (!alternativasUI.Respondeu())
@@ -44,6 +55,7 @@ public class ModalExercicio : MonoBehaviour
                 if (alternativasUI.EstaCorreto())
                 {
                     Debug.Log("Good. You got the answer right!");
+                    acertouExercicio = true;
                 }
                 else
                 {
@@ -52,11 +64,13 @@ public class ModalExercicio : MonoBehaviour
 
                     Debug.Log($"Resposta incorreta nas Alternativas. Tentativas restantes: {chances}");
 
-                    // ✨ Ativa a ajuda ao errar pela 2ª vez (resta 1 chance de 3)
-                    if (chances == 1 && botaoRepetirVoz != null)
+                    if (!modoRevisao)
                     {
-                        Debug.Log("Errou pela 2ª vez nas Alternativas! Ativando botão de repetição...");
-                        botaoRepetirVoz.SetActive(true);
+                        if (chances == 1 && botaoRepetirVoz != null)
+                        {
+                            Debug.Log("Errou pela 2ª vez nas Alternativas! Ativando botão de repetição...");
+                            botaoRepetirVoz.SetActive(true);
+                        }
                     }
 
                     if (chances > 0)
@@ -66,7 +80,7 @@ public class ModalExercicio : MonoBehaviour
                     }
                     else
                     {
-                        Debug.Log("Acabaram as chances das Alternativas, fechando exercício...");
+                        RegistrarErroParaRevisao();
                     }
                 }
             }
@@ -75,7 +89,6 @@ public class ModalExercicio : MonoBehaviour
         {
             if (speakingUI != null)
             {
-                // 1. Chama a verificação que envia o áudio ao backend e aguarda o JSON
                 SpeakingResult resultado = await speakingUI.VerificarRespostaWhisper();
 
                 if (resultado == null)
@@ -87,44 +100,50 @@ public class ModalExercicio : MonoBehaviour
 
                 int respostaCorretaDoExercicio = speakingUI.ObterIndiceCorreto();
 
-                // Regra 1: O usuário tentou falar uma das opções erradas
                 if (resultado.indice_detectado != respostaCorretaDoExercicio)
                 {
                     speakingUI.ReduzirTentativa();
                     int chances = speakingUI.ObterTentativasRestantes();
-                    
+
                     string erroTexto = "Você escolheu ou pronunciou a alternativa errada. Tente responder novamente!";
                     speakingUI.AtualizarTextoFeedback(erroTexto, resultado.palavras_erradas);
-                    
+
                     Debug.Log($"Opção errada detectada ({resultado.indice_detectado}). Esperada: {respostaCorretaDoExercicio}");
 
-                    if (chances == 1 && botaoRepetirVoz != null)
-                        botaoRepetirVoz.SetActive(true);
+                    if (!modoRevisao)
+                    {
+                        if (chances == 1 && botaoRepetirVoz != null)
+                        {
+                            botaoRepetirVoz.SetActive(true);
+                        }
+                    }
 
                     if (chances > 0)
                     {
                         confirmarResposta.interactable = true;
-                        return; // Trava a tela para tentar de novo
+                        return;
+                    }
+                    else
+                    {
+                        RegistrarErroParaRevisao();
                     }
                 }
-                // Regra 2: Acertou a alternativa, mas a pronúncia/acurácia foi baixa (70% ou menos)
                 else if (resultado.indice_detectado == respostaCorretaDoExercicio && resultado.acuracia <= 70f)
                 {
-                    string feedbackFeedback = $"A alternativa está correta! Mas sua acurácia foi de {resultado.acuracia}%. Vamos repetir para praticar a pronúncia?";
-                    speakingUI.AtualizarTextoFeedback(feedbackFeedback, resultado.palavras_erradas);
-                    
+                    string feedbackTexto = $"A alternativa está correta! Mas sua acurácia foi de {resultado.acuracia}%. Vamos repetir para praticar a pronúncia?";
+                    speakingUI.AtualizarTextoFeedback(feedbackTexto, resultado.palavras_erradas);
+
                     confirmarResposta.interactable = true;
-                    return; // Retorna sem fechar o modal, obrigando a gravar de novo
+                    return;
                 }
-                // Regra 3: Acertou a alternativa e a acurácia foi excelente (> 70%)
                 else
                 {
                     Debug.Log($"Speaking completado com sucesso! Acurácia: {resultado.acuracia}%");
-                    // ✨ Ajuste: Mostra a mensagem de sucesso na UI antes de fechar
-                    speakingUI.MostrarSucessoNativo(resultado.acuracia); 
-                    
-                    // Pequeno delay opcional para o usuário ver que acertou antes do modal sumir
-                    await Task.Delay(1500); 
+                    speakingUI.MostrarSucessoNativo(resultado.acuracia);
+
+                    acertouExercicio = true;
+
+                    await Task.Delay(1500);
                 }
             }
         }
@@ -137,39 +156,88 @@ public class ModalExercicio : MonoBehaviour
                 if (correto)
                 {
                     Debug.Log("Exercicio acertado!");
+                    acertouExercicio = true;
                 }
                 else
                 {
                     int chances = blocosUI.ObterTentativasRestantes();
+
                     if (chances > 0)
                     {
                         confirmarResposta.interactable = true;
-                        return; 
+                        return;
                     }
                     else
                     {
+                        RegistrarErroParaRevisao();
                         Debug.Log("Acabaram as chances, fechando exercício e continuando o papo...");
                     }
                 }
             }
         }
 
-        // Fecha o modal se acertou OU se esgotou as 3 chances
+        if (acertouExercicio)
+        {
+            if (ProgressoNivelManager.Instance != null)
+            {
+                ProgressoNivelManager.Instance.RegistrarAcerto(exercicioAtual);
+            }
+        }
         confirmarResposta.interactable = true;
         Fechar();
     }
 
-    public void Abrir(TipoExercicio tipo, ExercicioBase ex, InteracaoNPC npc)
+    private void RegistrarErroParaRevisao()
     {
-        crosshair.SetActive(false); // ✨ Esconde a mira ao abrir o modal de exercício
+        if (!modoRevisao)
+        {
+            if (RevisaoManager.Instance != null)
+            {
+                if (exercicioAtual != null)
+                {
+                    string contexto = "";
 
-         // ✨ Correção geral: Garante que o modal de legenda esteja fechado ao abrir um exercício, para evitar sobreposição de UI
+                    if (tipoAtual == TipoExercicio.Speaking || tipoAtual == TipoExercicio.Alternativas)
+                    {
+                        if (npcAtual != null)
+                        {
+                            contexto = npcAtual.ultimaFraseDita;
+                        }
+                    }
+
+                    RevisaoManager.Instance.RegistrarErro(
+                        tipoAtual,
+                        exercicioAtual,
+                        contexto
+                    );
+                }
+            }
+        }
+    }
+
+    public void Abrir(TipoExercicio tipo, ExercicioBase ex, InteracaoNPC npc, bool revisao = false)
+    {
+        tipoAtual = tipo;
+        exercicioAtual = ex;
+        npcAtual = npc;
+        modoRevisao = revisao;
+
+        if (crosshair != null)
+        {
+            crosshair.SetActive(false);
+        }
+
         exercicioFinalizado = false;
         panel.SetActive(true);
 
         exercicioAlternativas.SetActive(false);
         exercicioSpeaking.SetActive(false);
         exercicioBlocos.SetActive(false);
+
+        if (botaoRepetirVoz != null)
+        {
+            botaoRepetirVoz.SetActive(false);
+        }
 
         if (tipo == TipoExercicio.Alternativas)
         {
@@ -179,8 +247,15 @@ public class ModalExercicio : MonoBehaviour
         else if (tipo == TipoExercicio.Speaking)
         {
             exercicioSpeaking.SetActive(true);
-            // ✨ Repassa o NPC genérico para a UI de fala
-            speakingUI.InicializarExercicio((ExercicioSpeaking)ex, npc); 
+            speakingUI.InicializarExercicio((ExercicioSpeaking)ex, npc);
+
+            if (modoRevisao)
+            {
+                if (speakingUI.botaoRepetirFalaNPC != null)
+                {
+                    speakingUI.botaoRepetirFalaNPC.gameObject.SetActive(false);
+                }
+            }
         }
         else if (tipo == TipoExercicio.Blocos)
         {
@@ -188,6 +263,7 @@ public class ModalExercicio : MonoBehaviour
             blocosUI.InicializarExercicio((ExercicioBlocos)ex);
         }
     }
+
     public void Fechar()
     {
         exercicioFinalizado = true;

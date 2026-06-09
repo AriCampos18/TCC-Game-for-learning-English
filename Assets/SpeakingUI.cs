@@ -104,14 +104,16 @@ public class SpeakingUI : MonoBehaviour
     public void InicializarExercicio(ExercicioSpeaking ex, InteracaoNPC npcQueChamou)
     {
         dadosExercicioAtual = ex;
-        npcAtivo = npcQueChamou; // Guarda a referência genérica
+        npcAtivo = npcQueChamou;
         tentativesRestantes = 3;
         dadosAudioWav = null;
         audioTranscricao.text = "";
         statusGravacao.text = "Press the microphone to start recording.";
         
         if (botaoRepetirFalaNPC != null)
-            botaoRepetirFalaNPC.gameObject.SetActive(true);
+        {
+            botaoRepetirFalaNPC.gameObject.SetActive(false);
+        }
     }
 
     private async void RepetirFalaDoNPC()

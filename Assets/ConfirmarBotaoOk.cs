@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ModalAvisoCampoVazio : MonoBehaviour
+public class ConfirmarBotaoOk : MonoBehaviour
 {
     public Button botaoOK;
 

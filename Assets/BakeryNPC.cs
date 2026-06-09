@@ -108,6 +108,18 @@ public class BakeryNPC : InteracaoNPC
                     },
                     respostaCorreta = 1,
                 });
+            
+            exerciciosBlocos.Add(
+                new ExercicioBlocos() 
+                { 
+                    enunciado = "Arrange the words to form the correct sentence in english: Você pode me ajudar?",
+                    blocosPalavras = new List<string>() { 
+                        "No", "me", "thank", "you", "that", "Can", "was",
+                        "help", "all", "hello", "thank", "I", "maybe"
+                    },
+                    respostaCorreta = "Can you help me?",
+                }
+            );
 
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
@@ -123,7 +135,7 @@ public class BakeryNPC : InteracaoNPC
             exerciciosAlternativas.Add(
                 new ExercicioAlternativas()
                 {
-                    enunciado = "What do they have at the bakery?",
+                    enunciado = "What kinds of sandwich and cake do they have?",
                     alternativas = new List<string>()
                     {
                         "Apple pie and orange juice\r\n",
@@ -192,6 +204,18 @@ public class BakeryNPC : InteracaoNPC
                         "same", "all", "hello", "thank", "I", "maybe", "ok"
                     },
                     respostaCorreta = "No, that was all I needed, thank you.",
+                }
+            );
+
+            exerciciosBlocos.Add(
+                new ExercicioBlocos() 
+                { 
+                    enunciado = "Arrange the words to form the correct sentence in english: Estou procurando algo doce para o café da manhã.",
+                    blocosPalavras = new List<string>() { 
+                        "sweet", "thank", "you", "that", "something", "was", "for",
+                        "same", "for", "hello", "thank", "I'm", "maybe", "ok", "looking", "breakfast"
+                    },
+                    respostaCorreta = " I’m looking for something sweet for breakfast.",
                 }
             );
         }
@@ -315,6 +339,8 @@ public class BakeryNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
+
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         await PegarProduto(cake);
@@ -340,6 +366,8 @@ public class BakeryNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
+
         await PlayAudioETexto(i++, mostrarLegenda: true);
         
         exAtual = exerciciosSpeaking[1];
@@ -350,7 +378,7 @@ public class BakeryNPC : InteracaoNPC
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 

@@ -7,13 +7,13 @@ using TMPro;
 public class ModalBoasVindasGerenciador : MonoBehaviour
 {
     public GameObject modalBoasVindas;
-    public GameObject modalNivelamento;
+    public GameObject modalNivelamento, modalAvisoRevisao;
     public GameObject modalResultadoNivelmento, modalInstrucoes, modalMissoes, modalAvisoCampoVazio;
     public TextMeshProUGUI explicacao, explicacaoPort;
     public Button botaoComecar, botaoAjuda, botaoRepetirFala;
     private FirstPlayerController firstPlayerControllerScript;
     public GameObject crosshair;
-    public GameObject modalLegenda, modalCarregando;
+    public GameObject modalLegenda, modalCarregando, modalBarraProgressao;
     public GameObject modalAvisoInteracaoMouse;
 
     // Start is called before the first frame update
@@ -26,7 +26,9 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
         modalInstrucoes.SetActive(false);
         botaoAjuda.gameObject.SetActive(false);
         botaoRepetirFala.gameObject.SetActive(false);
+        modalAvisoRevisao.SetActive(false);
         modalAvisoInteracaoMouse.SetActive(false);
+        modalBarraProgressao.SetActive(false);
         modalAvisoCampoVazio.SetActive(false);
         modalCarregando.SetActive(false);
         modalMissoes.SetActive(false);

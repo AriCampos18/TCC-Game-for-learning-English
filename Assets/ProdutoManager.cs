@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ProdutoManager : MonoBehaviour
@@ -12,14 +13,17 @@ public class ProdutoManager : MonoBehaviour
     public Transform grupoLegumes;
     public Transform grupoRefrigerantes;
 
+    [Header("Prefabs para aparecer no caixa")]
+    public GameObject prefabLeite;
+    public GameObject prefabFruta;
+    public GameObject prefabCereal;
+    public GameObject prefabSalgadinho;
+    public GameObject prefabLegume;
+    public GameObject prefabRefrigerante;
+
     private string nivelAtual;
 
-    private bool pegouLeite;
-    private bool pegouFruta;
-    private bool pegouCereal;
-    private bool pegouSalgadinho;
-    private bool pegouLegume;
-    private bool pegouRefrigerante;
+    private List<TipoProdutoMercado> produtosPegos = new List<TipoProdutoMercado>();
 
     void Awake()
     {
@@ -27,16 +31,41 @@ public class ProdutoManager : MonoBehaviour
         DesativarTodos();
     }
 
+    public List<TipoProdutoMercado> GetProdutosPegos()
+    {
+        return new List<TipoProdutoMercado>(produtosPegos);
+    }
+
+    public GameObject GetPrefabProduto(TipoProdutoMercado tipo)
+    {
+        switch (tipo)
+        {
+            case TipoProdutoMercado.Milk:
+                return prefabLeite;
+
+            case TipoProdutoMercado.Fruit:
+                return prefabFruta;
+
+            case TipoProdutoMercado.Cereal:
+                return prefabCereal;
+
+            case TipoProdutoMercado.Snack:
+                return prefabSalgadinho;
+
+            case TipoProdutoMercado.Vegetable:
+                return prefabLegume;
+
+            case TipoProdutoMercado.Soda:
+                return prefabRefrigerante;
+        }
+
+        return null;
+    }
+
     public void LiberarProdutos(string nivel)
     {
         nivelAtual = nivel;
-
-        pegouLeite = false;
-        pegouFruta = false;
-        pegouCereal = false;
-        pegouSalgadinho = false;
-        pegouLegume = false;
-        pegouRefrigerante = false;
+        produtosPegos.Clear();
 
         DesativarTodos();
 
@@ -62,35 +91,32 @@ public class ProdutoManager : MonoBehaviour
     {
         if (produto == null || !produto.podePegar) return;
 
+        if (!produtosPegos.Contains(produto.tipo))
+            produtosPegos.Add(produto.tipo);
+
         switch (produto.tipo)
         {
             case TipoProdutoMercado.Milk:
-                pegouLeite = true;
                 DesativarGrupo(grupoLeites);
                 break;
 
             case TipoProdutoMercado.Fruit:
-                pegouFruta = true;
                 DesativarGrupo(grupoFrutas);
                 break;
 
             case TipoProdutoMercado.Cereal:
-                pegouCereal = true;
                 DesativarGrupo(grupoCereais);
                 break;
 
             case TipoProdutoMercado.Snack:
-                pegouSalgadinho = true;
                 DesativarGrupo(grupoSalgadinhos);
                 break;
 
             case TipoProdutoMercado.Vegetable:
-                pegouLegume = true;
                 DesativarGrupo(grupoLegumes);
                 break;
 
             case TipoProdutoMercado.Soda:
-                pegouRefrigerante = true;
                 DesativarGrupo(grupoRefrigerantes);
                 break;
         }
@@ -104,20 +130,23 @@ public class ProdutoManager : MonoBehaviour
     public bool MissaoProdutosConcluida()
     {
         if (nivelAtual == "A1")
-            return pegouLeite && pegouFruta;
+            return produtosPegos.Contains(TipoProdutoMercado.Milk)
+                && produtosPegos.Contains(TipoProdutoMercado.Fruit);
 
         if (nivelAtual == "A2")
-            return pegouLeite && pegouCereal && pegouSalgadinho;
+            return produtosPegos.Contains(TipoProdutoMercado.Milk)
+                && produtosPegos.Contains(TipoProdutoMercado.Cereal)
+                && produtosPegos.Contains(TipoProdutoMercado.Snack);
 
-        return pegouLegume && pegouRefrigerante;
+        return produtosPegos.Contains(TipoProdutoMercado.Vegetable)
+            && produtosPegos.Contains(TipoProdutoMercado.Soda);
     }
 
     private void AtivarGrupo(Transform grupo)
     {
         if (grupo == null) return;
 
-        ProdutoInterativo[] produtos =
-            grupo.GetComponentsInChildren<ProdutoInterativo>(true);
+        ProdutoInterativo[] produtos = grupo.GetComponentsInChildren<ProdutoInterativo>(true);
 
         foreach (ProdutoInterativo p in produtos)
         {
@@ -130,8 +159,7 @@ public class ProdutoManager : MonoBehaviour
     {
         if (grupo == null) return;
 
-        ProdutoInterativo[] produtos =
-            grupo.GetComponentsInChildren<ProdutoInterativo>(true);
+        ProdutoInterativo[] produtos = grupo.GetComponentsInChildren<ProdutoInterativo>(true);
 
         foreach (ProdutoInterativo p in produtos)
         {

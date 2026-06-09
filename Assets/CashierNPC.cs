@@ -11,6 +11,7 @@ public class CashierNPC : InteracaoNPC
     int horaAtual = DateTime.Now.Hour;
 
     string nivelAtual;
+    public GameObject modalAvisoRevisao;
 
     public UnityEngine.AI.NavMeshAgent navMeshAgent; 
     public Transform pontoProduto;         // Arraste o Objeto Vazio da prateleira aqui
@@ -32,6 +33,16 @@ public class CashierNPC : InteracaoNPC
     public List<ExercicioBase> exerciciosBlocos;
     public List<ExercicioBase> exerciciosSpeaking;
     public List<ExercicioBase> exerciciosAlternativas;
+
+    public List<Transform> pontosProdutosBalcao;
+    public GameObject sacolaFinal;
+    private bool aguardandoPegarSacola = false;
+    private bool sacolaFoiPega = false;
+    public float tempoProdutosNoBalcao = 3f;
+
+    private List<GameObject> produtosInstanciadosNoCaixa = new List<GameObject>();
+    private bool checkoutVisualJaFeito = false;
+
     public ExercicioBase exAtual;
     public GameObject modalLegenda;
 
@@ -237,8 +248,11 @@ public class CashierNPC : InteracaoNPC
         if (GameProgress.Instance.PodeFalarComCaixa())
         {
             GameProgress.EstaEmDialogo = true;
+
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
+
+            await MostrarProdutosNoBalcao();
 
             if (nivelAtual == "A1")
                 await interacaoA1();
@@ -247,7 +261,19 @@ public class CashierNPC : InteracaoNPC
             else
                 await interacaoB1();
 
+            await FazerRevisao();
+
+            aguardandoPegarSacola = true;
+            sacolaFoiPega = false;
+
             GameProgress.EstaEmDialogo = false;
+
+            while (!sacolaFoiPega)
+            {
+                await Task.Yield();
+            }
+
+            aguardandoPegarSacola = false;
         }
     }
 
@@ -408,6 +434,132 @@ public class CashierNPC : InteracaoNPC
         }
     }
 
+    private async Task FazerRevisao()
+    {
+        if (RevisaoManager.Instance != null)
+        {
+            if (RevisaoManager.Instance.TemRevisao())
+            {
+                if (modalAvisoRevisao != null)
+                {
+                    modalAvisoRevisao.SetActive(true);
+
+                    while (modalAvisoRevisao.activeSelf)
+                    {
+                        await Task.Yield();
+                    }
+                }
+
+                List<ExercicioRevisao> revisoes = RevisaoManager.Instance.GetExerciciosErrados();
+
+                foreach (ExercicioRevisao item in revisoes)
+                {
+                    string enunciadoOriginal = item.exercicio.enunciado;
+
+                    if (item.tipo == TipoExercicio.Speaking || item.tipo == TipoExercicio.Alternativas)
+                    {
+                        item.exercicio.enunciado =
+                            "Context: " + item.contextoNpc + "\n\n" + enunciadoOriginal;
+                    }
+
+                    await AbrirExercicioRevisao(item.tipo, item.exercicio);
+
+                    item.exercicio.enunciado = enunciadoOriginal;
+                }
+
+                RevisaoManager.Instance.Limpar();
+            }
+        }
+    }
+
+    private async Task AbrirExercicioRevisao(TipoExercicio tipo, ExercicioBase ex)
+    {
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
+        }
+
+        if (modalExercicio != null)
+        {
+            modalExercicio.titulo.text = ex.enunciado;
+            modalExercicio.Abrir(tipo, ex, this, true);
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        while (!modalExercicio.exercicioFinalizado)
+        {
+            await Task.Yield();
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private async Task MostrarProdutosNoBalcao()
+    {
+        if (checkoutVisualJaFeito) return;
+
+        checkoutVisualJaFeito = true;
+
+        if (sacolaFinal != null)
+            sacolaFinal.SetActive(false);
+
+        produtosInstanciadosNoCaixa.Clear();
+
+        List<TipoProdutoMercado> produtosPegos = ProdutoManager.Instance.GetProdutosPegos();
+
+        for (int i = 0; i < produtosPegos.Count; i++)
+        {
+            if (i >= pontosProdutosBalcao.Count) break;
+
+            GameObject prefab = ProdutoManager.Instance.GetPrefabProduto(produtosPegos[i]);
+
+            if (prefab == null) continue;
+
+            GameObject produtoVisual = Instantiate(
+                prefab,
+                pontosProdutosBalcao[i].position,
+                pontosProdutosBalcao[i].rotation
+            );
+
+            produtosInstanciadosNoCaixa.Add(produtoVisual);
+        }
+
+        await Task.Delay((int)(tempoProdutosNoBalcao * 1000));
+
+        foreach (GameObject obj in produtosInstanciadosNoCaixa)
+        {
+            if (obj != null)
+                Destroy(obj);
+        }
+
+        produtosInstanciadosNoCaixa.Clear();
+
+        if (sacolaFinal != null)
+        {
+            sacolaFinal.SetActive(true);
+
+            SacolaInterativaScript sacola = sacolaFinal.GetComponent<SacolaInterativaScript>();
+            if (sacola == null)
+                sacola = sacolaFinal.AddComponent<SacolaInterativaScript>();
+
+            sacola.Configurar(this);
+
+            Collider col = sacolaFinal.GetComponent<Collider>();
+            if (col != null)
+                col.enabled = true;
+
+            sacolaFinal.layer = LayerMask.NameToLayer("Interativo");
+        }
+    }
+
+    public void SacolaFoiPega()
+    {
+        sacolaFoiPega = true;
+    }
+
     private async Task CaminharAteDestino(Transform destino)
     {
         if (navMeshAgent == null || destino == null) 
@@ -549,6 +701,9 @@ public override async Task FalarFraseCustomizada(string textoParaFalar)
             Debug.LogWarning("GameProgress.Instance está null. Adicione GameProgress em um GameObject da cena.");
             return false;
         }
+
+        if (aguardandoPegarSacola)
+            return false;
 
         return GameProgress.Instance.PodeFalarComCaixa();
     }

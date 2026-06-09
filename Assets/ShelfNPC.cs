@@ -130,8 +130,7 @@ public class ShelfNPC : InteracaoNPC
 
         await PlayAudioETexto(i++); // "Follow me."
 
-        // ✨ INÍCIO DO PROCESSO "SIGA-ME"
-        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
+        crosshair.SetActive(true); //Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); 
 
@@ -145,6 +144,9 @@ public class ShelfNPC : InteracaoNPC
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); // ✨ Volta a mostrar a mira após o "siga-me"
         await PlayAudioETexto(i++); // "The fruits are here. Can I do anything else for you?"
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
+
+        await PlayAudioETexto(i++); // "Yes, we have apples too."
         await AbrirExercicio(TipoExercicio.Alternativas, exerciciosAlternativas[0]);
 
         missaoManager.AdicionarMissao(
@@ -166,7 +168,6 @@ public class ShelfNPC : InteracaoNPC
 
         await PlayAudioETexto(i++); // "Sure. Follow me, please."
 
-        // ✨ INÍCIO DO PROCESSO "SIGA-ME"
         crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); 
@@ -175,6 +176,8 @@ public class ShelfNPC : InteracaoNPC
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
 
         await PlayAudioETexto(i++); // "Do you often buy snacks from this aisle..."
         await AbrirExercicio(TipoExercicio.Speaking, exerciciosSpeaking[1]);
@@ -387,7 +390,8 @@ public class ShelfNPC : InteracaoNPC
                 "Follow me.",
                 "The milk is here. Do you need anything else?",
                 "Ok, I will show you",
-                "The fruits are here. Can I do anything else for you?"
+                "The fruits are here. Can I do anything else for you?",
+                "Yes, we have apples too."
             };
 
             exerciciosBlocos.Add(new ExercicioBlocos() 
@@ -395,6 +399,13 @@ public class ShelfNPC : InteracaoNPC
                 enunciado = "Arrange the words to form the sentence in english: Onde está o leite?",
                 blocosPalavras = new List<string>() { "Where", "milk", "thank", "you", "that", "is", "all", "hello", "bread", "the" },
                 respostaCorreta = "Where is the milk?",
+            });
+
+            exerciciosBlocos.Add(new ExercicioBlocos() 
+            { 
+                enunciado = "Arrange the words to form the sentence in english: Há maçãs hoje?",
+                blocosPalavras = new List<string>() { "Where", "Are", "thank", "apples", "that", "is", "any", "hello", "bread", "there" },
+                respostaCorreta = "Are there any apples today?",
             });
 
             exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -407,7 +418,7 @@ public class ShelfNPC : InteracaoNPC
             exerciciosAlternativas.Add(new ExercicioAlternativas()
             {
                 enunciado = "Answer choosing the right sentence:",
-                alternativas = new List<string>() { "She is my teacher.\r\n", "They goes to school.\r\n", "No, thank you.\r\n", "I like to play soccer.\r\n" },
+                alternativas = new List<string>() { "She is my teacher.\r\n", "They goes to school.\r\n", "That is all I needed, thank you\r\n", "I like to play soccer.\r\n" },
                 alternativaCorreta = 2
             });
         }
@@ -418,7 +429,7 @@ public class ShelfNPC : InteracaoNPC
                 "Hi! What are you looking for in the supermarket today?",
                 "Sure. Follow me, please.",
                 "The milk is on this shelf, and the cereal is over there. Do you need anything else?",
-                "Do you often buy snacks from this aisle, or do you prefer the one near the bakery?",
+                "There are special discounts today.Do you often buy snacks from this aisle, or do you prefer the one near the bakery?",
                 "The snacks are here. Can I help you find anything else, or do you already have everything?"
            };
 
@@ -436,6 +447,13 @@ public class ShelfNPC : InteracaoNPC
                 respostaCorreta = 0
             });
 
+            exerciciosBlocos.Add(new ExercicioBlocos()
+            {
+                enunciado = "Arrange the words to form the sentence in english: Há descontos especiais hoje?",
+                blocosPalavras = new List<string>() { "Where", "thank", "you", "there", "Are", "all", "hello", "speacial", "the", "cereal", "any", "and", "discounts", "bread", "today" },
+                respostaCorreta = "Are there any special discounts today?"
+            });
+
             exerciciosAlternativas.Add(new ExercicioAlternativas()
             {
                 enunciado = "Answer choosing the right sentence:",
@@ -449,6 +467,7 @@ public class ShelfNPC : InteracaoNPC
             { 
                 "Hi! What are you searching for today, and would you like me to show you where the products are?",
                 "Yes, there are still some discounts available on pizzas and vegetables.",
+                "Of course, follow me and I'll show you where they are.",
                 "The soda is on this shelf and the vegetables are right in front of it. Can I help you find anything else, or have you already picked up everything you needed today?",
                 "Enjoy the discounts. Happy shopping!"
             };
@@ -458,6 +477,13 @@ public class ShelfNPC : InteracaoNPC
                 enunciado = "How should you respond? Say the right answer:",
                 opcoesFala = new List<string>() { "My cousin usually travels by train during the holidays.\n", "The parking lot was completely full after lunchtime.\n", "Are there any special discounts in the frozen food section today, or has the promotion already ended?\r\n" },
                 respostaCorreta = 2
+            });
+
+            exerciciosSpeaking.Add(new ExercicioSpeaking()
+            {
+                enunciado = "How should you respond? Say the right answer:",
+                opcoesFala = new List<string>() { "Nice. I’m searching for some healthy food and bottled soda too.\n", "There is a pharmacy next to the supermarket entrance. He doesn’t enjoy waking up early either.\n", "He doesn’t enjoy waking up early either.\r\n" },
+                respostaCorreta = 0
             });
 
             exerciciosBlocos.Add(new ExercicioBlocos() 

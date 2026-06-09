@@ -95,6 +95,19 @@ public class RaioCentralInteracao : MonoBehaviour
     {
         if (objetoAtual != null && lastNPC == null)
         {
+            SacolaInterativaScript sacola = objetoAtual.GetComponentInParent<SacolaInterativaScript>();
+
+            if (sacola != null)
+            {
+                sacola.PegarSacola();
+
+                if (modalAvisoMouse != null)
+                    modalAvisoMouse.SetActive(false);
+
+                ClearLast();
+                return;
+            }
+
             ProdutoInterativo produto = objetoAtual.GetComponentInParent<ProdutoInterativo>();
 
             if (produto != null)
