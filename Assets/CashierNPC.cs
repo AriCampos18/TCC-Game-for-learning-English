@@ -621,6 +621,9 @@ public class CashierNPC : InteracaoNPC
         if (textoPularDialogo != null)
         {
             textoPularDialogo.gameObject.SetActive(true);
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
         await Task.Yield();

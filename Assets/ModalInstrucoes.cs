@@ -8,7 +8,6 @@ public class ModalInstrucoes : MonoBehaviour
     public GameObject modalInstrucoes, modalMissoes, modalBarraProgressao;
     public GameObject crosshair;
     public Button botaoAjuda;
-    public GameObject instrucaoIdioma;
     
     // Start is called before the first frame update
     void Start()
@@ -21,12 +20,6 @@ public class ModalInstrucoes : MonoBehaviour
         if (botaoPlay != null)
             botaoPlay.onClick.AddListener(ComecarJogo);
 
-        string nivel = DadosJogador.nivelUsuario;
-
-        if (nivel == "B1")
-        {
-            instrucaoIdioma.SetActive(false);
-        }
     }
 
     void ComecarJogo()

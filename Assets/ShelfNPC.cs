@@ -530,6 +530,9 @@ public class ShelfNPC : InteracaoNPC
             if (textoPularDialogo != null)
             {
                 textoPularDialogo.gameObject.SetActive(true);
+
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
             }
 
             // ✨ ESPERA SEGURA: Aguarda 150ms antes de começar a ouvir o clique.

@@ -60,8 +60,7 @@ public class BlocosUI : MonoBehaviour
         if (acertou)
         {
             feedbackAtualString =
-                $"Great job. You are right!\n" +
-                $"Accuracy: {porcentagem:0}%";
+                $"Great job. You are right!\n";
 
             AtualizarFeedback(feedbackAtualString, Color.green);
             return true;
@@ -75,14 +74,14 @@ public class BlocosUI : MonoBehaviour
         if (porcentagem <= 70f)
         {
             feedbackAtualString = ultimaTentativa
-                ? $"Incorrect answer.\nAccuracy: {porcentagem:0}%\n{detalhes}"
-                : $"Incorrect answer, try again.\nAccuracy: {porcentagem:0}%\n{detalhes}";
+                ? $"Incorrect answer.{detalhes}"
+                : $"Incorrect answer, try again.{detalhes}";
         }
         else
         {
             feedbackAtualString = ultimaTentativa
-                ? $"Almost there.\nAccuracy: {porcentagem:0}%\n{detalhes}"
-                : $"Almost there. Try again.\nAccuracy: {porcentagem:0}%\n{detalhes}";
+                ? $"Almost there.{detalhes}"
+                : $"Almost there. Try again.{detalhes}";
         }
 
         AtualizarFeedback(feedbackAtualString, Color.red);
@@ -162,28 +161,27 @@ public class BlocosUI : MonoBehaviour
     private string MontarDetalhesBlocos(List<string> jogador, List<string> correta)
     {
         List<string> certos = new List<string>();
-        List<string> errados = new List<string>();
+        List<string> faltando = new List<string>();
 
-        int maior = Mathf.Max(jogador.Count, correta.Count);
+        List<string> jogadorNormalizado = new List<string>();
 
-        for (int i = 0; i < maior; i++)
+        foreach (string palavra in jogador)
         {
-            string palavraJogador = i < jogador.Count ? jogador[i] : "(missing)";
-            string palavraCorreta = i < correta.Count ? correta[i] : "(extra)";
+            jogadorNormalizado.Add(NormalizarFrase(palavra));
+        }
 
-            string normalJogador = NormalizarFrase(palavraJogador);
+        foreach (string palavraCorreta in correta)
+        {
             string normalCorreta = NormalizarFrase(palavraCorreta);
 
-            if (normalJogador == normalCorreta)
+            if (jogadorNormalizado.Contains(normalCorreta))
             {
-                certos.Add(palavraJogador);
+                certos.Add(palavraCorreta);
+                jogadorNormalizado.Remove(normalCorreta);
             }
             else
             {
-                if (i < jogador.Count)
-                    errados.Add($"{palavraJogador} → should be {palavraCorreta}");
-                else
-                    errados.Add($"Missing: {palavraCorreta}");
+                faltando.Add(palavraCorreta);
             }
         }
 
@@ -192,8 +190,8 @@ public class BlocosUI : MonoBehaviour
         if (certos.Count > 0)
             texto += "\nCorrect blocks: " + string.Join(", ", certos);
 
-        if (errados.Count > 0)
-            texto += "\nCheck these blocks: " + string.Join(", ", errados);
+        if (faltando.Count > 0)
+            texto += "\nMissing blocks: " + string.Join(", ", faltando);
 
         return texto;
     }
