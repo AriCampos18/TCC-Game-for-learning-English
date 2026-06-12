@@ -65,7 +65,8 @@ public class BackendManager
                 }
                 else
                 {
-                    Debug.LogError($"Erro no Servidor WhisperFast: {response.StatusCode}");
+                    string erro = await response.Content.ReadAsStringAsync();
+                    Debug.LogError($"Erro no Servidor WhisperFast: {response.StatusCode} | {erro}");
                     return null;
                 }
             }

@@ -4,11 +4,17 @@ using TMPro;
 
 public class AlternativasUI : MonoBehaviour
 {
-    public TextMeshProUGUI enunciado;
     public Button[] botoes;
 
     private int respostaSelecionada = -1;
+
+    public TextMeshProUGUI textoFeedback;
     private ExercicioAlternativas exercicio;
+
+    private Color32 corNormal = new Color32(255, 255, 255, 255);
+    private Color32 corSelecionada = new Color32(220, 235, 255, 255);
+    private Color32 corCorreta = new Color32(200, 230, 201, 255);
+    private Color32 corErrada = new Color32(255, 205, 210, 255);
 
     // ✨ NOVAS VARIÁVEIS PARA CONTROLE DE CHANCES
     private int tentativasRestantes = 3; 
@@ -16,11 +22,12 @@ public class AlternativasUI : MonoBehaviour
     public void Setup(ExercicioAlternativas ex)
     {
         exercicio = ex;
-        enunciado.text = ex.enunciado;
         respostaSelecionada = -1;
 
         // ✨ Reseta as chances toda vez que o exercício abre
         tentativasRestantes = 3; 
+
+        if (textoFeedback != null) textoFeedback.text = "";
 
         for (int i = 0; i < botoes.Length; i++)
         {
@@ -40,11 +47,21 @@ public class AlternativasUI : MonoBehaviour
         respostaSelecionada = index;
 
         for (int i = 0; i < botoes.Length; i++)
-            botoes[i].image.color = Color.white;
+            botoes[i].image.color = corNormal;
 
-        botoes[index].image.color = new Color32(56, 142, 60, 255);
+        botoes[index].image.color = corSelecionada;
     }
 
+    public void MostrarResultadoVisual()
+    {
+        if (respostaSelecionada == -1) return;
+
+        if (EstaCorreto())
+            botoes[respostaSelecionada].image.color = corCorreta;
+        else
+            botoes[respostaSelecionada].image.color = corErrada;
+    }
+    
     public bool Respondeu()
     {
         return respostaSelecionada != -1;

@@ -5,7 +5,6 @@ using UnityEngine;
 public class BlocosUI : MonoBehaviour
 {
     public GeradorDeBlocos gerador;
-    public TextMeshProUGUI textoEnunciado;
     public TextMeshProUGUI textoFeedback;
 
     private ExercicioBlocos exAtual;
@@ -21,7 +20,6 @@ public class BlocosUI : MonoBehaviour
             feedbackAtualString = "";
 
             if (textoFeedback != null) textoFeedback.text = "";
-            if (textoEnunciado != null) textoEnunciado.text = exercicio.enunciado;
 
             string[] palavrasEmbaralhadas = exercicio.blocosPalavras.ToArray();
             gerador.CriarBlocosDasPalavras(palavrasEmbaralhadas);

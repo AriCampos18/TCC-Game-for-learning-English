@@ -6,6 +6,8 @@ public class InteracaoNPC : MonoBehaviour
     public GameObject avisoUI;
     public Transform playerCamera;
     public FirstPlayerController movimentoPlayer;
+
+    private bool interagindo = false;
     public float alturaFocoCamera = 0.82f;
     public GameObject crosshair;
 
@@ -30,40 +32,50 @@ public class InteracaoNPC : MonoBehaviour
     // 1. INÍCIO DA INTERAÇÃO: Trava o player e vira o NPC
     public async Task Interagir()
     {
-        MostrarAviso(false);
+        if (interagindo) return;
 
-        if (movimentoPlayer != null)
+        interagindo = true;
+
+        try
         {
-            movimentoPlayer.DesativarControle();
+            MostrarAviso(false);
 
-            // Faz a câmera do player olhar para o NPC
-            Vector3 alvo;
-            Renderer r = GetComponentInChildren<Renderer>();
-
-            if (r != null)
+            if (movimentoPlayer != null)
             {
-                Bounds bounds = r.bounds;
-                alvo = bounds.center;
-                alvo.y = Mathf.Lerp(bounds.min.y, bounds.max.y, alturaFocoCamera);
+                movimentoPlayer.DesativarControle();
+
+                Vector3 alvo;
+                Renderer r = GetComponentInChildren<Renderer>();
+
+                if (r != null)
+                {
+                    Bounds bounds = r.bounds;
+                    alvo = bounds.center;
+                    alvo.y = Mathf.Lerp(bounds.min.y, bounds.max.y, alturaFocoCamera);
+                }
+                else
+                {
+                    alvo = transform.position + Vector3.up * 1.4f;
+                }
+
+                Vector3 direcao = alvo - movimentoPlayer.transform.position;
+                Quaternion rot = Quaternion.LookRotation(direcao);
+                movimentoPlayer.transform.rotation = Quaternion.Euler(0, rot.eulerAngles.y, 0);
+
+                Vector3 direcaoCamera = alvo - movimentoPlayer.playerCamera.position;
+                float anguloX = Mathf.Asin(direcaoCamera.normalized.y) * Mathf.Rad2Deg;
+                movimentoPlayer.playerCamera.localRotation = Quaternion.Euler(-anguloX, 0, 0);
+
+                movimentoPlayer.SincronizarRotacaoInterna();
             }
-            else
-            {
-                alvo = transform.position + Vector3.up * 1.4f;
-            }
 
-            Vector3 direcao = alvo - movimentoPlayer.transform.position;
-            Quaternion rot = Quaternion.LookRotation(direcao);
-            movimentoPlayer.transform.rotation = Quaternion.Euler(0, rot.eulerAngles.y, 0);
-
-            Vector3 direcaoCamera = alvo - movimentoPlayer.playerCamera.position;
-            float anguloX = Mathf.Asin(direcaoCamera.normalized.y) * Mathf.Rad2Deg;
-            movimentoPlayer.playerCamera.localRotation = Quaternion.Euler(-anguloX, 0, 0);
-
-            movimentoPlayer.SincronizarRotacaoInterna(); 
+            await VirarParaPlayer();
+            await IniciarInteracao();
         }
-
-        await VirarParaPlayer();
-        await IniciarInteracao();
+        finally
+        {
+            interagindo = false;
+        }
     }
 
     private async Task VirarParaPlayer()

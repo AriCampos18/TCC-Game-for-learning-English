@@ -64,11 +64,13 @@ public class ModalExercicio : MonoBehaviour
                 {
                     if (alternativasUI.EstaCorreto())
                     {
+                        alternativasUI.MostrarResultadoVisual();
                         Debug.Log("Good. You got the answer right!");
                         acertouExercicio = true;
                     }
                     else
                     {
+                        alternativasUI.MostrarResultadoVisual();
                         alternativasUI.ReduzirTentativa();
                         int chances = alternativasUI.ObterTentativasRestantes();
 

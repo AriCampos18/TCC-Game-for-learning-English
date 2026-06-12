@@ -10,11 +10,12 @@ public class SpeakingUI : MonoBehaviour
 {
     public Button botaoMicrofone;
     public GameObject microfoneIcon;
+    public TextMeshProUGUI[] textosOpcoesFala;
     private InteracaoNPC npcAtivo;
     public GameObject ondasSom;
     public bool gravando = false;
     private AudioClip clipGravado;
-    public TextMeshProUGUI statusGravacao, audioTranscricao;
+    public TextMeshProUGUI statusGravacao;
     public int frequenciaAmostragem = 16000;
     public int tempoMaximoGravacao = 10;
     
@@ -25,6 +26,7 @@ public class SpeakingUI : MonoBehaviour
     private byte[] dadosAudioWav; 
     
     public Button botaoRepetirFalaNPC; 
+    public TextMeshProUGUI textoFeedback;
     private string microfoneDispositivo = null;
     private int tentativesRestantes = 3;
     private ExercicioSpeaking dadosExercicioAtual;
@@ -42,7 +44,6 @@ public class SpeakingUI : MonoBehaviour
 
         ondasSom.SetActive(false);
         statusGravacao.text = "Press the microphone to start recording.";
-        audioTranscricao.text = "";
 
         if (Microphone.devices.Length == 0)
         {
@@ -107,12 +108,25 @@ public class SpeakingUI : MonoBehaviour
         npcAtivo = npcQueChamou;
         tentativesRestantes = 3;
         dadosAudioWav = null;
-        audioTranscricao.text = "";
         statusGravacao.text = "Press the microphone to start recording.";
-        
+        if (textoFeedback != null) textoFeedback.text = "";
+
         if (botaoRepetirFalaNPC != null)
         {
             botaoRepetirFalaNPC.gameObject.SetActive(false);
+        }
+
+        for (int i = 0; i < textosOpcoesFala.Length; i++)
+        {
+            if (i < ex.opcoesFala.Count)
+            {
+                textosOpcoesFala[i].gameObject.SetActive(true);
+                textosOpcoesFala[i].text = ex.opcoesFala[i];
+            }
+            else
+            {
+                textosOpcoesFala[i].gameObject.SetActive(false);
+            }
         }
     }
 
@@ -198,14 +212,16 @@ public class SpeakingUI : MonoBehaviour
             sb.Append("\"");
         }
 
-        audioTranscricao.text = sb.ToString();
+        if (textoFeedback != null)
+            textoFeedback.text = sb.ToString();
     }
 
     // Mantido o feedback padrão de sucesso para quando o Modal passar direto
     public void MostrarSucessoNativo(float acuracia)
     {
         statusGravacao.text = "<color=#2E7D32>Perfect! Correct answer.</color>";
-        audioTranscricao.text = $"Great pronunciation! Accuracy: {acuracia}%";
+        if (textoFeedback != null)
+            textoFeedback.text = $"Great pronunciation! Accuracy: {acuracia}%";
     }
 
     void ToggleGravacao()
@@ -220,7 +236,8 @@ public class SpeakingUI : MonoBehaviour
         microfoneIcon.SetActive(false);
         ondasSom.SetActive(true);
         statusGravacao.text = "Recording...";
-        audioTranscricao.text = "";
+
+        if(textoFeedback != null) textoFeedback.text = "";
 
         clipGravado = Microphone.Start(microfoneDispositivo, false, tempoMaximoGravacao, frequenciaAmostragem);
     }
@@ -240,7 +257,8 @@ public class SpeakingUI : MonoBehaviour
             // Converte os dados gravados da memória do Unity diretamente para o array de bytes em formato WAV
             dadosAudioWav = ConvertAudioClipToWav(clipGravado);
             statusGravacao.text = "Audio ready! Press 'Confirm' to submit.";
-            audioTranscricao.text = "<i>Audio recorded. Click the confirmation button to evaluate.</i>";
+            if (textoFeedback != null)
+                textoFeedback.text = "<i>Audio recorded. Click the confirmation button to evaluate.</i>";
         }
     }
 

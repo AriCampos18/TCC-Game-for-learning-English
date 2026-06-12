@@ -315,6 +315,8 @@ public class BakeryNPC : InteracaoNPC
                 "Coloque os produtos no caixa para iniciar a conversa com o caixa"
             );
         }
+
+        LiberarControlePlayer();
     }
 
     private async Task interacaoA1()
@@ -522,6 +524,7 @@ public class BakeryNPC : InteracaoNPC
                 if (Input.GetMouseButtonDown(0)) 
                 {
                     clicou = true; 
+                    Debug.Log("Clique detectado!");
                 }
                 else
                 {
@@ -529,9 +532,15 @@ public class BakeryNPC : InteracaoNPC
                 }
             }
 
+
             if (textoPularDialogo != null)
             {
                 textoPularDialogo.gameObject.SetActive(false);
+            }
+
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
             }
         }
         else

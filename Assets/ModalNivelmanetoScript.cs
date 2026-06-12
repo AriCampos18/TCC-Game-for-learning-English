@@ -33,7 +33,7 @@ public class ModalNivelmanetoScript : MonoBehaviour
         backendManager = new BackendManager();
         nivelamentoObjetivoScript = nivelamentoObjetivo.GetComponent<NivelamentoObjetivoScript>();
         modalRespostaScript =
-    modalRespostaNivelamento.GetComponent<ModalRespostaNivelamentoScript>();
+        modalRespostaNivelamento.GetComponent<ModalRespostaNivelamentoScript>();
         perguntasObjetivas = new List<ExercicioBase>();
         respostasNivelamento = new List<RespostaNivelamento>();
         nivelamentoDiscursivo.SetActive(true);
@@ -329,6 +329,11 @@ public class ModalNivelmanetoScript : MonoBehaviour
 
             DadosJogador.nivelUsuario = resultado.nivel;
 
+            if (ProgressoNivelManager.Instance != null)
+            {
+                ProgressoNivelManager.Instance.InicializarBarra();
+            }
+
             modalRespostaScript.MostrarResultado(
                 resultado.nivel,
                 resultado.feedback
@@ -349,6 +354,11 @@ public class ModalNivelmanetoScript : MonoBehaviour
 
         // ADICIONE ESTA LINHA PARA SALVAR O NÍVEL CORRETAMENTE:
         DadosJogador.nivelUsuario = "A1"; 
+
+        if (ProgressoNivelManager.Instance != null)
+        {
+            ProgressoNivelManager.Instance.InicializarBarra();
+        }
 
         modalRespostaScript.MostrarResultado("A1", "Você ficou no nível A1 de inglês. Você está no início da aprendizagem de inglês. As próximas atividades irão ajudar no desenvolvimento do vocabulário, compreensão e conversação.");
 

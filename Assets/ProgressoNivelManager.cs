@@ -6,8 +6,6 @@ using TMPro;
 public class ProgressoNivelManager : MonoBehaviour
 {
     public static ProgressoNivelManager Instance;
-
-    [Header("UI")]
     public Image fillBarra;
     public TextMeshProUGUI textoInicioNivel;
     public TextMeshProUGUI textoFimNivel;
@@ -31,6 +29,7 @@ public class ProgressoNivelManager : MonoBehaviour
     public void InicializarBarra()
     {
         nivelAtual = DadosJogador.nivelUsuario;
+        Debug.Log("Nível atual da barra: " + DadosJogador.nivelUsuario);
 
         exerciciosAcertados = 0;
         exerciciosJaPontuados.Clear();
