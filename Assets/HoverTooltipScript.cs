@@ -8,10 +8,8 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
     public string translation; // Preenchido dinamicamente por MissaoItemUI
     
     [Header("Configuração de Cor")]
-    public bool usarCorCustomizada = false;
-    public Color corDoTooltip = Color.white;
-    public Color corDoFundo = Color.white;
-    public Color corDoTexto = Color.black; 
+    public Color corDoFundo = new Color(0f, 0f, 0f, 0.85f);
+    public Color corDoTexto = Color.white;
 
     private TextMeshProUGUI textoLocal;
     private BackendManager backend;
@@ -26,22 +24,32 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
 
     public async void OnPointerEnter(PointerEventData eventData)
     {
-        if (TooltipScript.instance == null) return;
+        Debug.Log("ENTROU NO HOVER: " + gameObject.name);
 
-        // 🛡️ TRAVA BLINDADA PARA MISSÕES: 
-        // Se a variável 'translation' JÁ FOI PREENCHIDA pelo script MissaoItemUI,
-        // nós NÃO ENCONTRAMOS no bloco do DeepL. Pulamos direto para exibir o Tooltip.
+        if (TooltipScript.instance == null)
+        {
+            Debug.LogError("TooltipScript.instance está null");
+            return;
+        }
+
         if (string.IsNullOrEmpty(translation))
         {
-            // Se o objeto não tiver texto próprio para ler, não faz nada
-            if (textoLocal == null || string.IsNullOrEmpty(textoLocal.text)) return;
+            if (textoLocal == null || string.IsNullOrEmpty(textoLocal.text))
+            {
+                Debug.LogWarning("Texto local vazio ou sem TextMeshProUGUI: " + gameObject.name);
+                return;
+            }
+
             if (requisitando) return; 
 
             requisitando = true;
-            
+
             string textoOriginal = textoLocal.text;
-            // Só chama o backend se for um texto genérico sem tradução prévia
+            Debug.Log("Texto original para traduzir: " + textoOriginal);
+
             string resultadoTraducao = await backend.TraduzirTextoDeepL(textoOriginal);
+
+            Debug.Log("Tradução recebida no Unity: " + resultadoTraducao);
 
             if (!string.IsNullOrEmpty(resultadoTraducao))
             {
@@ -52,20 +60,13 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
                 requisitando = false;
                 return; 
             }
+
             requisitando = false;
         }
 
-        // 🎯 A sua lógica de renderização original (Suas missões rodam exatamente aqui!)
-        if (usarCorCustomizada)
-        {
-            // Passa o texto da sua missão com fundo Branco e texto Preto definidos no MissaoItemUI
-            TooltipScript.instance.Show(translation, corDoFundo, corDoTexto);
-        }
-        else
-        {
-            // Passa o Tooltip padrão para enunciados genéricos
-            TooltipScript.instance.Show(translation);
-        }
+        Debug.Log("Chamando Tooltip Show com: " + translation);
+
+        TooltipScript.instance.Show(translation, corDoFundo, corDoTexto);
     }
 
     public void OnPointerExit(PointerEventData eventData)

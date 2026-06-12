@@ -371,8 +371,9 @@ public class ShelfNPC : InteracaoNPC
             await Task.Yield();
         }
 
-        missaoManager.ConcluirMissao("seguir_atendente");
-        if (modalLegenda != null) modalLegenda.SetActive(true);
+            missaoManager.ConcluirMissao("seguir_atendente");
+            if (modalLegenda != null) 
+                modalLegenda.SetActive(false);
         } 
     }
 
@@ -618,11 +619,6 @@ public class ShelfNPC : InteracaoNPC
         if (modalLegenda != null)
         {
             modalLegenda.SetActive(false);
-        }
-
-        if (modalExercicio != null)
-        {
-            modalExercicio.titulo.text = ex.enunciado;
         }
 
         await EntrarModoExercicio();

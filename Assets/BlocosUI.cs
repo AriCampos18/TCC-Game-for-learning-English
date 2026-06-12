@@ -62,7 +62,7 @@ public class BlocosUI : MonoBehaviour
             feedbackAtualString =
                 $"Great job. You are right!\n";
 
-            AtualizarFeedback(feedbackAtualString, Color.green);
+            AtualizarFeedback(feedbackAtualString, new Color32(46, 125, 50, 255));
             return true;
         }
 

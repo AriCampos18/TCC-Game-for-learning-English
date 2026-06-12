@@ -116,8 +116,8 @@ public class BackendManager
     {
         try
         {
-            // Escapa aspas duplas para não quebrar o formato JSON
-            string json = "{\"texto\":\"" + textoOriginal.Replace("\"", "\\\"") + "\"}";
+            var dado = new { texto = textoOriginal };
+            string json = JsonConvert.SerializeObject(dado);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             // Faz o POST assíncrono para o seu app.py
@@ -132,7 +132,8 @@ public class BackendManager
             }
             else
             {
-                Debug.LogError($"Erro no Servidor DeepL: {response.StatusCode}");
+                string erro = await response.Content.ReadAsStringAsync();
+                Debug.LogError($"Erro no Servidor DeepL: {response.StatusCode} | {erro}");
                 return "";
             }
         }

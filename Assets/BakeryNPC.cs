@@ -438,11 +438,6 @@ public class BakeryNPC : InteracaoNPC
             modalLegenda.SetActive(false);
         }
 
-        if (modalExercicio != null)
-        {
-            modalExercicio.titulo.text = ex.enunciado;
-        }
-
         await EntrarModoExercicio();
 
         Cursor.lockState = CursorLockMode.None;

@@ -42,7 +42,7 @@ public class AlternativasUI : MonoBehaviour
         for (int i = 0; i < botoes.Length; i++)
             botoes[i].image.color = Color.white;
 
-        botoes[index].image.color = Color.green; // Altere a cor conforme seu feedback visual de seleção
+        botoes[index].image.color = new Color32(56, 142, 60, 255);
     }
 
     public bool Respondeu()

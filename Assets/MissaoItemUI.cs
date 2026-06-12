@@ -21,13 +21,6 @@ public class MissaoItemUI : MonoBehaviour
         if (tooltip != null)
         {
             tooltip.translation = m.traducao;
-            
-            // Ativa a customização para as missões
-            tooltip.usarCorCustomizada = true;
-            
-            // Define as cores exatamente como você pediu:
-            tooltip.corDoFundo = Color.white; // Fundo Branco
-            tooltip.corDoTexto = Color.black; // Texto Preto
         }
     }
 

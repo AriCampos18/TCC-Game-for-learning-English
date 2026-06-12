@@ -481,7 +481,6 @@ public class CashierNPC : InteracaoNPC
 
         if (modalExercicio != null)
         {
-            modalExercicio.titulo.text = ex.enunciado;
             modalExercicio.Abrir(tipo, ex, this, true);
         }
 

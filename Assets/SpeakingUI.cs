@@ -204,7 +204,7 @@ public class SpeakingUI : MonoBehaviour
     // Mantido o feedback padrão de sucesso para quando o Modal passar direto
     public void MostrarSucessoNativo(float acuracia)
     {
-        statusGravacao.text = "<color=green>Perfect! Correct answer.</color>";
+        statusGravacao.text = "<color=#2E7D32>Perfect! Correct answer.</color>";
         audioTranscricao.text = $"Great pronunciation! Accuracy: {acuracia}%";
     }
 
