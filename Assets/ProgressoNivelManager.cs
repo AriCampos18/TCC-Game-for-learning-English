@@ -6,7 +6,8 @@ using TMPro;
 public class ProgressoNivelManager : MonoBehaviour
 {
     public static ProgressoNivelManager Instance;
-    public Image fillBarra;
+    public RectTransform fillBarra;
+    public float larguraMaxima = 347.616f;
     public TextMeshProUGUI textoInicioNivel;
     public TextMeshProUGUI textoFimNivel;
 
@@ -92,13 +93,22 @@ public class ProgressoNivelManager : MonoBehaviour
         float progresso = 0f;
 
         if (totalExercicios > 0)
-        {
             progresso = exerciciosAcertados / (float)totalExercicios;
-        }
 
         if (fillBarra != null)
         {
-            fillBarra.fillAmount = progresso;
+            progresso = Mathf.Clamp01(progresso);
+
+            fillBarra.anchorMin = new Vector2(0f, 0.5f);
+            fillBarra.anchorMax = new Vector2(0f, 0.5f);
+            fillBarra.pivot = new Vector2(0f, 0.5f);
+
+            fillBarra.anchoredPosition = new Vector2(0f, fillBarra.anchoredPosition.y);
+
+            fillBarra.sizeDelta = new Vector2(
+                larguraMaxima * progresso,
+                fillBarra.sizeDelta.y
+            );
         }
     }
 }

@@ -25,7 +25,6 @@ public class BakeryNPC : InteracaoNPC
     private AudioSource audioSource;
     public ModalExercicio modalExercicio;
     public string idNpcParaVoz = "bakery"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
-    public string nomeExibicaoLegenda = "Bakery Attendant";
 
     public List<Transform> pontosBakeryA1;
     public List<Transform> pontosBakeryA2;
@@ -42,9 +41,13 @@ public class BakeryNPC : InteracaoNPC
 
     public GameObject modalLegenda;
 
+    
+
     protected override void Start()
     {
         base.Start();
+
+        nomeExibicaoLegenda = "Bakery Attendant";
 
         backendManager = new BackendManager();
         missaoManager = MissionManager.Instance;
@@ -302,6 +305,7 @@ public class BakeryNPC : InteracaoNPC
             await interacaoB1();
         }
         GameProgress.Instance.falouPadaria = true;
+        Debug.Log("ATÉ AQUI FUNCIONAA");
 
         // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
@@ -315,6 +319,14 @@ public class BakeryNPC : InteracaoNPC
                 "Coloque os produtos no caixa para iniciar a conversa com o caixa"
             );
         }
+
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
+
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+
+        GameProgress.EstaEmDialogo = false;
 
         LiberarControlePlayer();
     }
@@ -538,6 +550,11 @@ public class BakeryNPC : InteracaoNPC
                 textoPularDialogo.gameObject.SetActive(false);
             }
 
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
+            }
+            
             while (Input.GetMouseButton(0))
             {
                 await Task.Yield();
@@ -557,7 +574,6 @@ public class BakeryNPC : InteracaoNPC
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND TAMBÉM NO FEEDBACK
         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
@@ -573,15 +589,12 @@ public class BakeryNPC : InteracaoNPC
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
-
-            if (modalLegenda != null)
+            if (modalLegenda != null && modalLegenda.activeSelf)
             {
-                modalLegenda.SetActive(true); 
                 if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
-                
-                // Usa o nome dinâmico do NPC na legenda
                 modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
+            
             audioSource.Play();
             
             while (audioSource.isPlaying)

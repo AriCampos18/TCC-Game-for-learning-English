@@ -22,16 +22,14 @@ public class AlternativasUI : MonoBehaviour
     public void Setup(ExercicioAlternativas ex)
     {
         exercicio = ex;
-        respostaSelecionada = -1;
+        tentativasRestantes = 3;
 
-        // ✨ Reseta as chances toda vez que o exercício abre
-        tentativasRestantes = 3; 
-
-        if (textoFeedback != null) textoFeedback.text = "";
+        LimparSelecao();
 
         for (int i = 0; i < botoes.Length; i++)
         {
             int index = i;
+
             botoes[i].onClick.RemoveAllListeners();
             botoes[i].GetComponentInChildren<TextMeshProUGUI>().text = ex.alternativas[i];
 
@@ -40,6 +38,19 @@ public class AlternativasUI : MonoBehaviour
                 Selecionar(index);
             });
         }
+    }
+
+    public void LimparSelecao()
+    {
+        respostaSelecionada = -1;
+
+        for (int i = 0; i < botoes.Length; i++)
+        {
+            botoes[i].image.color = corNormal;
+        }
+
+        if (textoFeedback != null)
+            textoFeedback.text = "";
     }
 
     void Selecionar(int index)

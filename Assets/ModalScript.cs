@@ -18,7 +18,7 @@ public class ModalExercicio : MonoBehaviour
     public Button confirmarResposta;
     public TextMeshProUGUI titulo, enunciado;
 
-    public GameObject botaoRepetirVoz;
+    public Button botaoRepetirFalaNPC; 
 
     public GameObject exercicioAlternativas;
     public GameObject exercicioSpeaking;
@@ -36,6 +36,13 @@ public class ModalExercicio : MonoBehaviour
         if (confirmarResposta != null)
         {
             confirmarResposta.onClick.AddListener(() => Confirmar());
+        }
+
+        if (botaoRepetirFalaNPC != null)
+        {
+            botaoRepetirFalaNPC.onClick.RemoveAllListeners();
+            botaoRepetirFalaNPC.onClick.AddListener(RepetirUltimaFala);
+            botaoRepetirFalaNPC.gameObject.SetActive(false); 
         }
     }
 
@@ -78,10 +85,10 @@ public class ModalExercicio : MonoBehaviour
 
                         if (!modoRevisao)
                         {
-                            if (chances == 1 && botaoRepetirVoz != null)
+                            if (chances == 1 && botaoRepetirFalaNPC != null)
                             {
                                 Debug.Log("Errou pela 2ª vez nas Alternativas! Ativando botão de repetição...");
-                                botaoRepetirVoz.SetActive(true);
+                                botaoRepetirFalaNPC.gameObject.SetActive(true);
                             }
                         }
 
@@ -124,9 +131,9 @@ public class ModalExercicio : MonoBehaviour
 
                         if (!modoRevisao)
                         {
-                            if (chances == 1 && botaoRepetirVoz != null)
+                            if (chances == 1 && botaoRepetirFalaNPC != null)
                             {
-                                botaoRepetirVoz.SetActive(true);
+                                botaoRepetirFalaNPC.gameObject.SetActive(true);
                             }
                         }
 
@@ -216,6 +223,48 @@ public class ModalExercicio : MonoBehaviour
         }
     }
 
+    private async void RepetirUltimaFala()
+    {
+        if (npcAtual == null) return;
+
+        botaoRepetirFalaNPC.interactable = false;
+
+        // esconde legenda grande
+        ModalLegenda legendaGrande = FindObjectOfType<ModalLegenda>();
+
+        if (legendaGrande != null)
+            legendaGrande.gameObject.SetActive(false);
+
+        // mostra legenda pequena
+        if (speakingUI != null && speakingUI.modalLegendaNPC != null)
+        {
+            GameObject legendaPequena = speakingUI.modalLegendaNPC;
+
+            legendaPequena.SetActive(true);
+            legendaPequena.transform.SetAsLastSibling();
+
+            RectTransform rect = legendaPequena.GetComponent<RectTransform>();
+
+            Vector3 posicaoTela =
+                Camera.main.WorldToScreenPoint(npcAtual.transform.position);
+
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(posicaoTela.x, 50f);
+
+            ModalLegenda legenda =
+                legendaPequena.GetComponent<ModalLegenda>();
+
+            legenda.fonteLegenda.text = npcAtual.nomeExibicaoLegenda;
+            legenda.textoLegenda.text = npcAtual.ultimaFraseDita;
+        }
+
+        await npcAtual.FalarFraseCustomizada(npcAtual.ultimaFraseDita);
+
+        botaoRepetirFalaNPC.interactable =  true;
+    }
+
     private void RegistrarErroParaRevisao()
     {
         if (!modoRevisao)
@@ -276,9 +325,9 @@ public class ModalExercicio : MonoBehaviour
         exercicioSpeaking.SetActive(false);
         exercicioBlocos.SetActive(false);
 
-        if (botaoRepetirVoz != null)
+        if (botaoRepetirFalaNPC != null)
         {
-            botaoRepetirVoz.SetActive(false);
+            botaoRepetirFalaNPC.gameObject.SetActive(false);
         }
 
         if (tipo == TipoExercicio.Alternativas)
@@ -314,6 +363,12 @@ public class ModalExercicio : MonoBehaviour
         exercicioFinalizado = true;
         panel.SetActive(false);
         Time.timeScale = 1f;
+
+        // Esconde a legenda pequena do Repeat
+        if (speakingUI != null && speakingUI.modalLegendaNPC != null)
+        {
+            speakingUI.modalLegendaNPC.SetActive(false);
+        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;

@@ -5,7 +5,9 @@ public class InteracaoNPC : MonoBehaviour
 {
     public GameObject avisoUI;
     public Transform playerCamera;
+    public string nomeExibicao = "NPC";
     public FirstPlayerController movimentoPlayer;
+    protected bool interacaoConcluida = false;
 
     private bool interagindo = false;
     public float alturaFocoCamera = 0.82f;
@@ -24,6 +26,12 @@ public class InteracaoNPC : MonoBehaviour
         if (avisoUI != null) avisoUI.SetActive(false);
     }
 
+    public virtual string nomeExibicaoLegenda 
+    {
+        get => nomeExibicao;
+        set => nomeExibicao = value;
+    }
+
     public void MostrarAviso(bool value)
     {
         if (avisoUI != null) avisoUI.SetActive(value);
@@ -32,7 +40,7 @@ public class InteracaoNPC : MonoBehaviour
     // 1. INÍCIO DA INTERAÇÃO: Trava o player e vira o NPC
     public async Task Interagir()
     {
-        if (interagindo) return;
+        if (interagindo || interacaoConcluida) return;
 
         interagindo = true;
 
@@ -71,6 +79,9 @@ public class InteracaoNPC : MonoBehaviour
 
             await VirarParaPlayer();
             await IniciarInteracao();
+
+            interacaoConcluida = true;
+            MostrarAviso(false);
         }
         finally
         {
@@ -173,7 +184,11 @@ public class InteracaoNPC : MonoBehaviour
         {
             movimentoPlayer.AtivarControle();
         }
-        crosshair.SetActive(true); 
+
+        if (crosshair != null)
+            crosshair.SetActive(true); //pelo amor de deus funciona
+
+        Debug.Log("LiberarControlePlayer chamado");
     }
 
     public void TravarControlePlayer()
@@ -188,7 +203,7 @@ public class InteracaoNPC : MonoBehaviour
 
     public virtual bool PodeInteragir()
     {
-        return true;
+        return !interacaoConcluida && !interagindo;
     }
 
     public virtual async Task FalarFraseCustomizada(string textoParaFalar)

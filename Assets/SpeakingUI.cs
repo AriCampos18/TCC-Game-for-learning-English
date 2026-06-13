@@ -9,6 +9,7 @@ using System.Collections.Generic;
 public class SpeakingUI : MonoBehaviour
 {
     public Button botaoMicrofone;
+    public GameObject modalLegendaNPC;
     public GameObject microfoneIcon;
     public TextMeshProUGUI[] textosOpcoesFala;
     private InteracaoNPC npcAtivo;
@@ -35,12 +36,7 @@ public class SpeakingUI : MonoBehaviour
     {
         botaoMicrofone.onClick.AddListener(ToggleGravacao);
         pularEx.onClick.AddListener(PularExercicio);
-        
-        if (botaoRepetirFalaNPC != null)
-        {
-            botaoRepetirFalaNPC.onClick.AddListener(RepetirFalaDoNPC);
-            botaoRepetirFalaNPC.gameObject.SetActive(false); 
-        }
+
 
         ondasSom.SetActive(false);
         statusGravacao.text = "Press the microphone to start recording.";
@@ -111,6 +107,12 @@ public class SpeakingUI : MonoBehaviour
         statusGravacao.text = "Press the microphone to start recording.";
         if (textoFeedback != null) textoFeedback.text = "";
 
+        // ✨ Se a sua legenda pequena estiver ligada de um exercício anterior, desativa ela aqui
+        if (modalLegendaNPC != null)
+        {
+            modalLegendaNPC.SetActive(false);
+        }
+
         if (botaoRepetirFalaNPC != null)
         {
             botaoRepetirFalaNPC.gameObject.SetActive(false);
@@ -130,21 +132,6 @@ public class SpeakingUI : MonoBehaviour
         }
     }
 
-    private async void RepetirFalaDoNPC()
-    {
-        // ✨ Funciona dinamicamente com qualquer NPC do jogo!
-        if (npcAtivo != null)
-        {
-            botaoRepetirFalaNPC.interactable = false;
-            statusGravacao.text = "Listening to the NPC...";
-            
-            // O C# vai descobrir sozinho se deve rodar o áudio do Shelf, do Bakery, etc.
-            await npcAtivo.FalarFraseCustomizada(npcAtivo.ultimaFraseDita);
-            
-            statusGravacao.text = "Try recording your response now!";
-            botaoRepetirFalaNPC.interactable = true;
-        }
-    }
     public int ObterIndiceCorreto() => dadosExercicioAtual.respostaCorreta;
     public int ObterTentativasRestantes() => tentativesRestantes;
     public void ReduzirTentativa() => tentativesRestantes--;

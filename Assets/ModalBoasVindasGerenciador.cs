@@ -13,7 +13,7 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
     public Button botaoComecar, botaoAjuda, botaoRepetirFala;
     private FirstPlayerController firstPlayerControllerScript;
     public GameObject crosshair;
-    public GameObject modalLegenda, modalCarregando, modalBarraProgressao;
+    public GameObject modalLegenda, modalCarregando, modalBarraProgressao, legendaMenor;
     public GameObject modalAvisoInteracaoMouse;
 
     // Start is called before the first frame update
@@ -25,6 +25,7 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
         modalResultadoNivelmento.SetActive(false); 
         modalInstrucoes.SetActive(false);
         botaoAjuda.gameObject.SetActive(false);
+        legendaMenor.SetActive(false);
         botaoRepetirFala.gameObject.SetActive(false);
         modalAvisoRevisao.SetActive(false);
         modalAvisoInteracaoMouse.SetActive(false);

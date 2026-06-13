@@ -33,7 +33,6 @@ public class ShelfNPC : InteracaoNPC
     public TextMeshProUGUI textoPularDialogo;
 
     public string idNpcParaVoz = "shelf"; 
-    public string nomeExibicaoLegenda = "Shelf Attendant";
     private BackendManager backendManager;
     private MissionManager missaoManager; 
 
@@ -47,6 +46,7 @@ public class ShelfNPC : InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        nomeExibicaoLegenda = "Shelf Attendant";
         backendManager = new BackendManager();
         missaoManager = MissionManager.Instance; 
         audioSource = GetComponent<AudioSource>();
@@ -76,7 +76,7 @@ public class ShelfNPC : InteracaoNPC
     // Sobrescreve a checagem de interação global para travar o cenário se o jogador estiver seguindo o NPC
     public override bool PodeInteragir()
     {
-        return podeInteragirCenario;
+        return base.PodeInteragir() && podeInteragirCenario;
     }
 
     protected override async Task IniciarInteracao()
@@ -117,7 +117,15 @@ public class ShelfNPC : InteracaoNPC
         GameProgress.EstaEmDialogo = false; // ✨ Só destrava aqui no final de TUDO
         podeInteragirCenario = true;
     
-        LiberarControlePlayer(); // ✨ Agora sim o controle do jogador é liberado em definitivo!
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
+
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+
+        GameProgress.EstaEmDialogo = false;
+
+        LiberarControlePlayer();
     }
 
     private async Task interacaoA1()
@@ -405,7 +413,7 @@ public class ShelfNPC : InteracaoNPC
             exerciciosBlocos.Add(new ExercicioBlocos() 
             { 
                 enunciado = "Arrange the words to form the sentence in english: Há maçãs hoje?",
-                blocosPalavras = new List<string>() { "Where", "Are", "thank", "apples", "that", "is", "any", "hello", "bread", "there" },
+                blocosPalavras = new List<string>() { "Where", "Are", "thank", "apples", "that", "is", "any", "hello", "bread", "there", "today" },
                 respostaCorreta = "Are there any apples today?",
             });
 
@@ -563,6 +571,11 @@ public class ShelfNPC : InteracaoNPC
             {
                 textoPularDialogo.gameObject.SetActive(false);
             }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
+            }
         }
         else
         {
@@ -593,21 +606,18 @@ public class ShelfNPC : InteracaoNPC
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
-
-            if (modalLegenda != null)
+            if (modalLegenda != null && modalLegenda.activeSelf)
             {
-                modalLegenda.SetActive(true); 
                 if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
                 modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
-
+            
             audioSource.Play();
             
             while (audioSource.isPlaying)
             {
                 await Task.Yield();
             }
-            animator.SetBool("IsTalking", false);
         }
     }
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

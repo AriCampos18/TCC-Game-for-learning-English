@@ -121,8 +121,13 @@ public class FirstPlayerController : MonoBehaviour
     {
         controleAtivo = true;
 
+        if (ModoJogoManager.Instance != null)
+            ModoJogoManager.Instance.uiMode = false;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        Debug.Log("Controle ativado. controleAtivo=true, uiMode=false");
     }
 
     public void DesativarControle()

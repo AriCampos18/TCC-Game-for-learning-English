@@ -24,7 +24,6 @@ public class CashierNPC : InteracaoNPC
     string cumprimento;
 
     public string idNpcParaVoz = "cashier"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
-    public string nomeExibicaoLegenda = "Cashier Attendant";
     double valorTotal;
     private AudioSource audioSource;
     public ModalExercicio modalExercicio;
@@ -49,6 +48,7 @@ public class CashierNPC : InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        nomeExibicaoLegenda = "Cashier Attendant";
         backendManager = new BackendManager();
         audioSource = GetComponent<AudioSource>();
         exerciciosBlocos = new List<ExercicioBase>();
@@ -267,6 +267,16 @@ public class CashierNPC : InteracaoNPC
             sacolaFoiPega = false;
 
             GameProgress.EstaEmDialogo = false;
+            
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
+
+            GameProgress.EstaEmDialogo = false;
+
+            LiberarControlePlayer();
 
             while (!sacolaFoiPega)
             {
@@ -644,6 +654,11 @@ public class CashierNPC : InteracaoNPC
         {
             textoPularDialogo.gameObject.SetActive(false);
         }
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
+        }
     }
     else
     {
@@ -655,49 +670,44 @@ public class CashierNPC : InteracaoNPC
     }
 }
 
-public override async Task FalarFraseCustomizada(string textoParaFalar)
-{
-    if (string.IsNullOrEmpty(textoParaFalar)) return;
-
-    // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND TAMBÉM NO FEEDBACK
-    byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
-    
-    if (audioBytes != null && audioBytes.Length > 0)
+    public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
-        string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
-        File.WriteAllBytes(caminho, audioBytes);
-        
-        UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
-        var operation = www.SendWebRequest();
-        
-        while (!operation.isDone)
-            await Task.Yield();
+        if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-        audioSource.clip = clip;
-
-        if (modalLegenda != null)
+        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        
+        if (audioBytes != null && audioBytes.Length > 0)
         {
-            modalLegenda.SetActive(true); 
-            if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
+            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
+            File.WriteAllBytes(caminho, audioBytes);
             
-            // Usa o nome dinâmico do NPC na legenda
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
-        }
+            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+            var operation = www.SendWebRequest();
+            
+            while (!operation.isDone)
+                await Task.Yield();
 
-        animator.SetBool("IsTalking", true);
-        audioSource.Play();
-        
-        while (audioSource.isPlaying)
-        {
-            await Task.Yield();
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+            audioSource.clip = clip;
+            if (modalLegenda != null && modalLegenda.activeSelf)
+            {
+                if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
+                modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+            }
+            
+            audioSource.Play();
+            
+            while (audioSource.isPlaying)
+            {
+                await Task.Yield();
+            }
         }
-        animator.SetBool("IsTalking", false);
     }
-}
-
     public override bool PodeInteragir()
     {
+        if (!base.PodeInteragir())
+            return false;
+
         if (GameProgress.Instance == null)
         {
             Debug.LogWarning("GameProgress.Instance está null. Adicione GameProgress em um GameObject da cena.");
