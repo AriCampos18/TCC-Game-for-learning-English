@@ -139,6 +139,13 @@ public class FirstPlayerController : MonoBehaviour
             animator.SetBool("andando", false);
         }
 
+        if (audioPassos != null)
+        {
+            audioPassos.Stop();
+        }
+
+        timerPasso = 0f;
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

@@ -177,4 +177,9 @@ public class ProdutoManager : MonoBehaviour
         DesativarGrupo(grupoLegumes);
         DesativarGrupo(grupoRefrigerantes);
     }
+
+    public bool ProdutosObrigatoriosPegos()
+    {
+        return MissaoProdutosConcluida();
+    }
 }

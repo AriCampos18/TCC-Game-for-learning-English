@@ -717,6 +717,12 @@ public class CashierNPC : InteracaoNPC
         if (aguardandoPegarSacola)
             return false;
 
+        if (ProdutoManager.Instance == null)
+            return false;
+
+        if (!ProdutoManager.Instance.ProdutosObrigatoriosPegos())
+            return false;
+
         return GameProgress.Instance.PodeFalarComCaixa();
     }
 }
