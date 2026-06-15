@@ -20,6 +20,7 @@ public class ProdutoManager : MonoBehaviour
     public GameObject prefabSalgadinho;
     public GameObject prefabLegume;
     public GameObject prefabRefrigerante;
+    private MissionManager missaoManager; 
 
     private string nivelAtual;
 
@@ -28,6 +29,7 @@ public class ProdutoManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        missaoManager = MissionManager.Instance;
         DesativarTodos();
     }
 
@@ -124,6 +126,17 @@ public class ProdutoManager : MonoBehaviour
         if (MissaoProdutosConcluida())
         {
             MissionManager.Instance.ConcluirMissao("interagir_produtos");
+
+            bool falouPadaria = MissionManager.Instance.MissaoConcluida("falar_padaria");
+
+            if (falouPadaria)
+            {
+                MissionManager.Instance.AdicionarMissao(
+                    "falar_caixa",
+                    "Go to the counter and interact with the cashier",
+                    "Vá para o balcão do caixa e inicie uma conversa com o atendente do caixa"
+                );
+            }
         }
     }
 

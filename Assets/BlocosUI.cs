@@ -23,6 +23,8 @@ public class BlocosUI : MonoBehaviour
 
             string[] palavrasEmbaralhadas = exercicio.blocosPalavras.ToArray();
             gerador.CriarBlocosDasPalavras(palavrasEmbaralhadas);
+
+            LiberarBlocos();
         }
     }
 
@@ -192,6 +194,54 @@ public class BlocosUI : MonoBehaviour
             texto += "\nMissing blocks: " + string.Join(", ", faltando);
 
         return texto;
+    }
+
+    public void BloquearBlocos()
+    {
+        BloquearContainer(gerador.containerMontagem);
+        BloquearContainer(gerador.containerPalavras);
+    }
+
+    public void LiberarBlocos()
+    {
+        LiberarContainer(gerador.containerMontagem);
+        LiberarContainer(gerador.containerPalavras);
+    }
+
+    private void BloquearContainer(Transform container)
+    {
+        foreach (Transform filho in container)
+        {
+            CanvasGroup cg = filho.GetComponent<CanvasGroup>();
+
+            if (cg == null)
+                cg = filho.gameObject.AddComponent<CanvasGroup>();
+
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
+
+            BlocoItem bloco = filho.GetComponent<BlocoItem>();
+            if (bloco != null)
+                bloco.enabled = false;
+        }
+    }
+
+    private void LiberarContainer(Transform container)
+    {
+        foreach (Transform filho in container)
+        {
+            CanvasGroup cg = filho.GetComponent<CanvasGroup>();
+
+            if (cg == null)
+                cg = filho.gameObject.AddComponent<CanvasGroup>();
+
+            cg.interactable = true;
+            cg.blocksRaycasts = true;
+
+            BlocoItem bloco = filho.GetComponent<BlocoItem>();
+            if (bloco != null)
+                bloco.enabled = true;
+        }
     }
 
     private void AtualizarFeedback(string texto, Color cor)

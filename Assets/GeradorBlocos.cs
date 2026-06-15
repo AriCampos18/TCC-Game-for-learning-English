@@ -17,6 +17,15 @@ public class GeradorDeBlocos : MonoBehaviour
         {
             GameObject novoBloco = Instantiate(blocoPrefab, containerPalavras);
 
+            CanvasGroup cg = novoBloco.GetComponent<CanvasGroup>();
+            if (cg == null)
+            {
+                cg = novoBloco.AddComponent<CanvasGroup>();
+            }
+
+            cg.interactable = true;
+            cg.blocksRaycasts = true;
+
             TextMeshProUGUI textoComponente = novoBloco.GetComponentInChildren<TextMeshProUGUI>();
             if (textoComponente != null)
             {

@@ -31,6 +31,7 @@ public class SpeakingUI : MonoBehaviour
     private string microfoneDispositivo = null;
     private int tentativesRestantes = 3;
     private ExercicioSpeaking dadosExercicioAtual;
+    private bool bloqueado = false;
 
     void Start()
     {
@@ -98,12 +99,88 @@ public class SpeakingUI : MonoBehaviour
         }
     }
 
+    private string NormalizarPalavra(string palavra)
+    {
+        return palavra
+            .ToLower()
+            .Replace(".", "")
+            .Replace(",", "")
+            .Replace("?", "")
+            .Replace("!", "")
+            .Replace(":", "")
+            .Replace(";", "")
+            .Replace("\n", "")
+            .Replace("\r", "")
+            .Trim();
+    }
+
+    public void MostrarFeedbackPronuncia(List<string> palavrasErradas, bool passou)
+    {
+        if (dadosExercicioAtual == null || textoFeedback == null) return;
+
+        string fraseCorreta = dadosExercicioAtual.opcoesFala[dadosExercicioAtual.respostaCorreta]
+            .Replace("\n", "")
+            .Replace("\r", "")
+            .Trim();
+
+        string[] palavras = fraseCorreta.Split(' ');
+
+        List<string> erradasNormalizadas = new List<string>();
+
+        if (palavrasErradas != null)
+        {
+            foreach (string p in palavrasErradas)
+            {
+                string limpa = NormalizarPalavra(p);
+
+                if (!string.IsNullOrEmpty(limpa))
+                    erradasNormalizadas.Add(limpa);
+            }
+        }
+
+        StringBuilder boas = new StringBuilder();
+        StringBuilder ruins = new StringBuilder();
+
+        foreach (string palavra in palavras)
+        {
+            string limpa = palavra.Trim();
+            string normal = NormalizarPalavra(limpa);
+
+            if (string.IsNullOrEmpty(normal)) continue;
+
+            if (erradasNormalizadas.Contains(normal))
+                ruins.Append($"<color=#C62828><b>{limpa}</b></color> ");
+            else
+                boas.Append($"<color=#2E7D32><b>{limpa}</b></color> ");
+        }
+
+        string mensagem = passou
+            ? "Good job! Your answer was accepted."
+            : "The sentence is correct, but some words need more practice.";
+
+        StringBuilder feedbackFinal = new StringBuilder();
+
+        feedbackFinal.Append(mensagem);
+        feedbackFinal.Append("\n<size=80%><color=#2E7D32>Good words:</color></size> ");
+        feedbackFinal.Append(boas);
+
+        if (ruins.Length > 0)
+        {
+            feedbackFinal.Append("\n<size=80%><color=#C62828>Words to practice:</color></size> ");
+            feedbackFinal.Append(ruins);
+        }
+
+        textoFeedback.text = feedbackFinal.ToString();
+    }
+
     public void InicializarExercicio(ExercicioSpeaking ex, InteracaoNPC npcQueChamou)
     {
         dadosExercicioAtual = ex;
         npcAtivo = npcQueChamou;
         tentativesRestantes = 3;
         dadosAudioWav = null;
+        bloqueado = false;
+        botaoMicrofone.interactable = true;
         statusGravacao.text = "Press the microphone to start recording.";
         if (textoFeedback != null) textoFeedback.text = "";
 
@@ -142,8 +219,13 @@ public class SpeakingUI : MonoBehaviour
         if (dadosExercicioAtual == null || dadosAudioWav == null || dadosAudioWav.Length == 0)
         {
             statusGravacao.text = "Please record your answer first!";
+            if (!bloqueado && botaoMicrofone != null)
+                botaoMicrofone.interactable = true;
             return null;
         }
+
+        if (botaoMicrofone != null)
+            botaoMicrofone.interactable = false;
 
         statusGravacao.text = "Analyzing speech accuracy...";
 
@@ -168,16 +250,18 @@ public class SpeakingUI : MonoBehaviour
             
             // Conversão direta de JSON string para o objeto C# (mantendo o JsonUtility nativo da sua UI)
             SpeakingResult resultado = JsonUtility.FromJson<SpeakingResult>(jsonResposta);
+            if (!bloqueado && botaoMicrofone != null)
+                botaoMicrofone.interactable = true;
             return resultado;
         }
         else
         {
             statusGravacao.text = "<color=red>Server connection error.</color>";
+            if (!bloqueado && botaoMicrofone != null)
+                botaoMicrofone.interactable = true;
             return null;
         }
     }
-
-    // ✨ Método modificado para atualizar os textos de feedback com as cores RichText nas palavras erradas
     public void AtualizarTextoFeedback(string mensagemBase, List<string> palavrasErradas)
     {
         StringBuilder sb = new StringBuilder();
@@ -206,15 +290,58 @@ public class SpeakingUI : MonoBehaviour
     // Mantido o feedback padrão de sucesso para quando o Modal passar direto
     public void MostrarSucessoNativo(float acuracia)
     {
-        statusGravacao.text = "<color=#2E7D32>Perfect! Correct answer.</color>";
-        if (textoFeedback != null)
-            textoFeedback.text = $"Great pronunciation! Accuracy: {acuracia}%";
-    }
+        statusGravacao.text = "<color=#2E7D32>Correct answer.</color>";
 
+        if (textoFeedback != null)
+            textoFeedback.text = "Great pronunciation!";
+    }
     void ToggleGravacao()
     {
+        if (bloqueado) return;
+
         if (!gravando) IniciarGravacao();
         else PararGravacao();
+    }
+
+    public void BloquearSpeaking()
+    {
+        bloqueado = true;
+
+        if (gravando)
+        {
+            PararGravacao();
+        }
+
+        if (botaoMicrofone != null)
+            botaoMicrofone.interactable = false;
+
+        if (ondasSom != null)
+            ondasSom.SetActive(false);
+
+        if (microfoneIcon != null)
+            microfoneIcon.SetActive(true);
+    }
+
+    public void LiberarSpeaking()
+    {
+        bloqueado = false;
+
+        if (botaoMicrofone != null)
+            botaoMicrofone.interactable = true;
+    }
+
+    public void MostrarFeedbackFimTentativas()
+    {
+        if (textoFeedback != null)
+        {
+            textoFeedback.text =
+                "You have used all your chances. You can try again later in the revision section.";
+        }
+
+        if (statusGravacao != null)
+        {
+            statusGravacao.text = "No attempts remaining.";
+        }
     }
 
     void IniciarGravacao()

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PortaAutomatica : MonoBehaviour
 {
@@ -15,6 +16,17 @@ public class PortaAutomatica : MonoBehaviour
     private Vector3 posAbertaDir;
 
     private bool abrindo = false;
+    private bool finalJaMostrado = false;
+    private bool jogadorEntrouPeloLadoDeDentro = false;
+
+    [Header("Final do jogo")]
+    public CashierNPC cashier;
+    public GameObject modalFinal;
+    public GameObject modalAvisoSacola;
+
+    [Header("Detecção de saída")]
+    public Transform pontoDentroMercado;
+    public Transform pontoForaMercado;
 
     void Start()
     {
@@ -41,12 +53,22 @@ public class PortaAutomatica : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log("Entrou no trigger");
-
         if (other.CompareTag("Player"))
         {
-            Debug.Log("Player detectado");
             abrindo = true;
+
+            // Guarda de qual lado ele veio
+            float distanciaDentro = Vector3.Distance(
+                other.transform.position,
+                pontoDentroMercado.position
+            );
+
+            float distanciaFora = Vector3.Distance(
+                other.transform.position,
+                pontoForaMercado.position
+            );
+
+            jogadorEntrouPeloLadoDeDentro = distanciaDentro < distanciaFora;
         }
     }
 
@@ -55,6 +77,60 @@ public class PortaAutomatica : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             abrindo = false;
+
+            if (cashier == null || !cashier.MissaoSacolaLiberada())
+                return;
+
+            // Só verifica se ele estava vindo de dentro
+            if (!jogadorEntrouPeloLadoDeDentro)
+                return;
+
+            StartCoroutine(VerificarSaidaDepois(other.transform));
         }
+    }
+
+    private IEnumerator VerificarSaidaDepois(Transform player)
+    {
+        yield return new WaitForSeconds(0.2f);
+
+        if (finalJaMostrado)
+            yield break;
+
+        if (!JogadorSaiuDoMercado(player.position))
+            yield break;
+
+        if (cashier == null || !cashier.JogadorPegouSacola())
+        {
+            if (modalAvisoSacola != null)
+                modalAvisoSacola.SetActive(true);
+
+            yield break;
+        }
+
+        finalJaMostrado = true;
+
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.ConcluirMissao("pegar_sacola");
+        }
+
+        if (modalFinal != null)
+        {
+            modalFinal.SetActive(true);
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private bool JogadorSaiuDoMercado(Vector3 posicaoPlayer)
+    {
+        if (pontoDentroMercado == null || pontoForaMercado == null)
+            return true;
+
+        float distanciaDentro = Vector3.Distance(posicaoPlayer, pontoDentroMercado.position);
+        float distanciaFora = Vector3.Distance(posicaoPlayer, pontoForaMercado.position);
+
+        return distanciaFora < distanciaDentro;
     }
 }

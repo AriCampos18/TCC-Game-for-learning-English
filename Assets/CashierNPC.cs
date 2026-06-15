@@ -12,13 +12,9 @@ public class CashierNPC : InteracaoNPC
 
     string nivelAtual;
     public GameObject modalAvisoRevisao;
-
-    public UnityEngine.AI.NavMeshAgent navMeshAgent; 
-    public Transform pontoProduto;         // Arraste o Objeto Vazio da prateleira aqui
-    public Transform pontoOriginalCaixa;   // Arraste um Objeto Vazio na posição inicial do Caixa aqui
+    private bool missaoSacolaLiberada = false;
     public GameObject produtoChocolate;
     List<string> dialogoAtual;
-    private Animator animator;
     
     public TextMeshProUGUI textoPularDialogo;
     string cumprimento;
@@ -45,15 +41,19 @@ public class CashierNPC : InteracaoNPC
     public ExercicioBase exAtual;
     public GameObject modalLegenda;
 
+    private Vector3 posicaoInicialCashier;
+    private Quaternion rotacaoInicialCashier;
+
     protected override void Start()
     {
         base.Start();
+        posicaoInicialCashier = transform.position;
+        rotacaoInicialCashier = transform.rotation;
         nomeExibicaoLegenda = "Cashier Attendant";
         backendManager = new BackendManager();
         audioSource = GetComponent<AudioSource>();
         exerciciosBlocos = new List<ExercicioBase>();
         exerciciosSpeaking = new List<ExercicioBase>();
-        animator = GetComponent<Animator>();
         exerciciosAlternativas = new List<ExercicioBase>();
         nivelAtual = DadosJogador.nivelUsuario;
 
@@ -80,7 +80,7 @@ public class CashierNPC : InteracaoNPC
             {
                 cumprimento,
                 "Do you want anything else too?",
-                "The total is ten dollars",
+                "Here is your chocolate. The total is ten dollars",
                 "What are you paying with today?",
                 "Thank you.",
             };
@@ -261,7 +261,17 @@ public class CashierNPC : InteracaoNPC
             else
                 await interacaoB1();
 
+            MissionManager.Instance.ConcluirMissao("falar_caixa");
+
             await FazerRevisao();
+
+            MissionManager.Instance.AdicionarMissao(
+                "pegar_sacola",
+                "Pick up your bag at the checkout and leave the market",
+                "Pegue a sacola no caixa e saia do mercado"
+            );
+
+            missaoSacolaLiberada = true;
 
             aguardandoPegarSacola = true;
             sacolaFoiPega = false;
@@ -302,20 +312,7 @@ public class CashierNPC : InteracaoNPC
         // Abre o exercício de blocos ("Yes, I want some chocolate")
         await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]); 
 
-        await CaminharAteDestino(pontoProduto);
-
-        await Task.Delay(2000);
-
-        if (produtoChocolate != null)
-        {
-            produtoChocolate.SetActive(false);
-        }
-
-        // 3. NPC volta para o local original do caixa
-        await CaminharAteDestino(pontoOriginalCaixa);
-        
-        // Ajusta a rotação final para encarar o jogador novamente se necessário
-        this.transform.rotation = pontoOriginalCaixa.rotation;
+        await PegarChocolate();
 
         await PlayAudioETexto(i++);  
         
@@ -395,6 +392,16 @@ public class CashierNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: true);
     }
 
+    private async Task PegarChocolate()
+    {
+        await Task.Delay(1500);
+
+        if (produtoChocolate != null)
+        {
+            produtoChocolate.SetActive(false);
+        }
+    }
+
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {
         Debug.Log("Abrindo exercício: " + tipo);
@@ -402,36 +409,33 @@ public class CashierNPC : InteracaoNPC
         ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
 
         if (modalLegenda != null)
-        {
             modalLegenda.SetActive(false);
-        }
 
-        if (modalExercicio != null)
-        {
-            modalExercicio.titulo.text = ex.enunciado;
-        }
+        transform.position = posicaoInicialCashier;
+        transform.rotation = rotacaoInicialCashier;
 
         await EntrarModoExercicio();
+
+        Vector3 posicaoExercicio = transform.position;
+        Quaternion rotacaoExercicio = transform.rotation;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         modalExercicio.Abrir(tipo, ex, this);
 
-        if (legenda != null) 
-        {
-            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
-        }
+        if (legenda != null)
+            legenda.AjustarPosicaoPeloEstadoDoJogo();
 
         while (!modalExercicio.exercicioFinalizado)
         {
+            transform.position = posicaoExercicio;
+            transform.rotation = rotacaoExercicio;
             await Task.Yield();
         }
 
         if (modalLegenda != null)
-        {
             modalLegenda.SetActive(false);
-        }
 
         await SairModoExercicio();
 
@@ -439,11 +443,8 @@ public class CashierNPC : InteracaoNPC
         Cursor.visible = false;
 
         if (legenda != null)
-        {
             legenda.AjustarPosicaoPeloEstadoDoJogo();
-        }
     }
-
     private async Task FazerRevisao()
     {
         if (RevisaoManager.Instance != null)
@@ -485,22 +486,26 @@ public class CashierNPC : InteracaoNPC
     private async Task AbrirExercicioRevisao(TipoExercicio tipo, ExercicioBase ex)
     {
         if (modalLegenda != null)
-        {
             modalLegenda.SetActive(false);
+
+        RectTransform rect = modalExercicio.panel.GetComponent<RectTransform>();
+
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
         }
 
         if (modalExercicio != null)
-        {
             modalExercicio.Abrir(tipo, ex, this, true);
-        }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         while (!modalExercicio.exercicioFinalizado)
-        {
             await Task.Yield();
-        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -569,31 +574,6 @@ public class CashierNPC : InteracaoNPC
         sacolaFoiPega = true;
     }
 
-    private async Task CaminharAteDestino(Transform destino)
-    {
-        if (navMeshAgent == null || destino == null) 
-        {
-            return;
-        }
-
-        navMeshAgent.SetDestination(destino.position);
-        
-        // Liga a animação de andar se você tiver uma configurada no seu Animator
-        if (animator != null) 
-        {
-            animator.SetBool("IsWalking", true);
-        }
-
-        // Aguarda até que o agente chegue bem perto do destino
-        while (navMeshAgent.pathPending || navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
-        {
-            await Task.Yield();
-        }
-
-        // Desliga a animação de andar ao chegar
-        if (animator != null) animator.SetBool("IsWalking", false); 
-    }
-
     private async Task PlayAudioETexto(int i, bool mostrarLegenda = true)
 {
     ultimaFraseDita = dialogoAtual[i];
@@ -601,7 +581,6 @@ public class CashierNPC : InteracaoNPC
     
     if (audioBytes != null && audioBytes.Length > 0)
     {
-        Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
         string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
         File.WriteAllBytes(caminho, audioBytes);
         
@@ -627,26 +606,32 @@ public class CashierNPC : InteracaoNPC
             await Task.Yield();
         }
 
-        if (textoPularDialogo != null)
+        if (mostrarLegenda)
         {
-            textoPularDialogo.gameObject.SetActive(true);
+            if (textoPularDialogo != null)
+            {
+                textoPularDialogo.gameObject.SetActive(true);
 
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
 
-        await Task.Yield();
-
-        bool clicou = false;
-        while (!clicou)
+        if (mostrarLegenda)
         {
-            if (Input.GetMouseButtonDown(0)) 
+            await Task.Yield();
+
+            bool clicou = false;
+            while (!clicou)
             {
-                clicou = true; 
-            }
-            else
-            {
-                await Task.Yield(); 
+                if (Input.GetMouseButtonDown(0)) 
+                {
+                    clicou = true; 
+                }
+                else
+                {
+                    await Task.Yield(); 
+                }
             }
         }
 
@@ -724,5 +709,15 @@ public class CashierNPC : InteracaoNPC
             return false;
 
         return GameProgress.Instance.PodeFalarComCaixa();
+    }
+
+    public bool JogadorPegouSacola()
+    {
+        return sacolaFoiPega;
+    }
+
+    public bool MissaoSacolaLiberada()
+    {
+        return missaoSacolaLiberada;
     }
 }

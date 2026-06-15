@@ -310,8 +310,12 @@ public class BakeryNPC : InteracaoNPC
         // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
         MissionManager.Instance.ConcluirMissao("falar_padaria");
-        bool missoesConcluidas = missaoManager.MissaoConcluida("falar_atendente");
-        if(missoesConcluidas)
+        bool podeLiberarCaixa =
+            MissionManager.Instance.MissaoConcluida("falar_atendente")
+            && ProdutoManager.Instance != null
+            && ProdutoManager.Instance.ProdutosObrigatoriosPegos();
+
+        if (podeLiberarCaixa)
         {
             MissionManager.Instance.AdicionarMissao(
                 "falar_caixa",

@@ -16,6 +16,8 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
     public GameObject modalLegenda, modalCarregando, modalBarraProgressao, legendaMenor;
     public GameObject modalAvisoInteracaoMouse;
 
+    public GameObject modalFinal, modalAvisoSacola;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -25,6 +27,8 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
         modalResultadoNivelmento.SetActive(false); 
         modalInstrucoes.SetActive(false);
         botaoAjuda.gameObject.SetActive(false);
+        modalFinal.SetActive(false);
+        modalAvisoSacola.SetActive(false);
         legendaMenor.SetActive(false);
         botaoRepetirFala.gameObject.SetActive(false);
         modalAvisoRevisao.SetActive(false);

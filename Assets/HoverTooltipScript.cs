@@ -7,6 +7,7 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
     public string translation;
     public Color corDoFundo = new Color(0f, 0f, 0f, 0.85f);
     public Color corDoTexto = Color.white;
+    public bool usarTooltipGrande = false;
 
     private string ultimoTextoOriginal = "";
     private TextMeshProUGUI textoLocal;
@@ -29,7 +30,22 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
         // CASO 1: já existe tradução preenchida manualmente
         if (!string.IsNullOrEmpty(translation))
         {
-            TooltipScript.instance.Show(translation, corDoFundo, corDoTexto);
+            if (usarTooltipGrande)
+            {
+                TooltipScript.instance.ShowTooltipGrande(
+                    translation,
+                    corDoFundo,
+                    corDoTexto
+                );
+            }
+            else
+            {
+                TooltipScript.instance.Show(
+                    translation,
+                    corDoFundo,
+                    corDoTexto
+                );
+            }
             return;
         }
 
@@ -46,7 +62,22 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
             ultimoTextoOriginal == textoOriginal &&
             !string.IsNullOrEmpty(translation))
         {
-            TooltipScript.instance.Show(translation, corDoFundo, corDoTexto);
+            if (usarTooltipGrande)
+            {
+                TooltipScript.instance.ShowTooltipGrande(
+                    translation,
+                    corDoFundo,
+                    corDoTexto
+                );
+            }
+            else
+            {
+                TooltipScript.instance.Show(
+                    translation,
+                    corDoFundo,
+                    corDoTexto
+                );
+            }
             return;
         }
 
@@ -66,7 +97,22 @@ public class HoverTooltipScript : MonoBehaviour, IPointerEnterHandler, IPointerE
             ultimoTextoOriginal = textoOriginal;
             translation = resultadoTraducao;
 
-            TooltipScript.instance.Show(translation, corDoFundo, corDoTexto);
+            if (usarTooltipGrande)
+            {
+                TooltipScript.instance.ShowTooltipGrande(
+                    translation,
+                    corDoFundo,
+                    corDoTexto
+                );
+            }
+            else
+            {
+                TooltipScript.instance.Show(
+                    translation,
+                    corDoFundo,
+                    corDoTexto
+                );
+            }
         }
     }
 

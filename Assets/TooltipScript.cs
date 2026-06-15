@@ -49,27 +49,47 @@ public class TooltipScript : MonoBehaviour
     // Sobrecarga 1: Função original (usa a cor padrão das instruções)
 
 // Sobrecarga 1: Instruções normais do jogo (Volta para o padrão)
-    public void Show(string message)
-    {
-        if (panelImage != null) panelImage.color = corPadrao;
-        if (text != null) text.color = corTextoPadrao; // Texto volta à cor original
-        ExibirPainel(message);
-    }
 
-    // Sobrecarga 2: Missões (Aplica fundo branco e texto preto)
     public void Show(string message, Color corFundo, Color corTexto)
     {
-        if (panelImage != null) panelImage.color = corFundo;   // Aplica Branco
-        if (text != null) text.color = corTexto;               // Aplica Preto
-        ExibirPainel(message);
+        if (panelImage != null) panelImage.color = corFundo;
+        if (text != null) text.color = corTexto;
+
+        ExibirPainel(message, false);
     }
 
-    private void ExibirPainel(string message)
+    public void ShowTooltipGrande(string message, Color corFundo, Color corTexto)
     {
-        // Adiciona a tag <b> antes e </b> depois da mensagem para forçar o negrito
-        text.text = "<b>" + message + "</b>";
+        if (panelImage != null) panelImage.color = corFundo;
+        if (text != null) text.color = corTexto;
 
-        if (panelRect != null && !panelRect.gameObject.activeSelf)
+        ExibirPainel(message, true);
+    }
+
+    private void ExibirPainel(string message, bool tooltipGrande)
+    {
+        text.text = message;
+        text.ForceMeshUpdate();
+
+        float larguraMaxima = tooltipGrande ? 700f : 350f;
+
+        Vector2 tamanhoTexto = text.GetPreferredValues(
+            text.text,
+            larguraMaxima,
+            Mathf.Infinity
+        );
+
+        panelRect.SetSizeWithCurrentAnchors(
+            RectTransform.Axis.Horizontal,
+            Mathf.Min(tamanhoTexto.x + 30f, larguraMaxima + 30f)
+        );
+
+        panelRect.SetSizeWithCurrentAnchors(
+            RectTransform.Axis.Vertical,
+            tamanhoTexto.y + 20f
+        );
+
+        if (!panelRect.gameObject.activeSelf)
             panelRect.gameObject.SetActive(true);
     }
 

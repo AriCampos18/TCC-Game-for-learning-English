@@ -103,15 +103,6 @@ public class ShelfNPC : InteracaoNPC
         }
         
         MissionManager.Instance.ConcluirMissao("falar_atendente");
-        
-        if (missaoManager.MissaoConcluida("falar_padaria"))
-        {
-            MissionManager.Instance.AdicionarMissao(
-                "falar_caixa",
-                "Go to the counter and interact with the cashier",
-                "Vá para o balcão do caixa e inicie uma conversa com o atendente do caixa"
-            );
-        }
 
         GameProgress.Instance.falouAtendente = true;
         GameProgress.EstaEmDialogo = false; // ✨ Só destrava aqui no final de TUDO
@@ -235,7 +226,6 @@ public class ShelfNPC : InteracaoNPC
         ProdutoManager.Instance.LiberarProdutos(nivelAtual);
     }
 
-    // ✨ MÉTODO QUE GERENCIA O DESLOCAMENTO E ESPERA DO JOGADOR
     private async Task FluxoSeguirNPCAtelarPrateleira()
     {
         if (agent != null)
@@ -276,6 +266,8 @@ public class ShelfNPC : InteracaoNPC
             Debug.LogError($"Não há um ponto de destino válido configurado para o nível {nivelAtual} no índice atual!");
             return;
         }
+
+        missaoManager.ResetarMissao("seguir_atendente");
 
         missaoManager.AdicionarMissao(
             "seguir_atendente",
@@ -536,13 +528,13 @@ public class ShelfNPC : InteracaoNPC
                 await Task.Yield();
             }
 
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(true);
+                if (textoPularDialogo != null)
+                {
+                    textoPularDialogo.gameObject.SetActive(true);
 
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
 
             // ✨ ESPERA SEGURA: Aguarda 150ms antes de começar a ouvir o clique.
             // Isso evita que o clique que fechou o modal ou moveu o player passe para cá.

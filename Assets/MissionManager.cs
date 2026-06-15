@@ -24,6 +24,19 @@ public class MissionManager : MonoBehaviour
         Instance = this;
     }
 
+    public void ResetarMissao(string id)
+    {
+        Missao m = missoes.Find(x => x.id == id);
+
+        if (m != null)
+        {
+            m.concluida = false;
+
+            if (m.itemUI != null)
+                m.itemUI.AtualizarVisual();
+        }
+    }
+
     public void AdicionarMissao(string id, string texto, string traducao)
     {
         if (missoes.Exists(m => m.id == id))

@@ -14,6 +14,8 @@ public class ModalExercicio : MonoBehaviour
     private string textoOriginalBotao = "Confirm your Answer";
     private bool modoRevisao = false;
 
+    public Vector2 posicaoLegendaRepeticao = new Vector2(350f, 50f);
+
     public GameObject panel;
     public Button confirmarResposta;
     public TextMeshProUGUI titulo, enunciado;
@@ -72,6 +74,9 @@ public class ModalExercicio : MonoBehaviour
                     if (alternativasUI.EstaCorreto())
                     {
                         alternativasUI.MostrarResultadoVisual();
+                        alternativasUI.MostrarFeedback("Good job! You got the answer right.");
+                        alternativasUI.BloquearAlternativas();
+
                         Debug.Log("Good. You got the answer right!");
                         acertouExercicio = true;
                     }
@@ -99,6 +104,9 @@ public class ModalExercicio : MonoBehaviour
                         }
                         else
                         {
+                            alternativasUI.MostrarFeedback("You have used all your chances. You can try again later in the revision section.");
+                            alternativasUI.BloquearAlternativas();
+
                             RegistrarErroParaRevisao();
                         }
                     }
@@ -125,16 +133,14 @@ public class ModalExercicio : MonoBehaviour
                         int chances = speakingUI.ObterTentativasRestantes();
 
                         string erroTexto = "Você escolheu ou pronunciou a alternativa errada. Tente responder novamente!";
-                        speakingUI.AtualizarTextoFeedback(erroTexto, resultado.palavras_erradas);
-
-                        Debug.Log($"Opção errada detectada ({resultado.indice_detectado}). Esperada: {respostaCorretaDoExercicio}");
+                        
+                        // Não mostra palavras erradas quando a opção detectada foi outra
+                        speakingUI.AtualizarTextoFeedback(erroTexto, null);
 
                         if (!modoRevisao)
                         {
                             if (chances == 1 && botaoRepetirFalaNPC != null)
-                            {
                                 botaoRepetirFalaNPC.gameObject.SetActive(true);
-                            }
                         }
 
                         if (chances > 0)
@@ -144,25 +150,35 @@ public class ModalExercicio : MonoBehaviour
                         }
                         else
                         {
+                            speakingUI.MostrarFeedbackFimTentativas();
+                            speakingUI.BloquearSpeaking();
                             RegistrarErroParaRevisao();
                         }
                     }
-                    else if (resultado.indice_detectado == respostaCorretaDoExercicio && resultado.acuracia <= 70f)
+                    else if (resultado.acuracia < 70f)
                     {
-                        string feedbackTexto = $"A alternativa está correta! Mas sua acurácia foi de {resultado.acuracia}%. Vamos repetir para praticar a pronúncia?";
-                        speakingUI.AtualizarTextoFeedback(feedbackTexto, resultado.palavras_erradas);
+                        speakingUI.ReduzirTentativa();
+                        int chances = speakingUI.ObterTentativasRestantes();
 
-                        confirmarResposta.interactable = true;
-                        return;
+                        speakingUI.MostrarFeedbackPronuncia(resultado.palavras_erradas, false);
+
+                        if (chances > 0)
+                        {
+                            confirmarResposta.interactable = true;
+                            return;
+                        }
+                        else
+                        {
+                            speakingUI.MostrarFeedbackFimTentativas();
+                            speakingUI.BloquearSpeaking();
+                            RegistrarErroParaRevisao();
+                        }
                     }
                     else
                     {
-                        Debug.Log($"Speaking completado com sucesso! Acurácia: {resultado.acuracia}%");
-                        speakingUI.MostrarSucessoNativo(resultado.acuracia);
-
+                        speakingUI.MostrarFeedbackPronuncia(resultado.palavras_erradas, true);
+                        speakingUI.BloquearSpeaking();
                         acertouExercicio = true;
-
-                        await Task.Delay(1500);
                     }
                 }
             }
@@ -175,6 +191,9 @@ public class ModalExercicio : MonoBehaviour
                     if (correto)
                     {
                         Debug.Log("Exercicio acertado!");
+
+                        blocosUI.BloquearBlocos();
+
                         acertouExercicio = true;
                     }
                     else
@@ -188,8 +207,17 @@ public class ModalExercicio : MonoBehaviour
                         }
                         else
                         {
+                            blocosUI.BloquearBlocos();
+
+                            if (blocosUI.textoFeedback != null)
+                            {
+                                blocosUI.textoFeedback.text +=
+                                    "\nYou have used all your chances. You can try again later in the revision section.";
+                            }
+
                             RegistrarErroParaRevisao();
-                            Debug.Log("Acabaram as chances, fechando exercício e continuando o papo...");
+
+                            Debug.Log("Acabaram as chances nos blocos.");
                         }
                     }
                 }
@@ -244,14 +272,6 @@ public class ModalExercicio : MonoBehaviour
             legendaPequena.transform.SetAsLastSibling();
 
             RectTransform rect = legendaPequena.GetComponent<RectTransform>();
-
-            Vector3 posicaoTela =
-                Camera.main.WorldToScreenPoint(npcAtual.transform.position);
-
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(0f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(posicaoTela.x, 50f);
 
             ModalLegenda legenda =
                 legendaPequena.GetComponent<ModalLegenda>();

@@ -26,6 +26,8 @@ public class AlternativasUI : MonoBehaviour
 
         LimparSelecao();
 
+        LiberarAlternativas();
+
         for (int i = 0; i < botoes.Length; i++)
         {
             int index = i;
@@ -71,6 +73,28 @@ public class AlternativasUI : MonoBehaviour
             botoes[respostaSelecionada].image.color = corCorreta;
         else
             botoes[respostaSelecionada].image.color = corErrada;
+    }
+
+    public void BloquearAlternativas()
+    {
+        for (int i = 0; i < botoes.Length; i++)
+        {
+            botoes[i].interactable = false;
+        }
+    }
+
+    public void LiberarAlternativas()
+    {
+        for (int i = 0; i < botoes.Length; i++)
+        {
+            botoes[i].interactable = true;
+        }
+    }
+
+    public void MostrarFeedback(string mensagem)
+    {
+        if (textoFeedback != null)
+            textoFeedback.text = mensagem;
     }
     
     public bool Respondeu()
