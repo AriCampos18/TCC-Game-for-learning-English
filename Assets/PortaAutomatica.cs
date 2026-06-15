@@ -18,11 +18,11 @@ public class PortaAutomatica : MonoBehaviour
     private bool abrindo = false;
     private bool finalJaMostrado = false;
     private bool jogadorEntrouPeloLadoDeDentro = false;
+    public FirstPlayerController movimentoPlayer;
 
     [Header("Final do jogo")]
     public CashierNPC cashier;
     public GameObject modalFinal;
-    public GameObject modalAvisoSacola;
 
     [Header("Detecção de saída")]
     public Transform pontoDentroMercado;
@@ -101,9 +101,6 @@ public class PortaAutomatica : MonoBehaviour
 
         if (cashier == null || !cashier.JogadorPegouSacola())
         {
-            if (modalAvisoSacola != null)
-                modalAvisoSacola.SetActive(true);
-
             yield break;
         }
 
@@ -112,6 +109,11 @@ public class PortaAutomatica : MonoBehaviour
         if (MissionManager.Instance != null)
         {
             MissionManager.Instance.ConcluirMissao("pegar_sacola");
+        }
+
+        if (movimentoPlayer != null)
+        {
+            movimentoPlayer.DesativarControle();
         }
 
         if (modalFinal != null)

@@ -154,15 +154,18 @@ public class SpeakingUI : MonoBehaviour
                 boas.Append($"<color=#2E7D32><b>{limpa}</b></color> ");
         }
 
-        string mensagem = passou
-            ? "Good job! Your answer was accepted."
-            : "The sentence is correct, but some words need more practice.";
-
         StringBuilder feedbackFinal = new StringBuilder();
 
-        feedbackFinal.Append(mensagem);
-        feedbackFinal.Append("\n<size=80%><color=#2E7D32>Good words:</color></size> ");
-        feedbackFinal.Append(boas);
+        if (passou)
+            feedbackFinal.Append("<color=#2E7D32>Good job! Your answer was accepted.</color>");
+        else
+            feedbackFinal.Append("<color=#000000>The sentence is correct, but some words need more practice.</color>");
+
+        if (boas.Length > 0)
+        {
+            feedbackFinal.Append("\n<size=80%><color=#2E7D32>Good words:</color></size> ");
+            feedbackFinal.Append(boas);
+        }
 
         if (ruins.Length > 0)
         {

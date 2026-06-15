@@ -41,8 +41,6 @@ public class BakeryNPC : InteracaoNPC
 
     public GameObject modalLegenda;
 
-    
-
     protected override void Start()
     {
         base.Start();
@@ -305,7 +303,6 @@ public class BakeryNPC : InteracaoNPC
             await interacaoB1();
         }
         GameProgress.Instance.falouPadaria = true;
-        Debug.Log("ATÉ AQUI FUNCIONAA");
 
         // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
@@ -340,70 +337,70 @@ public class BakeryNPC : InteracaoNPC
         int i = 0;
 
         // Toca áudio e mostra a legenda ao mesmo tempo de forma síncrona
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
         await PegarProduto(breadLoaf);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
         await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
-        await PegarProduto(cake);
-        await PegarProduto(sandwich);
+        await PegarProduto(cake, falar: true);
+        await PegarProduto(sandwich, falar: false);
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[3];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
     }
 
     private async Task interacaoA2()
     {
         int i = 0;
         
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
         
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
         await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
         
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PegarProduto(sandwich);
-        await PegarProduto(sourdough);
+        await PegarProduto(sandwich, falar: true);
+        await PegarProduto(sourdough, falar: false);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
  
     }
 
@@ -411,35 +408,39 @@ public class BakeryNPC : InteracaoNPC
     {
         int i = 0;
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosBlocos[0];
         await AbrirExercicio(TipoExercicio.Blocos, exAtual);
 
-        await PegarProduto(sandwich);
-        await PegarProduto(sourdough);
+        await PegarProduto(sandwich, falar: true);
+        await PegarProduto(sourdough, falar: false);
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await PlayAudioETexto(i++);
     }
 
-    private async Task PegarProduto(GameObject produto)
+   private async Task PegarProduto(GameObject produto, bool falar = true)
     {
         if (produto != null)
         {
-            await FalarFraseCustomizada("Let me get that for you.");
+            if (falar)
+            {
+                await FalarFraseCustomizada("Let me get that for you.");
+            }
+
             await Task.Delay(1500);
             produto.SetActive(false);
         }
@@ -490,7 +491,7 @@ public class BakeryNPC : InteracaoNPC
         }
     }
 
-    private async Task PlayAudioETexto(int i, bool mostrarLegenda)
+    private async Task PlayAudioETexto(int i)
     {
         ultimaFraseDita = dialogoAtual[i];
         // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
@@ -511,13 +512,10 @@ public class BakeryNPC : InteracaoNPC
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
 
-            if (mostrarLegenda)
-            {
+            if (textoPularDialogo != null)
                 textoPularDialogo.gameObject.SetActive(false);
-                // Usa o nome dinâmico do NPC na legenda
-                modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            }
 
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
             audioSource.Play();
             while (audioSource.isPlaying)
             {
@@ -567,10 +565,7 @@ public class BakeryNPC : InteracaoNPC
         else
         {
             Debug.LogError("O servidor retornou um array de bytes vazio.");
-            if (mostrarLegenda)
-            {
-                modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            }
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
         }
     }
 
@@ -593,10 +588,15 @@ public class BakeryNPC : InteracaoNPC
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
-            if (modalLegenda != null && modalLegenda.activeSelf)
+            if (modalLegenda != null)
             {
-                if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
-                modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+                modalLegenda.SetActive(true);
+
+                if (textoPularDialogo != null)
+                    textoPularDialogo.gameObject.SetActive(false);
+
+                modalLegenda.GetComponent<ModalLegenda>()
+                    .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
             audioSource.Play();
@@ -604,6 +604,11 @@ public class BakeryNPC : InteracaoNPC
             while (audioSource.isPlaying)
             {
                 await Task.Yield();
+            }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
             }
         }
     }
