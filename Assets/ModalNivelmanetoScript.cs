@@ -324,11 +324,23 @@ public class ModalNivelmanetoScript : MonoBehaviour
                     Formatting.Indented
                 );
 
-            RetornoIANivelamento resultado =
-                await backendManager.ProcessarRespostasNivelamento(json);
+            RetornoIANivelamento resultado = await backendManager.ProcessarRespostasNivelamento(json);
 
-            DadosJogador.nivelUsuario = resultado.nivel;
+        if (resultado == null)
+        {
+            Debug.LogError("Resultado da IA veio NULL. Verifique se o backend/LM Studio está rodando e se retornou JSON válido.");
+            modalCarregando.SetActive(false);
+            return;
+        }
 
+        if (string.IsNullOrEmpty(resultado.nivel))
+        {
+            Debug.LogError("Resultado da IA veio sem nível.");
+            modalCarregando.SetActive(false);
+            return;
+        }
+
+        DadosJogador.nivelUsuario = resultado.nivel;
             if (ProgressoNivelManager.Instance != null)
             {
                 ProgressoNivelManager.Instance.InicializarBarra();
@@ -344,7 +356,8 @@ public class ModalNivelmanetoScript : MonoBehaviour
         }
         finally
         {
-            modalCarregando.SetActive(false);
+            if (modalCarregando != null)
+                modalCarregando.SetActive(false);
         }
     }
 

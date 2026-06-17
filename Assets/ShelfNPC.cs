@@ -390,7 +390,7 @@ public class ShelfNPC : InteracaoNPC
                 "Hi. Are you looking for anything today?",
                 "Follow me.",
                 "The milk is here. Do you need anything else?",
-                "Ok, I will show you",
+                "Sure, I will show you",
                 "The fruits are here. Can I do anything else for you?",
                 "Yes, we have apples too."
             };
@@ -419,7 +419,7 @@ public class ShelfNPC : InteracaoNPC
             exerciciosAlternativas.Add(new ExercicioAlternativas()
             {
                 enunciado = "Answer choosing the right sentence:",
-                alternativas = new List<string>() { "She is my teacher.\r\n", "They goes to school.\r\n", "That is all I needed, thank you\r\n", "I like to play soccer.\r\n" },
+                alternativas = new List<string>() { "She is my teacher.\r\n", "They go to school.\r\n", "That's all I need, thank you\r\n", "I like to play soccer.\r\n" },
                 alternativaCorreta = 2
             });
         }
@@ -430,15 +430,15 @@ public class ShelfNPC : InteracaoNPC
                 "Hi! What are you looking for in the supermarket today?",
                 "Sure. Follow me, please.",
                 "The milk is on this shelf, and the cereal is over there. Do you need anything else?",
-                "There are special discounts today.Do you often buy snacks from this aisle, or do you prefer the one near the bakery?",
+                "There are special discounts today. Do you often buy snacks from this aisle, or do you prefer the one near the bakery?",
                 "The snacks are here. Can I help you find anything else, or do you already have everything?"
            };
 
             exerciciosBlocos.Add(new ExercicioBlocos()
             {
-                enunciado = "Ask where the products Milk and Cereal are with the words to form a correct sentence:",
-                blocosPalavras = new List<string>() { "Where", "milk", "thank", "you", "that", "is", "all", "hello", "bread", "the", "cereal", "ok", "and" },
-                respostaCorreta = "Where is the milk and cereal?"
+                enunciado = "Ask where you can find the products 'Milk' and 'Cereal' with the words bellow:",
+                blocosPalavras = new List<string>() { "Where", "milk", "thank", "you", "that", "can", "all", "hello", "bread", "the", "cereal", "ok", "and", "I", "find" },
+                respostaCorreta = "Where can I find the milk and cereal?"
             });
 
             exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -451,7 +451,7 @@ public class ShelfNPC : InteracaoNPC
             exerciciosBlocos.Add(new ExercicioBlocos()
             {
                 enunciado = "Arrange the words to form the sentence in english: Há descontos especiais hoje?",
-                blocosPalavras = new List<string>() { "Where", "thank", "you", "there", "Are", "all", "hello", "speacial", "the", "cereal", "any", "and", "discounts", "bread", "today" },
+                blocosPalavras = new List<string>() { "Where", "thank", "you", "there", "Are", "all", "hello", "special", "the", "cereal", "any", "and", "discounts", "bread", "today" },
                 respostaCorreta = "Are there any special discounts today?"
             });
 
@@ -468,7 +468,7 @@ public class ShelfNPC : InteracaoNPC
             { 
                 "Hi! What are you searching for today, and would you like me to show you where the products are?",
                 "Yes, there are still some discounts available on pizzas and vegetables.",
-                "Of course, follow me and I'll show you where they are.",
+                "Of course, follow me, and I'll show you where they are.",
                 "The soda is on this shelf and the vegetables are right in front of it. Can I help you find anything else, or have you already picked up everything you needed today?",
                 "Enjoy the discounts. Happy shopping!"
             };
@@ -483,7 +483,7 @@ public class ShelfNPC : InteracaoNPC
             exerciciosSpeaking.Add(new ExercicioSpeaking()
             {
                 enunciado = "How should you respond? Say the right answer:",
-                opcoesFala = new List<string>() { "Nice. I’m searching for some healthy food and bottled soda too.\n", "There is a pharmacy next to the supermarket entrance. He doesn’t enjoy waking up early either.\n", "He doesn’t enjoy waking up early either.\r\n" },
+                opcoesFala = new List<string>() { "Nice. I'm looking for some healthy food and bottled soda too.\n", "There is a pharmacy next to the supermarket entrance. He doesn’t enjoy waking up early either.\n", "He doesn’t enjoy waking up early either.\r\n" },
                 respostaCorreta = 0
             });
 

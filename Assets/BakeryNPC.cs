@@ -66,9 +66,9 @@ public class BakeryNPC : InteracaoNPC
                 "Hello. What are you looking for?",
                 "Do you want anything to drink?",
                 "Do you want anything else?",
-                "We have chicken sandwich and chocolate cake",
+                "We have chicken sandwiches and chocolate cake.",
                 "Here is your order",
-                "You are welcome"
+                "You're welcome"
             };
 
             exerciciosSpeaking.Add(
@@ -90,7 +90,7 @@ public class BakeryNPC : InteracaoNPC
                     enunciado = "Say the right sentence:",
                     opcoesFala = new List<string>()
                     {
-                        "Iam at the bakery.\n",
+                        "I'm at the bakery.\n",
                         "There are three chairs.\n",
                         "Yes, I want some juice.\n"
                     },
@@ -125,7 +125,7 @@ public class BakeryNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Say the phrase to express gratitude.:",
+                    enunciado = "Say the phrase to express gratitude:",
                     opcoesFala = new List<string>()
                     {
                         "Thank you.\n"
@@ -152,7 +152,7 @@ public class BakeryNPC : InteracaoNPC
             dialogoAtual = new List<string>()
             {
                 "Hello! What are you looking for in the bakery section?",
-                "Yes, we have. Which sandwich can I prepare for you, and would you like some juice too?",
+                "Yes, we do. Which sandwich would you like, and would you like some juice too?",
                 "Can I help you with anything else, or do you already have everything you need?",
                 "Here is your order. You are welcome."
             };
@@ -162,9 +162,9 @@ public class BakeryNPC : InteracaoNPC
                 {
                     enunciado = "Say the right sentence from the list:",
                     opcoesFala = new List<string>() {
-                        "She can play the guitar\r\n",
+                        "She can play the guitar.\r\n",
                         "Are there any fresh croissants and sandwiches today?\r\n",
-                        "I usually wake up at 7 a.m\r\n",
+                        "I usually wake up at 7 a.m.\r\n",
                     },
                     respostaCorreta = 1,
                 }
@@ -177,7 +177,7 @@ public class BakeryNPC : InteracaoNPC
                     opcoesFala = new List<string>()
                     {
                         "He watches TV every night.",
-                        "I’d like the chicken sandwich and some orange juice.",
+                        "I'd like the chicken sandwich and some orange juice.",
                         "There is a woman near the window."
                     },
                     respostaCorreta = 1
@@ -216,7 +216,7 @@ public class BakeryNPC : InteracaoNPC
                         "sweet", "thank", "you", "that", "something", "was", "for",
                         "same", "for", "hello", "thank", "I'm", "maybe", "ok", "looking", "breakfast"
                     },
-                    respostaCorreta = " I’m looking for something sweet for breakfast.",
+                    respostaCorreta = "I'm looking for something sweet for breakfast.",
                 }
             );
         }
@@ -225,7 +225,7 @@ public class BakeryNPC : InteracaoNPC
             dialogoAtual = new List<string>()
             {
                 "Hello! What are you looking for today, and would you like me to recommend something popular as well?",
-                "Yes, there are still a few chocolate croissants available and cheese sandwiches.",
+                "Yes, there are still a few chocolate croissants and some cheese sandwiches available.",
                 "Here is your order. Enjoy your food.",
                 "You are welcome. Have a nice day."
             };
@@ -233,7 +233,7 @@ public class BakeryNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "How should you like to respond? Say the right answer.",
+                    enunciado = "How would you respond? Say the right answer.",
                     opcoesFala = new List<string>() {
                         "There is a supermarket across the street from my house. \r\n \r\n",
                         "Are there any freshly baked pastries left on the shelf near the window, or have they all been sold already? \r\n",
@@ -248,7 +248,7 @@ public class BakeryNPC : InteracaoNPC
                 {
                     enunciado = "Say the phrase to express gratitude:",
                     opcoesFala = new List<string>() {
-                        "You've been very helpful today. Really thank you. \r\n"
+                        "You've been very helpful today. I really appreciate it.\r\n"
                     },
                     respostaCorreta = 0
                 }
@@ -257,7 +257,7 @@ public class BakeryNPC : InteracaoNPC
             exerciciosBlocos.Add(
                 new ExercicioBlocos() 
                 { 
-                    enunciado = "Arrange the words to form the correct sentence in english: Ótimo, parece incrível. Eu vou querer o croissant and the sandwich.",
+                    enunciado = "Arrange the words to form the correct sentence in english: Ótimo, parece incrível. Eu vou querer o croissant e o sanduíche.",
                     blocosPalavras = new List<string>() { 
                         "No", "milk", "Great", "the", "you", "sandwich", "the",
                         "needed", "is", "nice", "amazing", "same", "I'll", "hello",

@@ -79,8 +79,8 @@ public class CashierNPC : InteracaoNPC
             dialogoAtual = new List<string>()
             {
                 cumprimento,
-                "Do you want anything else too?",
-                "Here is your chocolate. The total is ten dollars",
+                "Do you want anything else?",
+                "Here is your chocolate. The total is ten dollars.",
                 "What are you paying with today?",
                 "Thank you.",
             };
@@ -97,7 +97,7 @@ public class CashierNPC : InteracaoNPC
             exerciciosBlocos.Add(
                 new ExercicioBlocos() 
                 { 
-                    enunciado = "Arrange the words to form the correct sentence in english: Sim, eu quero algum chocolate",
+                    enunciado = "Arrange the words to form the correct sentence in english: Sim, eu quero algum chocolate.",
                     blocosPalavras = new List<string>() { "No", "Yes", "thank", "you", "that", "chocolate", "was", "want", "all", "hello", "thank", "I", "maybe", "some" },
                     respostaCorreta = "Yes, I want some chocolate\n",
                 }
@@ -115,7 +115,7 @@ public class CashierNPC : InteracaoNPC
                 new ExercicioSpeaking()
                 {
                     enunciado = "Say the right sentence:",
-                    opcoesFala = new List<string>() { "I’m paying with my card, please.\n", "There is a chair near the door.\n", "He plays soccer every week.\n" },
+                    opcoesFala = new List<string>() { "I'm paying with my card, please.\n", "There is a chair near the door.\n", "He plays soccer every week.\n" },
                     respostaCorreta = 0
                 }
             );
@@ -126,10 +126,10 @@ public class CashierNPC : InteracaoNPC
             dialogoAtual = new List<string>()
             {
                 cumprimento,
-                "Your total is fourteen dollars and fifty cents",
+                "Your total is fourteen dollars and fifty cents.",
                 "Do you usually bring your own bags, or do you need some today?",
-                "Can I help you with anything else, or do you already have everything you need too?",
-                "What are you paying with today: cash or card?",
+                "Can I help you with anything else, or do you already have everything you need?",
+                "How are you paying today: cash or card?",
                 "Thank you."
             };
 
@@ -153,7 +153,7 @@ public class CashierNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Speak the total purchase price: "+valorTotal+"\n",
+                    enunciado = "Say the total purchase price: "+valorTotal+"\n",
                     opcoesFala = new List<string>() { valorTotal+"\n" },
                     respostaCorreta = 0
                 }
@@ -162,7 +162,7 @@ public class CashierNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Say the right sentence to respond the cashier:",
+                    enunciado = "Say the right sentence to respond to the cashier:",
                     opcoesFala = new List<string>() { "I am waiting for my friend near the entrance.\n", "There are some magazines under the counter.\n", "I usually bring my own bags, but I need one today.\n" },
                     respostaCorreta = 2
                 }
@@ -171,7 +171,7 @@ public class CashierNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Say the right sentence to respond the cashier:",
+                    enunciado = "Say the right sentence to respond to the cashier:",
                     opcoesFala = new List<string>() { "There are many cars in the parking lot.\n", "He is standing between the shelves.\n", "No, I already have everything I need.\n" },
                     respostaCorreta = 2
                 }
@@ -191,8 +191,8 @@ public class CashierNPC : InteracaoNPC
             dialogoAtual = new List<string>()
             { 
                 cumprimento+" Did you find everything you were looking for today?",
-                "Your total is sixteen dollars and seventy-five cents",
-                "There are reusable bags left near the register, or would you prefer paper bags instead?",
+                "Your total is sixteen dollars and seventy-five cents.",
+                "We have reusable bags near the register, or would you prefer paper bags instead?",
                 "What payment method are you using today, and would you also like a printed receipt?",
                 "Thank you for shopping with us. Have a great day!"
             };
@@ -200,8 +200,8 @@ public class CashierNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "After listening to the cashier greetings, repeat what she said and say the right answer:",
-                    opcoesFala = new List<string>() { cumprimento+"Yes, I found everything I needed, thank you.\n", cumprimento+"I like chocolate cake and pizza.\n", cumprimento+"The cat is under the table.\n" },
+                    enunciado = "Repeat the cashier's greeting and give the right answer:",
+                    opcoesFala = new List<string>() { cumprimento+". Yes, I found everything I needed, thank you.\n", cumprimento+". I like chocolate cake and pizza.\n", cumprimento+". The cat is under the table.\n"},
                     respostaCorreta = 0
                 }
             );
