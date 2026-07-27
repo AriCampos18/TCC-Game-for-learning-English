@@ -59,6 +59,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   translation: 
+  corDoFundo: {r: 0, g: 0, b: 0, a: 0.85}
+  corDoTexto: {r: 1, g: 1, b: 1, a: 1}
+  usarTooltipGrande: 0
 --- !u!114 &730782963760441147
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -234,3 +237,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   translation: 
+  corDoFundo: {r: 0, g: 0, b: 0, a: 0.85}
+  corDoTexto: {r: 1, g: 1, b: 1, a: 1}
+  usarTooltipGrande: 0
