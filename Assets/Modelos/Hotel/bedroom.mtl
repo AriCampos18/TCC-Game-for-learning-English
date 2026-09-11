@@ -1,0 +1,264 @@
+# Blender MTL File: 'untitled.blend'
+# Material Count: 23
+
+newmtl Chrome.001
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+
+newmtl Mat.001
+Ns 50.000007
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 3
+
+newmtl Material.001
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.030000 0.030000 0.030000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\New folder\\Parquet_flooring_05_2K_Normal.png
+map_Kd C:\\Users\\Ayush Goyal\\Desktop\\New folder\\Parquet_flooring_05_2K_Base_Color.png
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\New folder\\Parquet_flooring_05_2K_Roughness.png
+
+newmtl Material.002
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.030000 0.030000 0.030000
+Ke 0.000000 0.000000 0.000000
+Ni 16.900000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\Fabric034_2K_Normal.jpg
+map_Kd C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\Fabric034_2K_Color.jpg
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\Fabric034_2K_Roughness.jpg
+
+newmtl Material.003
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_SilkMedieval_512_normal.tif
+map_Kd C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_SilkMedieval_512_albedo.tif
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_SilkMedieval_512_roughness.tif
+refl C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_SilkMedieval_512_metallic.tif
+
+newmtl Material.004
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_Blanket2_512_normal.tif
+map_Kd C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_Blanket2_512_albedo.tif
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\TexturesCom_Fabric_Blanket2_512_roughness.tif
+
+newmtl Material.007
+Ns 413.715604
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl Material.008
+Ns 323.999994
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Material.009
+Ns 323.999994
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Material.012
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\carpet\\Carpet_2_Carpet2_Normal.png
+map_Kd C:\\Users\\Ayush Goyal\\Desktop\\carpet\\Carpet_2_Carpet2_BaseColor.png
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\carpet\\Carpet_2_Carpet2_Roughness.png
+refl C:\\Users\\Ayush Goyal\\Desktop\\carpet\\Carpet_2_Carpet2_Metallic.png
+
+newmtl Material.013
+Ns 0.669420
+Ka 0.174545 0.174545 0.174545
+Kd 0.800000 0.800000 0.800000
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd 1534773428374_Buddha__1___07617.1535001382.jpg
+
+newmtl WALL
+Ns 49.257217
+Ka 0.500000 0.500000 0.500000
+Kd 1.000000 1.000000 1.000000
+Ks 0.700000 0.700000 0.700000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+
+newmtl Window_material
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump -bm 2.000000 C:\\Users\\Ayush Goyal\\Desktop\\New folder (3)\\Parquet_flooring_08_2K_Normal.png
+map_Kd C:\\Users\\Ayush Goyal\\Desktop\\New folder (3)\\Parquet_flooring_08_2K_Base_Color.png
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\New folder (3)\\Parquet_flooring_08_2K_Roughness.png
+
+newmtl blinn2SG
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.500000 0.500000 0.500000
+Ks 0.090000 0.090000 0.090000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Bump 28-polyester-masa-lambas\\eb_nightstand_01\\eb_nightstand_01_n.tga
+map_Kd 28-polyester-masa-lambas\\eb_nightstand_01\\eb_nightstand_01_c.tga
+map_Ns 28-polyester-masa-lambas\\eb_nightstand_01\\eb_nightstand_01_g.tga
+
+newmtl chair
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\Fabric002_2K-JPG\\Fabric002_2K_Normal.jpg
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\Fabric002_2K-JPG\\Fabric002_2K_Roughness.jpg
+
+newmtl chair_legs
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd DecorationDecahedron001\\Armchair DAW_vray\\armchair-daw-wood-diff.jpg
+
+newmtl chair_metal
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.053415 0.053415 0.053415
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+
+newmtl default.001
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\New folder (2)\\TexturesCom_Plastic_Bakelite2_512_normal.tif
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\New folder (2)\\TexturesCom_Plastic_Bakelite2_512_roughness.tif
+
+newmtl glass_milk_new
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl hidden_material
+Ns 323.999994
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl metal_grey_new
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl sheet
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\Fabric039_2K_Normal.jpg
+map_Ns C:\\Users\\Ayush Goyal\\Desktop\\Fabric039_2K-JPG\\Fabric039_2K_Roughness.jpg
+
+newmtl wire_177028149.004
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 0.154216 0.840439
+Ks 0.375455 0.375455 0.375455
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd flaming-sun-abstract-painting-texture-excellent-backgrounds.jpg
