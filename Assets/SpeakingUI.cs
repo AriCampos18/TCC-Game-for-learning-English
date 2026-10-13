@@ -198,6 +198,9 @@ public class SpeakingUI : MonoBehaviour
             botaoRepetirFalaNPC.gameObject.SetActive(false);
         }
 
+        if (pularEx != null)
+            pularEx.interactable = true;
+
         for (int i = 0; i < textosOpcoesFala.Length; i++)
         {
             if (i < ex.opcoesFala.Count)
@@ -210,6 +213,75 @@ public class SpeakingUI : MonoBehaviour
                 textosOpcoesFala[i].gameObject.SetActive(false);
             }
         }
+    }
+
+    public void PrepararParaNivelamento()
+    {
+        if (gravando)
+            CancelarGravacao();
+
+        dadosAudioWav = null;
+        bloqueado = false;
+
+        if (string.IsNullOrEmpty(microfoneDispositivo))
+        {
+            string[] dispositivos = Microphone.devices;
+            if (dispositivos.Length > 0)
+                microfoneDispositivo = dispositivos[0];
+        }
+
+        if (textoFeedback != null)
+            textoFeedback.text = "";
+
+        if (statusGravacao != null)
+            statusGravacao.text = "Press the microphone to start recording.";
+
+        if (botaoMicrofone != null)
+            botaoMicrofone.interactable = !string.IsNullOrEmpty(microfoneDispositivo);
+
+        if (pularEx != null)
+            pularEx.interactable = false;
+
+        if (botaoRepetirFalaNPC != null)
+            botaoRepetirFalaNPC.gameObject.SetActive(false);
+
+        if (modalLegendaNPC != null)
+            modalLegendaNPC.SetActive(false);
+
+        if (textosOpcoesFala != null)
+        {
+            foreach (TextMeshProUGUI textoOpcao in textosOpcoesFala)
+            {
+                if (textoOpcao != null)
+                    textoOpcao.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    public byte[] ObterAudioWav()
+    {
+        return dadosAudioWav == null ? null : (byte[])dadosAudioWav.Clone();
+    }
+
+    public void CancelarGravacao()
+    {
+        if (gravando && !string.IsNullOrEmpty(microfoneDispositivo) &&
+            Microphone.IsRecording(microfoneDispositivo))
+        {
+            Microphone.End(microfoneDispositivo);
+        }
+
+        gravando = false;
+        dadosAudioWav = null;
+
+        if (statusGravacao != null)
+            statusGravacao.text = "Recording cancelled.";
+        if (microfoneIcon != null)
+            microfoneIcon.SetActive(true);
+        if (ondasSom != null)
+            ondasSom.SetActive(false);
+        if (botaoMicrofone != null)
+            botaoMicrofone.interactable = !string.IsNullOrEmpty(microfoneDispositivo);
     }
 
     public int ObterIndiceCorreto() => dadosExercicioAtual.respostaCorreta;
@@ -349,33 +421,79 @@ public class SpeakingUI : MonoBehaviour
 
     void IniciarGravacao()
     {
-        gravando = true;
-        microfoneIcon.SetActive(false);
-        ondasSom.SetActive(true);
-        statusGravacao.text = "Recording...";
+        dadosAudioWav = null;
+        clipGravado = null;
 
-        if(textoFeedback != null) textoFeedback.text = "";
+        if (string.IsNullOrEmpty(microfoneDispositivo))
+        {
+            Debug.LogError("Não há um microfone disponível para iniciar a gravação.");
+            if (statusGravacao != null)
+                statusGravacao.text = "Microphone not available.";
+            return;
+        }
 
         clipGravado = Microphone.Start(microfoneDispositivo, false, tempoMaximoGravacao, frequenciaAmostragem);
+        if (clipGravado == null)
+        {
+            Debug.LogError("O Unity não conseguiu iniciar a gravação do microfone.");
+            if (statusGravacao != null)
+                statusGravacao.text = "Could not start recording.";
+            return;
+        }
+
+        gravando = true;
+        if (microfoneIcon != null)
+            microfoneIcon.SetActive(false);
+        if (ondasSom != null)
+            ondasSom.SetActive(true);
+        if (statusGravacao != null)
+            statusGravacao.text = "Recording...";
+
+        if(textoFeedback != null) textoFeedback.text = "";
     }
 
     void PararGravacao()
     {
         gravando = false;
-        microfoneIcon.SetActive(true);
-        ondasSom.SetActive(false);
+        if (microfoneIcon != null)
+            microfoneIcon.SetActive(true);
+        if (ondasSom != null)
+            ondasSom.SetActive(false);
 
-        if (Microphone.IsRecording(microfoneDispositivo)) 
+        int framesGravados = 0;
+        if (!string.IsNullOrEmpty(microfoneDispositivo) &&
+            Microphone.IsRecording(microfoneDispositivo))
+        {
+            framesGravados = Microphone.GetPosition(microfoneDispositivo);
             Microphone.End(microfoneDispositivo);
+        }
+        else if (clipGravado != null)
+        {
+            framesGravados = clipGravado.samples;
+        }
 
         if (clipGravado != null)
         {
-            statusGravacao.text = "Processing audio file...";
-            // Converte os dados gravados da memória do Unity diretamente para o array de bytes em formato WAV
-            dadosAudioWav = ConvertAudioClipToWav(clipGravado);
-            statusGravacao.text = "Audio ready! Press 'Confirm' to submit.";
+            if (statusGravacao != null)
+                statusGravacao.text = "Processing audio file...";
+            if (framesGravados <= 0)
+            {
+                dadosAudioWav = null;
+                Debug.LogError("A gravação terminou sem amostras de áudio.");
+                if (statusGravacao != null)
+                    statusGravacao.text = "No audio was recorded. Please try again.";
+                return;
+            }
+
+            dadosAudioWav = ConvertAudioClipToWav(clipGravado, framesGravados);
+            if (statusGravacao != null)
+                statusGravacao.text = "Audio ready! Press 'Confirm' to submit.";
             if (textoFeedback != null)
                 textoFeedback.text = "<i>Audio recorded. Click the confirmation button to evaluate.</i>";
+        }
+        else
+        {
+            Debug.LogError("Não há áudio gravado para processar.");
         }
     }
 
@@ -386,7 +504,42 @@ public class SpeakingUI : MonoBehaviour
     }
 
     // --- Métodos de Conversão WAV mantidos intactos ---
-    byte[] ConvertAudioClipToWav(AudioClip clip) { float[] samples = new float[clip.samples]; clip.GetData(samples, 0); return ConvertFloatsToWav(samples, clip.frequency); }
-    private byte[] ConvertFloatsToWav(float[] samples, int frequency) { 
-        int channels = 1; int bitsPerSample = 16; int dataSize = samples.Length * 2; int headerSize = 44; byte[] wav = new byte[headerSize + dataSize]; System.Text.Encoding.ASCII.GetBytes("RIFF").CopyTo(wav, 0); BitConverter.GetBytes(36 + dataSize).CopyTo(wav, 4); System.Text.Encoding.ASCII.GetBytes("WAVE").CopyTo(wav, 8); System.Text.Encoding.ASCII.GetBytes("fmt ").CopyTo(wav, 12); BitConverter.GetBytes(16).CopyTo(wav, 16); BitConverter.GetBytes((short)1).CopyTo(wav, 20); BitConverter.GetBytes((short)channels).CopyTo(wav, 22); BitConverter.GetBytes(frequency).CopyTo(wav, 24); BitConverter.GetBytes(frequency * channels * bitsPerSample / 8).CopyTo(wav, 28); BitConverter.GetBytes((short)(channels * bitsPerSample / 8)).CopyTo(wav, 32); BitConverter.GetBytes((short)bitsPerSample).CopyTo(wav, 34); System.Text.Encoding.ASCII.GetBytes("data").CopyTo(wav, 36); BitConverter.GetBytes(dataSize).CopyTo(wav, 40); short[] shortSamples = new short[samples.Length]; for (int i = 0; i < samples.Length; i++) { shortSamples[i] = (short)(samples[i] * 32767f); } Buffer.BlockCopy(shortSamples, 0, wav, 44, dataSize); return wav; }
+    private byte[] ConvertAudioClipToWav(AudioClip clip, int framesGravados)
+    {
+        int sampleCount = Mathf.Min(framesGravados, clip.samples) * clip.channels;
+        float[] samples = new float[sampleCount];
+        clip.GetData(samples, 0);
+        return ConvertFloatsToWav(samples, clip.frequency, clip.channels);
+    }
+
+    private byte[] ConvertFloatsToWav(float[] samples, int frequency, int channels)
+    {
+        const int bitsPerSample = 16;
+        const int headerSize = 44;
+        int dataSize = samples.Length * sizeof(short);
+        byte[] wav = new byte[headerSize + dataSize];
+
+        Encoding.ASCII.GetBytes("RIFF").CopyTo(wav, 0);
+        BitConverter.GetBytes(36 + dataSize).CopyTo(wav, 4);
+        Encoding.ASCII.GetBytes("WAVE").CopyTo(wav, 8);
+        Encoding.ASCII.GetBytes("fmt ").CopyTo(wav, 12);
+        BitConverter.GetBytes(16).CopyTo(wav, 16);
+        BitConverter.GetBytes((short)1).CopyTo(wav, 20);
+        BitConverter.GetBytes((short)channels).CopyTo(wav, 22);
+        BitConverter.GetBytes(frequency).CopyTo(wav, 24);
+        BitConverter.GetBytes(frequency * channels * bitsPerSample / 8).CopyTo(wav, 28);
+        BitConverter.GetBytes((short)(channels * bitsPerSample / 8)).CopyTo(wav, 32);
+        BitConverter.GetBytes((short)bitsPerSample).CopyTo(wav, 34);
+        Encoding.ASCII.GetBytes("data").CopyTo(wav, 36);
+        BitConverter.GetBytes(dataSize).CopyTo(wav, 40);
+
+        short[] shortSamples = new short[samples.Length];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            shortSamples[i] = (short)(Mathf.Clamp(samples[i], -1f, 1f) * short.MaxValue);
+        }
+
+        Buffer.BlockCopy(shortSamples, 0, wav, headerSize, dataSize);
+        return wav;
+    }
 }

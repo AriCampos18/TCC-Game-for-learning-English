@@ -93,11 +93,16 @@ public class BackendManager
                 content
             );
 
-            string respostaJson =
-                await response.Content.ReadAsStringAsync();
+            string respostaJson = await response.Content.ReadAsStringAsync();
 
             Debug.Log("Resposta backend:");
             Debug.Log(respostaJson);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Debug.LogError($"Erro HTTP: {response.StatusCode}");
+                return null;
+            }
 
             RetornoIANivelamento retorno =
                 JsonConvert.DeserializeObject<RetornoIANivelamento>(
