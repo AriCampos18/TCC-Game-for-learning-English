@@ -23,6 +23,8 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
 
     public GameObject modalFinal;
 
+    private string tipoModal;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -58,16 +60,19 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
 
         if (tipo == TipoModal.BoasVindas)
         {
-            botaoComecar.gameObject.text = "Start Game";
+            tipoModal = "BoasVindas";
+            botaoComecar.GetComponentInChildren<TMP_Text>().text = "Start Game";
             explicacao.text =
-                "Welcome to our English learning game! In this game, you will explore a virtual market while practicing your English skills. To start, we will ask you a few questions to assess your current level of English proficiency. Please answer the essay questions with as much detail as possible. Let's get started!";
+                "Welcome to our English learning game! Here, you will explore different virtual environments and practice English in everyday situations. First, we will ask you a few questions to assess your current English level. Please answer the writing questions with as much detail as possible. Get ready to learn, practice, and improve your English. Let's get started!";
 
             explicacaoPort.text =
-                "Bem-vindo ao nosso jogo de aprendizado de inglês! Neste jogo, você explorará um mercado virtual enquanto pratica suas habilidades em inglês. Para começar, vamos fazer algumas perguntas para avaliar seu nível atual de proficiência em inglês. Vamos começar!";
+                "Boas-vindas ao nosso jogo de aprendizagem de inglês! Aqui, você explorará diferentes ambientes virtuais e praticará inglês em situações do dia a dia. Primeiro, faremos algumas perguntas para avaliar seu nível atual de inglês. Responda às questões de escrita com o máximo de detalhes possível. Prepare-se para aprender, praticar e melhorar seu inglês. Vamos começar!";
         }
         else if (tipo == TipoModal.AvisoProgressao)
         {
-            botaoComecar.gameObject.text = "Escolher Cenário";
+
+            tipoModal = "AvisoProgressao";
+            botaoComecar.GetComponentInChildren<TMP_Text>().text = "Escolher Cenário";
             if (resultado == "Avancar")
             {
                 explicacao.text =
@@ -92,13 +97,29 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
                 explicacaoPort.text =
                     $"Você permanecerá no nível {nivelNovo}. Continue praticando para melhorar seu inglês!";
             }
+            else if (resultado == "Concluido")
+            {
+                explicacao.text =
+                    "Congratulations! You completed all English levels! " +
+                    "You can now choose any scenario and keep practicing.";
+
+                explicacaoPort.text =
+                    "Parabéns! Você concluiu todos os níveis de inglês! " +
+                    "Agora você pode escolher qualquer cenário e continuar praticando.";
+            }
         }
     }
 
     public void FecharModal()
     {
         modalBoasVindas.SetActive(false);
-        modalNivelamento.SetActive(true);
-        modalInstrucoes.SetActive(false);
+        if(tipoModal == "BoasVindas")
+        {
+            modalNivelamento.SetActive(true);
+        }
+        else if(tipoModal == "AvisoProgressao")
+        {
+            modalSelecaoCenario.SetActive(true);
+        }
     }
 }
