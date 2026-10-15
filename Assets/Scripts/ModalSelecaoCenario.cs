@@ -15,6 +15,8 @@ public class ModalSelecaoCenario : MonoBehaviour
 
     public ModalFinalManager modalFinalManager;
 
+    public GameObject modalSelecaoCenario;
+
     void Awake()
     {
         cardsCenarios = GetComponentsInChildren<CardCenarioManager>(true);
@@ -117,5 +119,7 @@ public class ModalSelecaoCenario : MonoBehaviour
         // Registra somente quando a escolha é válida e o destino está configurado.
         gerenciador.RegistrarCenarioEscolhido(cenario);
         modalFinalManager.MostrarInicioCenario(cenario);
+
+        modalSelecaoCenario.SetActive(false);
     }
 }
