@@ -19,6 +19,8 @@ public class SpeakingUI : MonoBehaviour
     public TextMeshProUGUI statusGravacao;
     public int frequenciaAmostragem = 16000;
     public int tempoMaximoGravacao = 10;
+
+    public ModalErroSpeaking modalErroSpeaking;
     
     public ModalExercicio modalExercicio;
     public Button pularEx;
@@ -485,7 +487,26 @@ public class SpeakingUI : MonoBehaviour
                 return;
             }
 
+            if (!AudioTemSomSuficiente(clipGravado, framesGravados))
+            {
+                dadosAudioWav = null;
+
+                if (statusGravacao != null)
+                    statusGravacao.text = "No speech detected. Please try again.";
+
+                if (modalErroSpeaking != null)
+                    modalErroSpeaking.Abrir();
+                else
+                    Debug.LogError("Configure o ModalErroSpeaking no SpeakingUI.");
+
+                if (botaoMicrofone != null)
+                    botaoMicrofone.interactable = false;
+
+                return;
+            }
+
             dadosAudioWav = ConvertAudioClipToWav(clipGravado, framesGravados);
+
             if (statusGravacao != null)
                 statusGravacao.text = "Audio ready! Press 'Confirm' to submit.";
             if (textoFeedback != null)
@@ -496,6 +517,34 @@ public class SpeakingUI : MonoBehaviour
             Debug.LogError("Não há áudio gravado para processar.");
         }
     }
+
+    private bool AudioTemSomSuficiente(AudioClip clip, int framesGravados)
+    {
+        if (clip == null || framesGravados <= 0)
+            return false;
+
+        int quantidade = Mathf.Min(framesGravados, clip.samples)
+                        * clip.channels;
+
+        if (quantidade <= 0)
+            return false;
+
+        float[] amostras = new float[quantidade];
+
+        if (!clip.GetData(amostras, 0))
+            return false;
+
+        double somaQuadrados = 0;
+
+        foreach (float amostra in amostras)
+            somaQuadrados += amostra * amostra;
+
+        double rms = System.Math.Sqrt(somaQuadrados / quantidade);
+
+        // Limite inicial para detectar silêncio ou volume muito baixo.
+        return rms >= 0.01;
+    }
+
 
     private void PularExercicio()
     {
@@ -541,5 +590,23 @@ public class SpeakingUI : MonoBehaviour
 
         Buffer.BlockCopy(shortSamples, 0, wav, headerSize, dataSize);
         return wav;
+    }
+
+    public void TentarNovamente()
+    {
+        CancelarGravacao();
+
+        clipGravado = null;
+        dadosAudioWav = null;
+
+        if (textoFeedback != null)
+            textoFeedback.text = "";
+
+        if (statusGravacao != null)
+            statusGravacao.text = "Press the microphone to start recording.";
+
+        if (!bloqueado && botaoMicrofone != null)
+            botaoMicrofone.interactable =
+                !string.IsNullOrEmpty(microfoneDispositivo);
     }
 }

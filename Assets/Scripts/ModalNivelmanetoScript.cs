@@ -33,6 +33,7 @@ public class ModalNivelmanetoScript : MonoBehaviour
     public GameObject modalCarregando;
 
     public GameObject modalAvisoCampoVazio;
+    public ModalErroSpeaking modalErroSpeaking;
 
     private int indiceDiscursiva = 0;
     private int indiceObjetiva = 0;
@@ -145,6 +146,13 @@ public class ModalNivelmanetoScript : MonoBehaviour
             botaoNaoConsigoFalarAgora.onClick.AddListener(ClickNaoConsigoFalarAgora);
         else
             Debug.LogWarning("Atribua o botão 'Não consigo falar agora' ao ModalNivelmanetoScript no Inspector.");
+        
+        if (speakingUI != null && modalErroSpeaking != null)
+    {
+        speakingUI.modalErroSpeaking = modalErroSpeaking;
+        modalErroSpeaking.speakingUI = speakingUI;
+        modalErroSpeaking.nivelamentoScript = this;
+    }
     }
 
     private List<TipoPerguntaNivelamento> CriarOrdemPerguntas()
@@ -612,5 +620,25 @@ public class ModalNivelmanetoScript : MonoBehaviour
 
         gameObject.SetActive(false);
         modalRespostaNivelamento.SetActive(true);
+    }
+
+    public void DescartarSpeakingAtual()
+    {
+        if (finalizando ||
+            nivelamentoSpeaking == null ||
+            !nivelamentoSpeaking.activeSelf)
+        {
+            return;
+        }
+
+        if (speakingUI != null)
+            speakingUI.CancelarGravacao();
+
+        if (modalAvisoCampoVazio != null)
+            modalAvisoCampoVazio.SetActive(false);
+
+        // Não registra a pergunta nem o áudio descartado.
+        // Apenas avança para a próxima pergunta do nivelamento.
+        AvancarPergunta();
     }
 }
