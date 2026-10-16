@@ -11,7 +11,7 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
         BoasVindas,
         AvisoProgressao
     }
-    public GameObject modalBoasVindas;
+    public GameObject modalBoasVindas, modalSelecaoAvatar, modalErroSpeaking;
     public GameObject modalNivelamento, modalAvisoRevisao, modalSelecaoCenario;
     public GameObject modalResultadoNivelmento, modalInstrucoes, modalMissoes, modalAvisoCampoVazio;
     public TextMeshProUGUI explicacao, explicacaoPort;
@@ -36,6 +36,8 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
         modalInstrucoes.SetActive(false);
         botaoAjuda.gameObject.SetActive(false);
         modalFinal.SetActive(false);
+        modalErroSpeaking.SetActive(false);
+        modalSelecaoAvatar.SetActive(false);
         legendaMenor.SetActive(false);
         botaoRepetirFala.gameObject.SetActive(false);
         modalAvisoRevisao.SetActive(false);
