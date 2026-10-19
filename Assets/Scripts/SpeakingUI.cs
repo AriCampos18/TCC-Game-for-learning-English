@@ -52,53 +52,26 @@ public class SpeakingUI : MonoBehaviour
             return;
         }
 
-        // ✨ SISTEMA DE PRIORIDADE INTELIGENTE
-        string microfoneNotebook = null;
-        string microfoneFone = null;
+        // Prioriza o microfone físico do PC
+        microfoneDispositivo = null;
 
         foreach (string device in Microphone.devices)
         {
-            string nomeMinusculo = device.ToLower();
             Debug.Log("Microfone detectado: " + device);
 
-            // 1. Identifica se é o microfone interno do notebook
-            if (nomeMinusculo.Contains("realtek") || 
-                nomeMinusculo.Contains("array") || 
-                nomeMinusculo.Contains("built-in") || 
-                nomeMinusculo.Contains("interno"))
+            if (device.Contains("Realtek", StringComparison.OrdinalIgnoreCase))
             {
-                microfoneNotebook = device;
-            }
-            // 2. Se não bate com os nomes do notebook, grandes chances de ser um fone/headset plugado
-            else if (nomeMinusculo.Contains("headset") || 
-                     nomeMinusculo.Contains("fone") || 
-                     nomeMinusculo.Contains("wireless") || 
-                     nomeMinusculo.Contains("usb") || 
-                     nomeMinusculo.Contains("bluetooth"))
-            {
-                microfoneFone = device;
+                microfoneDispositivo = device;
+                break;
             }
         }
 
-        // ✨ Aplica a regra de prioridade:
-        if (!string.IsNullOrEmpty(microfoneFone))
+        if (string.IsNullOrEmpty(microfoneDispositivo))
         {
-            // Se achou um fone/headset conectado, ele vira a prioridade máxima!
-            microfoneDispositivo = microfoneFone;
-            Debug.Log($"<color=green>✨ Prioridade Máxima Ativada: Usando Fone/Headset -> {microfoneDispositivo}</color>");
-        }
-        else if (!string.IsNullOrEmpty(microfoneNotebook))
-        {
-            // Se não tem fone, mas achou o do notebook, usa ele
-            microfoneDispositivo = microfoneNotebook;
-            Debug.Log($"<color=yellow>💻 Usando o Microfone Embutido do Notebook -> {microfoneDispositivo}</color>");
-        }
-        else
-        {
-            // Fallback de segurança: caso os nomes sejam genéricos demais, pega o padrão do sistema
             microfoneDispositivo = Microphone.devices[0];
-            Debug.Log($"Usando microfone padrão da lista: {microfoneDispositivo}");
         }
+
+        Debug.Log("Microfone selecionado: " + microfoneDispositivo);
     }
 
     private string NormalizarPalavra(string palavra)

@@ -14,6 +14,7 @@ public class ModalFinalManager : MonoBehaviour
     public GameObject modalBarraProgressao;
     public GameObject modalMissoes;
     public Button botaoAjuda;
+    public GameObject crosshair;
 
     private string modoAtual;
     private string cenarioAtual;
@@ -101,7 +102,7 @@ public class ModalFinalManager : MonoBehaviour
                 break;
 
             case "Tourist Information Center":
-                nome = "Tourist Information Center";
+                nome = "Visitor Center";
                 ingles = "Practice asking about tourist "
                     + "attractions, directions, and local places.";
                 portugues = "Pratique como perguntar sobre "
@@ -258,6 +259,9 @@ public class ModalFinalManager : MonoBehaviour
 
             if (botaoAjuda != null)
                 botaoAjuda.gameObject.SetActive(true);
+
+            if (crosshair != null)
+                crosshair.SetActive(true);
 
             FirstPlayerController player =
                 FindObjectOfType<FirstPlayerController>();

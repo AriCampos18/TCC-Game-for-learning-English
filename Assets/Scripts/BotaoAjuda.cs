@@ -15,6 +15,7 @@ public class BotaoAjuda : MonoBehaviour
 
     void AbrirInstrucoes()
     {
+        Debug.Log("AbrirInstrucoes foi chamado!");
         botaoAjuda.gameObject.SetActive(false);
         if (firstPlayerControllerScript != null)
             firstPlayerControllerScript.DesativarControle();

@@ -33,10 +33,6 @@ public class GerenciadorProgressao : MonoBehaviour
 
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning(
-                "Já existe uma instância de GerenciadorProgressao."
-            );
-
             Destroy(gameObject);
             return;
         }

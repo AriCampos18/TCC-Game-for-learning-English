@@ -148,35 +148,36 @@ public class ModalNivelmanetoScript : MonoBehaviour
             Debug.LogWarning("Atribua o botão 'Não consigo falar agora' ao ModalNivelmanetoScript no Inspector.");
         
         if (speakingUI != null && modalErroSpeaking != null)
-    {
-        speakingUI.modalErroSpeaking = modalErroSpeaking;
-        modalErroSpeaking.speakingUI = speakingUI;
-        modalErroSpeaking.nivelamentoScript = this;
-    }
+        {
+            speakingUI.modalErroSpeaking = modalErroSpeaking;
+            modalErroSpeaking.speakingUI = speakingUI;
+            modalErroSpeaking.nivelamentoScript = this;
+        }
     }
 
+    
     private List<TipoPerguntaNivelamento> CriarOrdemPerguntas()
     {
-        List<TipoPerguntaNivelamento> ordem = new List<TipoPerguntaNivelamento>();
-        int maiorQuantidade = Mathf.Max(
-            perguntasDiscursivas.Count,
-            Mathf.Max(perguntasSpeaking.Count, perguntasObjetivas.Count)
-        );
-
-        for (int i = 0; i < maiorQuantidade; i++)
+        return new List<TipoPerguntaNivelamento>
         {
-            if (i < perguntasDiscursivas.Count)
-                ordem.Add(TipoPerguntaNivelamento.Discursiva);
+            // A1 — 3 exercícios
+            TipoPerguntaNivelamento.Speaking,
+            TipoPerguntaNivelamento.Discursiva,
+            TipoPerguntaNivelamento.Objetiva,
 
-            if (i < perguntasSpeaking.Count)
-                ordem.Add(TipoPerguntaNivelamento.Speaking);
+            // A2 — 4 exercícios
+            TipoPerguntaNivelamento.Speaking,
+            TipoPerguntaNivelamento.Discursiva,
+            TipoPerguntaNivelamento.Speaking,
+            TipoPerguntaNivelamento.Objetiva,
 
-            if (i < perguntasObjetivas.Count)
-                ordem.Add(TipoPerguntaNivelamento.Objetiva);
-        }
-
-        return ordem;
+            // B1 — 3 exercícios
+            TipoPerguntaNivelamento.Discursiva,
+            TipoPerguntaNivelamento.Speaking,
+            TipoPerguntaNivelamento.Objetiva
+        };
     }
+
 
     public void MostrarPerguntaAtual()
     {
@@ -269,6 +270,7 @@ public class ModalNivelmanetoScript : MonoBehaviour
 
     public void ClickNaoConsigoFalarAgora()
     {
+        Debug.Log("Clicou em 'I can't talk now'!");
         if (finalizando || nivelamentoSpeaking == null || !nivelamentoSpeaking.activeSelf)
             return;
 
@@ -436,13 +438,13 @@ public class ModalNivelmanetoScript : MonoBehaviour
         this.gameObject.SetActive(false);
         modalRespostaNivelamento.SetActive(true);
     }
-
+    
     private string ObterNivelAtual()
     {
-        if (perguntaAtual <= 2)
+        if (perguntaAtual < 3)
             return "A1";
 
-        if (perguntaAtual <= 5)
+        if (perguntaAtual < 7)
             return "A2";
 
         return "B1";
