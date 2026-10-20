@@ -29,17 +29,33 @@ public class GerenciadorProgressao : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("Awake do GerenciadorProgressao foi chamado.");
+        Debug.Log(
+            $"[Progressao] Awake | Objeto: {gameObject.name} | " +
+            $"Instance antes: {(Instance != null ? Instance.gameObject.name : "NULL")}"
+        );
 
         if (Instance != null && Instance != this)
         {
+            Debug.LogWarning(
+                $"[Progressao] Duplicado destruído: {gameObject.name} | " +
+                $"Instância mantida: {Instance.gameObject.name}"
+            );
+
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
 
-        Debug.Log("Instância do GerenciadorProgressao definida.");
+        Debug.Log($"[Progressao] Instância definida: {gameObject.name}");
+    }
+
+    private void OnDestroy()
+    {
+        Debug.Log($"[Progressao] OnDestroy: {gameObject.name}");
+
+        if (Instance == this)
+            Instance = null;
     }
 
     // Inicia um novo ciclo de avaliação.

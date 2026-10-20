@@ -38,8 +38,10 @@ public class SpeakingUI : MonoBehaviour
     void Start()
     {
         botaoMicrofone.onClick.AddListener(ToggleGravacao);
-        pularEx.onClick.AddListener(PularExercicio);
-
+        if (pularEx != null && modalExercicio != null)
+        {
+            pularEx.onClick.AddListener(PularExercicio);
+        }
 
         ondasSom.SetActive(false);
         statusGravacao.text = "Press the microphone to start recording.";
@@ -214,8 +216,8 @@ public class SpeakingUI : MonoBehaviour
         if (botaoMicrofone != null)
             botaoMicrofone.interactable = !string.IsNullOrEmpty(microfoneDispositivo);
 
-        if (pularEx != null)
-            pularEx.interactable = false;
+        //if (pularEx != null)
+            //pularEx.interactable = false;
 
         if (botaoRepetirFalaNPC != null)
             botaoRepetirFalaNPC.gameObject.SetActive(false);
@@ -521,6 +523,7 @@ public class SpeakingUI : MonoBehaviour
 
     private void PularExercicio()
     {
+        Debug.Log("BOTAO FOI CLICADO PORRRA!!!!!!!");
         dadosAudioWav = null;
         modalExercicio.FinalizarExercicio();
     }

@@ -10,12 +10,16 @@ public class BotaoAjuda : MonoBehaviour
     void Start()
     {
         if (botaoAjuda != null)
-            botaoAjuda.onClick.AddListener(AbrirInstrucoes);
+            botaoAjuda.onClick.AddListener(() =>
+            {
+                Debug.Log("CLIQUE RECEBIDO PELO BOTÃO DE AJUDA!");
+                AbrirInstrucoes();
+            });
     }
 
     void AbrirInstrucoes()
     {
-        Debug.Log("AbrirInstrucoes foi chamado!");
+        Debug.Log("ABRIR INSTRUÇÕES FOI CHAMADOOOOOOO!");
         botaoAjuda.gameObject.SetActive(false);
         if (firstPlayerControllerScript != null)
             firstPlayerControllerScript.DesativarControle();

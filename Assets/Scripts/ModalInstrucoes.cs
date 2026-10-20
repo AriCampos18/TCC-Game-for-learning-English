@@ -32,6 +32,20 @@ public class ModalInstrucoes : MonoBehaviour
         if (modalSelecaoCenario != null)
         {
             modalSelecaoCenario.SetActive(true);
+
+            ModalSelecaoCenario modal =
+                modalSelecaoCenario.GetComponent<ModalSelecaoCenario>();
+
+            if (modal != null)
+            {
+                modal.AtualizarCards();
+            }
+            else
+            {
+                Debug.LogError(
+                    "ModalSelecaoCenario não encontrado no objeto associado."
+                );
+            }
         }
         else
         {

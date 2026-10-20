@@ -22,7 +22,7 @@ public class PortaAutomatica : MonoBehaviour
 
     [Header("Final do jogo")]
     public CashierNPC cashier;
-    public GameObject modalFinal;
+    public ModalFinalManager modalFinalManager;
 
     [Header("Detecção de saída")]
     public Transform pontoDentroMercado;
@@ -116,9 +116,19 @@ public class PortaAutomatica : MonoBehaviour
             movimentoPlayer.DesativarControle();
         }
 
-        if (modalFinal != null)
+        if (modalFinalManager != null)
         {
-            modalFinal.SetActive(true);
+            modalFinalManager.MostrarResultado(
+                "ContinuarCenarios",
+                DadosJogador.nivelUsuario,
+                DadosJogador.nivelUsuario
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "ModalFinalManager não foi atribuído na PortaAutomatica."
+            );
         }
 
         Cursor.lockState = CursorLockMode.None;

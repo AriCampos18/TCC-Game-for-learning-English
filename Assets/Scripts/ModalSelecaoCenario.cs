@@ -24,6 +24,16 @@ public class ModalSelecaoCenario : MonoBehaviour
 
     private void OnEnable()
     {
+        if (GerenciadorProgressao.Instance == null)
+        {
+            Debug.LogWarning(
+                "GerenciadorProgressao ainda não está disponível. " +
+                "Os cards serão atualizados quando o modal for aberto novamente."
+            );
+
+            return;
+        }
+
         AtualizarCards();
     }
 

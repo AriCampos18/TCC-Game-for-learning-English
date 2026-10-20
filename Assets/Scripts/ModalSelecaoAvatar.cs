@@ -29,6 +29,11 @@ public class ModalSelecaoAvatar : MonoBehaviour
     }
 
     private TipoAvatar avatarSelecionado = TipoAvatar.Nenhum;
+    private Outline outlineFeminino;
+    private Outline outlineMasculino;
+
+    public GameObject containerFeminino;
+    public GameObject containerMasculino;
 
     void Start()
     {
@@ -43,15 +48,40 @@ public class ModalSelecaoAvatar : MonoBehaviour
 
         if (textoErro != null)
             textoErro.gameObject.SetActive(false);
+        
+        Debug.Log($"CardF Outline: {outlineFeminino.enabled}");
+        Debug.Log($"CardM Outline: {outlineMasculino.enabled}");
 
-        // Nenhum modelo é trocado até o usuário escolher.
-        // Os modelos podem começar com a configuração desejada
-        // no Inspector.
+        if (containerFeminino != null)
+        {
+            outlineFeminino = containerFeminino.GetComponent<Outline>();
+
+            if (outlineFeminino != null)
+                outlineFeminino.enabled = false;
+            else
+                Debug.LogError("Outline não encontrado no CardF.");
+        }
+
+        if (containerMasculino != null)
+        {
+            outlineMasculino = containerMasculino.GetComponent<Outline>();
+
+            if (outlineMasculino != null)
+                outlineMasculino.enabled = false;
+            else
+                Debug.LogError("Outline não encontrado no CardM.");
+        }
     }
 
     public void SelecionarFeminino()
     {
         avatarSelecionado = TipoAvatar.Feminino;
+
+        if (outlineFeminino != null)
+            outlineFeminino.enabled = true;
+
+        if (outlineMasculino != null)
+            outlineMasculino.enabled = false;
 
         if (textoErro != null)
             textoErro.gameObject.SetActive(false);
@@ -62,6 +92,12 @@ public class ModalSelecaoAvatar : MonoBehaviour
     public void SelecionarMasculino()
     {
         avatarSelecionado = TipoAvatar.Masculino;
+
+        if (outlineMasculino != null)
+            outlineMasculino.enabled = true;
+
+        if (outlineFeminino != null)
+            outlineFeminino.enabled = false;
 
         if (textoErro != null)
             textoErro.gameObject.SetActive(false);
