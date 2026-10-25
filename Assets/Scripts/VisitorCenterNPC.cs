@@ -13,11 +13,11 @@ public class VisitorCenterNPC: InteracaoNPC
     string cumrpimento;
     int horaAtual = DateTime.Now.Hour;
 
-    public string idNpcParaVoz = "recepcionistHotel";
+    public string idNpcParaVoz = "tourGuide";
 
     public void Start(){
         nivelAtual = DadosJogador.nivelUsuario;
-        nomeExibicaoLegenda = "Recepcionist Hotel";
+        nomeExibicaoLegenda = "Tour Guide";
 
         if (horaAtual < 12)
         {

@@ -13,11 +13,11 @@ public class SecretaryCollegeNPC: InteracaoNPC
     string cumrpimento;
     int horaAtual = DateTime.Now.Hour;
 
-    public string idNpcParaVoz = "recepcionistHotel";
+    public string idNpcParaVoz = "secretaryCollege";
 
     public void Start(){
         nivelAtual = DadosJogador.nivelUsuario;
-        nomeExibicaoLegenda = "Recepcionist Hotel";
+        nomeExibicaoLegenda = "College Secretary";
 
         if (horaAtual < 12)
         {

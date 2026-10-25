@@ -17,7 +17,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
     public void Start(){
         nivelAtual = DadosJogador.nivelUsuario;
-        nomeExibicaoLegenda = "Recepcionist Hotel";
+        nomeExibicaoLegenda = "Hotel Recepcionist";
 
         if (horaAtual < 12)
         {
