@@ -55,6 +55,7 @@ public class BakeryNPC : InteracaoNPC
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
         exerciciosBlocos = new List<ExercicioBase>();
+        nivelAtual = DadosJogador.nivelUsuario;
     }
 
     private void InicializarConteudosPorNivel()
