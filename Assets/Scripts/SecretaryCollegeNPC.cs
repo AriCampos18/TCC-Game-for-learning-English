@@ -39,14 +39,14 @@ public class SecretaryCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                "Hi. How can I help you?",
+                "Hi. Can I help you?",
                 "What is your name?",
-                "What course do you want to study?",
+                "What course do you want?",
                 "What is your date of birth?",
-                "Your registration is complete.",
-                "The tuition is R$500 per month.",
+                "Your registration is done.",
+                "It is R$500 per month.",
                 "Classes start on February 10th.",
-                "Your classroom is room 204 straight."
+                "Your classroom is room 204. It is on the second floor."
             };
         }
         else if(nivelAtual=="A2")
@@ -59,7 +59,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "What is your date of birth?",
                 "Thank you. Your registration is complete. You are now enrolled in Computer Science.",
                 "The tuition is R$500 per month.",
-                "Classes start on February tenth.",
+                "Classes start on February fifth.",
                 "Your classroom is room two hundred four, on the second floor."
             };
         }
@@ -72,8 +72,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "Could you also give me your date of birth?",
                 "Thank you. I just need to confirm a few details. You are enrolling in Computer Science, correct?",
                 "Your enrollment is complete. Your tuition will be 500 dollars per month.",
-                "Classes start on February 31st in the 325 room.",
-                "Room 325 is on the second floor, at the end of the hallway. Good luck with your classes!"
+                "Classes start on February fifteenth in room 325.",
+                "Room 325 is on the third floor, just go up the stairs. Good luck with your classes!"
             };
         }
     }

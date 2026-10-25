@@ -26,7 +26,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
             {
                 "Hi. Is this your first time here?",
                 "Have you tried the food here before?",
-                "I really like the burgers here. The portions are generous, too.",
+                "I come here almost every week. I really like the burgers, and the portions are generous, too.",
+                "If you like burgers, I'd recommend the house special.",
                 "Yes, it’s delicious. The fries are great, too."
             };
     }

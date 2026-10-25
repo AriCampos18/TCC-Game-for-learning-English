@@ -39,7 +39,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                "May I see your passport, please?",
+                "Hello. Where are you going?", 
+                "Can I see your passport, please?",
                 "Here is your boarding pass. Your gate is twelve."
             };
         }
@@ -50,7 +51,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 cumrpimento+". Where are you flying today?",
                 "May I see your passport and booking confirmation, please?",
                 "Do you have any bags to check in?",
-                "Your gate is eighteen, and boarding starts at two thirdy p.m."
+                "Would you like a window seat or an aisle seat?", 
+                "Your gate is eighteen, and boarding starts at 2:30 p.m. Have a nice flight!"
             };
         }
         else if(nivelAtual=="B1")
@@ -59,8 +61,9 @@ public class SecretaryCollegeNPC: InteracaoNPC
             {
                 cumrpimento+". Where are you travelling today?",
                 "Could I see your passport and booking confirmation, please?",
-                "Your connecting flight leaves from gate twenty four. Your checked bag will be transferred automatically.",
-                "Please check the departure screens in case the gate changes."
+                "Would you prefer a window or an aisle seat? Are you checking any bags today?",
+                "You have a connecting flight, so your checked bag will be transferred automatically. Your second flight leaves from gate 24.",
+                "Please check the departure screens in case the gate changes. Boarding usually starts 40 minutes before departure."
             };
         }
     }

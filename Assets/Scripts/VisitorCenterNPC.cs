@@ -39,9 +39,9 @@ public class VisitorCenterNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                "Hello. How can I help you?",
+                "Hello. Can I help you?",
                 "Is this your first time here?",
-                "Would you like to know how to get there?",
+                "Do you want to know how to get there?",
                 "EXPLICA A DIREÇÃO DE FORMA SIMPLES"
             };
         }
@@ -51,10 +51,10 @@ public class VisitorCenterNPC: InteracaoNPC
             {
                 cumprimento+". How can I help you?",
                 "Have you visited our city before?",
-                "Here are some tourist attractions.",
+                "Here are some tourist attractions. The city garden is very popular.",
                 "Would you like to know how to get there?",
                 "DIREÇÕES UM POUCO MAIS COMPLEXAS QUE NO A1.",
-                "No, it is about a ten-minute walk."
+                "No, it isn't far. It's about a ten-minute walk."
             };
         }
         else if(nivelAtual=="B1")
@@ -63,7 +63,10 @@ public class VisitorCenterNPC: InteracaoNPC
             {
                 cumprimento+". Welcome to the tourist information center. How can I help you today?",
                 "Have you been here before?",
+                "If it's your first visit, I'd recommend starting with the city park. It's one of the most famous places in the city.",
                 "DIREÇÕES MAIS COMPLEXAS QUE NO A2",
+                "If you don't feel like walking, you can also take bus 42. It stops right in front of the park.",
+                "I'd go early, though, because it gets crowded in the afternoon."
             };
         }
     }

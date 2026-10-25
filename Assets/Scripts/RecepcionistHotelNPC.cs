@@ -35,50 +35,51 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        string dataCheckout = ObterDataCheckout();
         if (nivelAtual == "A1")
         {
-            string dataCheckout = ObterDataCheckout();
             dialogoAtual = new List<string>()
             {
-                "Hello. How can I help you?",
-                "What is the name on the reservation?",
-                "How would you like to pay?",
-                "Your room is 103 on the fifth floor",
-                "Breakfast is available between 7:00 a.m. and 9:00 a.m.",
-                "Your checkout is at "+dataCheckout+".",
-                "Call us if you have any questions."
+                "Hello. Can I help you?",
+                "What is yout name?",
+                "Cash or card?",
+                "Your room is 103. It is on the first floor",
+                "Breakfast is from 7:00 a.m. to 9:00 a.m.",
+                "Checkout is on "+dataCheckout+".",
+                "Call me if you have a question."
             };
         }
         else if(nivelAtual=="A2")
         {
             dialogoAtual = new List<string>()
             {
-                cumprimento+". Welcome to the hotel. How can I help you?",
-                "Sure. Could I have your name, please?",
-                "Thank you. How many nights will you be staying with us?",
-                "How would you like to pay for your stay?",
-                "Your room is 205, on the second floor. Here is your room card.",
-                "Breakfast is served from 7:00 a.m. to 10:00 a.m. in the restaurant on the first floor.",
+                cumprimento+". Welcome to the hotel. Do you have a reservation?",
+                "Great. Could I have your name, please?",
+                "Thank you. How many nights are you staying with us?",
+                "Would you like to pay by card or cash?",
+                "Your room is 205, on the second floor. Here is your key card.",
+                "Breakfast is from 7:00 a.m. to 10:00 a.m. in the restaurant. It's on the first floor.",
                 "Is there anything else you would like to know?",
-                "Checkout is at 12:00 p.m. on October 13th.",
-                "Is there anything else I can help you with?"
+                "Checkout is at 12:00 p.m. on " + dataCheckout + ".",
+                "Is there anything else I can help you with?",
+                "Enjoy your stay!"
             };
         }
         else if(nivelAtual=="B1")
         {
             dialogoAtual = new List<string>()
             {
-                cumprimento+". Welcome to the hotel. How can I assist you today?",
-                "Certainly. Could you tell me the name under the reservation?",
-                "I found your reservation. You booked a double room for seven nights. Is that correct?",
-                "Would you like to pay by card or in cash?",
-                "Your room is 308, on the third floor. Here is your room card.",
-                "It’s just around the corner, next to the restaurant.",
-                "Breakfast is served from 6:30 a.m. to 10:00 a.m. in the restaurant on the first floor.",
-                "Do you need any other information about your stay?",
-                "Checkout is at 12:00 p.m. on October 13th. If you need a late checkout, please let us know in advance.",
+                cumprimento+". Welcome to the hotel. How can I help you today?",
+                "Of course. Could you tell me the name the reservation is under?",
+                "I found it. You booked a double room for seven nights, with breakfast included. Is that right?",
+                "Perfect. Would you like to pay now by card or cash, or when you check out?",
+                "Your room is 308, on the third floor. Here is your key card. The Wi-Fi is free, and the password is on the card.",
+                "The elevators is just around the corner, next to the restaurant.",
+                "Breakfast is served from 6:30 a.m. to 10:00 a.m. If you prefer, we can also bring it to your room.",
+                "Is there anything else you'd like to know about your stay?",
+                "Checkout is at 12:00 p.m. on " + dataCheckout + ". If you need a late checkout, please let us know in advance.",
                 "We can offer a late checkout until 2:00 p.m., depending on availability.",
-                "Would you like anything else?"
+                "I hope you enjoy your stay. Just call the front desk if you need anything."
             };
         }
     }

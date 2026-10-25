@@ -39,7 +39,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                "Hello. How can I help you?",
+                "Hello. Can I help you?",
                 "The secretary's office is on the first floor",
                 "Go straight and turn right."
             };
@@ -50,6 +50,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             {
                 cumprimento+". Welcome to the university. How can I help you?",
                 "The secretary's office is on the first floor. Go straight and take the first door on your right.",
+                "You're welcome. Have a nice day!" 
             };
         }
         else if(nivelAtual=="B1")
@@ -57,8 +58,9 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             dialogoAtual = new List<string>()
             {
                 cumprimento+". Welcome to the university. How may I help you today?",
-                "Have you been here before?",
-                "The secretary's office is on the first floor. Go straight past the reception desk and you will see a door on your right. It's there. You can talk with the secretary inside."
+                "Are you a new student?",
+                "The secretary's office is on the first floor. Go straight past the reception desk and you'll see a door on your right. The secretary can help you with enrollment inside.",
+                "If you get lost, just come back and I'll help you."
             };
         }
     }

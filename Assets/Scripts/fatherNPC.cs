@@ -26,6 +26,9 @@ public class SecretaryCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
+                "Hi! Nice to see you.",
+                "My work is good. I like it.",
+                "Do you want to stay here tonight?",
                 "It was nice to see you."
             };
         }
@@ -33,7 +36,10 @@ public class SecretaryCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                "Work has been busy lately, but I enjoy what I do."
+                "Hi! It's good to see you. How is everything?",     
+                "Work has been busy lately, but I enjoy what I do.",
+                "Are you staying here tonight?",
+                "It was great to see you. Come back soon!"     
             };
         }
         else if(nivelAtual=="B1")

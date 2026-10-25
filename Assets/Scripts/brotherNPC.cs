@@ -26,6 +26,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
+                "Hi! I am happy to see you.",  
                 "I usually do my homework and then play with the dog.",
                 "He likes playing with his ball."
             };
@@ -34,15 +35,17 @@ public class SecretaryCollegeNPC: InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
+                "Hey! Long time no see.", 
                 "I like school, but I prefer spending time playing with the dog.",
-                "He really likes playing with his ball."
+                "He really likes his ball. Yesterday we played in the backyard for an hour."
             };
         }
         else if(nivelAtual=="B1")
         {
             dialogoAtual = new List<string>()
             {
-                "I like school, but I prefer spending time with the dog after classes.",
+                "Hey! It's been a while. What have you been up to?",
+                "I like school, but honestly I'd rather spend time with the dog after classes.",
                 "He loves playing fetch with his ball and running around in the backyard."
             };
         }
