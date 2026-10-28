@@ -15,6 +15,12 @@ public class VisitorCenterNPC: InteracaoNPC
 
     public string idNpcParaVoz = "tourGuide";
 
+    public List<ExercicioBase> exerciciosCompletarFrase;
+    public List<ExercicioBase> exerciciosCriarFrases;
+    public List<ExercicioBase> exerciciosSpeaking;
+    public List<ExercicioBase> exerciciosAlternativas;
+    public List<ExercicioBase> exerciciosWriting;
+
     public void Start(){
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Tour Guide";
@@ -44,6 +50,98 @@ public class VisitorCenterNPC: InteracaoNPC
                 "Do you want to know how to get there?",
                 "EXPLICA A DIREÇÃO DE FORMA SIMPLES"
             };
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You are a tourist. You are at the tourist information center. Say something about the city.",
+                    opcoesFala = new List<string>()
+                    {
+                        "I need to buy a train ticket\n",
+                        "My hotel room is on the third floor\n",
+                        "I want to visit some point of the city\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say that is your first time in the city",
+                    opcoesFala = new List<string>()
+                    {
+                        "Yes, it is\n",
+                        "Yes, I do\n",
+                        "Yes, it are\n"
+                    },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "What place ould you like to visit?",
+                    alternativas = new List<string>() { 
+                        "Living room\r\n", 
+                        "City park\r\n", 
+                        "University clasroom\r\n", 
+                        "Hotel room\r\n" },
+                    alternativaCorreta = 1
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You want directions. What do you say?",
+                    opcoesFala = new List<string>()
+                    {
+                        "Yes, I went yesterday\n",
+                        "Yes, plase\n",
+                        "No, I am a park\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                    new ExercicioAssociacao()
+                    {
+                        enunciado = "Match the Portuguese word with the English word.",
+                        opcoesPort = new List<string>
+                        {
+                            "cidade",
+                            "parque",
+                            "museu",
+                            "virar",
+                            "help",
+                            "direita",
+                            "esquerda",
+                            "em frente"
+                        },
+                        opcoesIngles = new List<string>
+                        {
+                            "help",
+                            "city",
+                            "park",
+                            "left",
+                            "straight",
+                            "right",
+                            "museum",
+                            "ticket",
+                        },
+                        associacaoCorreta = new ParAssociacao { palavraPortugues = "cidade", palavraIngles = "city" },
+                        new ParAssociacao { palavraPortugues = "passagem", palavraIngles = "ticket" },
+                        new ParAssociacao { palavraPortugues = "parque", palavraIngles = "park" },
+                        new ParAssociacao { palavraPortugues = "museu", palavraIngles = "museum" },
+                        new ParAssociacao { palavraPortugues = "ajuda", palavraIngles = "help" },
+                        new ParAssociacao { palavraPortugues = "em frente", palavraIngles = "straight" },
+                        new ParAssociacao { palavraPortugues = "direita", palavraIngles = "right" },
+                        new ParAssociacao { palavraPortugues = "esquerda", palavraIngles = "left" }
+                    }
+                );
         }
         else if(nivelAtual=="A2")
         {
@@ -56,6 +154,166 @@ public class VisitorCenterNPC: InteracaoNPC
                 "DIREÇÕES UM POUCO MAIS COMPLEXAS QUE NO A1.",
                 "No, it isn't far. It's about a ten-minute walk."
             };
+
+            exerciciosCriarFrases.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Arrange the words to form the correct sentence in english: Eu gostaria de saber mais sobre a cidade",
+                    blocosPlavras = new List<string>
+                    {
+                        "would",
+                        "city",
+                        "breakfast",
+                        "I",
+                        "more",
+                        "like",
+                        "dinner",
+                        "the",
+                        "know",
+                        "to",
+                        "about",
+                        "room",
+                        "lunch",
+                        "is",
+                        "are"
+                    },
+                    respostaCorreta = "I would like to know more about the city\n"
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "This is your first time in the city. You need help. What do you say?",
+                    opcoesFala = new List<string>()
+                    {
+                        "I am the menu\n",
+                        "The clasroom is right there\n",
+                        "Never, could you help me?\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You are looking at the tourist attractions in the brochure. Say which place you want to visit.",
+                    opcoesFala = new List<string>()
+                    {
+                        "I need to check in at the hotel\n",
+                        "The city park looks interesting\n",
+                        "I would like to order a hamburger\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Ask for directions to the city park:",
+                    opcoesFala = new List<string>()
+                    {
+                        "Yes, plase. I am the directions\n",
+                        "Yes, plase. How can I get there?\n",
+                        "Yes, please. How much is the clothe?\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            //MUDAR O EXERCICIO ABAIXO DE ACORDO COM AS DIREÇÕES REAIS
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "What should you do after walking two blocks?", //ou a direção correta dada no cenário real
+                    alternativas = new List<string>() { 
+                        "Go back\r\n", 
+                        "Turn right\r\n", 
+                        "Turn left\r\n", 
+                        "Enter the bank\r\n" },
+                    alternativaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You have the directions to the park. Now you want to know the distance. Ask the guide",
+                    opcoesFala = new List<string>()
+                    {
+                        "Is the park far from here?\n",
+                        "How much does the park cost?\n",
+                        "Is the park far from yesterday?\n"
+                    },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosCompletarFrase.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Complete the sentence with the correct word: The park is about ___ minutes away.",
+                    blocosPlavras = new List<string>
+                    {
+                        "11:00",
+                        "served",
+                        "have",
+                        "Which",
+                        "five",
+                        "ten",
+                        "fifteen",
+                        "is",
+                        "for",
+                        "twenty",
+                        "I",
+                    },
+                    respostaCorreta = "ten\n"
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the Portuguese word with the English word.",
+                    opcoesPort = new List<string>
+                    {
+                        "ponto turístico",
+                        "ajuda",
+                        "quarteirão",
+                        "virar",
+                        "continuar",
+                        "do outro lado de",
+                        "longe",
+                        "caminhada"
+                    },
+                    opcoesIngles = new List<string>
+                    {
+                        "far",
+                        "turn",
+                        "tourist attraction",
+                        "walk",
+                        "block",
+                        "continue",
+                        "help",
+                        "across from",
+                        "straight", // distrator
+                        "ticket"    // distrator
+                    },
+                    associacaoCorreta = new List<ParAssociacao>
+                    {
+                        new ParAssociacao { palavraPortugues = "ponto turístico", palavraIngles = "tourist attraction" },
+                        new ParAssociacao { palavraPortugues = "ajuda", palavraIngles = "help" },
+                        new ParAssociacao { palavraPortugues = "quarteirão", palavraIngles = "block" },
+                        new ParAssociacao { palavraPortugues = "virar", palavraIngles = "turn" },
+                        new ParAssociacao { palavraPortugues = "continuar", palavraIngles = "continue" },
+                        new ParAssociacao { palavraPortugues = "do outro lado de", palavraIngles = "across from" },
+                        new ParAssociacao { palavraPortugues = "longe", palavraIngles = "far" },
+                        new ParAssociacao { palavraPortugues = "caminhada", palavraIngles = "walk" }
+                    }
+                }
+            );
         }
         else if(nivelAtual=="B1")
         {
@@ -68,6 +326,130 @@ public class VisitorCenterNPC: InteracaoNPC
                 "If you don't feel like walking, you can also take bus 42. It stops right in front of the park.",
                 "I'd go early, though, because it gets crowded in the afternoon."
             };
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "How would you say that you would like to get to know the city?",
+                    opcoesFala = new List<string>()
+                    {
+                        "I'm cooking the city and I'd like a room.\n",
+                        "I visit the city yesterday and places can.\n",
+                        "I'm visiting the city and I'd like to know what places I can visit.\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosCriarFrases.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Arrange the words to form the correct sentence in english: Não, esta é a primeira vez que visito a cidade",
+                    blocosPlavras = new List<string>
+                    {
+                        "this",
+                        "is",
+                        "morning",
+                        "time",
+                        "visiting",
+                        "the",
+                        "city",
+                        "hotel",
+                        "last",
+                        "No",
+                        "your",
+                        "been",
+                        "first",
+                        "my",
+                        "ever"
+                    },
+                    respostaCorreta = "No, this is my first time visiting the city.\n"
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "After choosing the City Park as a tourist attraction to visit, the user must express interest in the place and ask how to get there.",
+                    opcoesFala = new List<string>()
+                    {
+                        "The City Park looks interesting. How can I get there?\n",
+                        "The City Park tastes interesting. Can I pay there?\n",
+                        "I am interesting where the city park.\n"
+                    },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosWriting.Add(
+                new ExercicioWriting()
+                {
+                    enunciado = "You did not understand one part of the directions. Ask the employee to clarify."
+                }
+            );
+
+            //MUDAR O EXERCICIO ABAIXO PRA FICAR DE ACORDO COM A DIREÇÃO REAL
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "Where is the city park?",
+                    alternativas = new List<string>() { 
+                        "Behind the bank\r\n", 
+                        "Next to the hotel\r\n", 
+                        "Across from the museum\r\n", 
+                        "Inside the museum\r\n" },
+                    alternativaCorreta = 2
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the Portuguese word with the English word.",
+
+                    opcoesPort = new List<string>
+                    {
+                        "ponto turístico",
+                        "arredores",
+                        "indicar",
+                        "cruzamento",
+                        "seguir em frente",
+                        "esclarecer",
+                        "folheto",
+                        "chegar a",
+                        "ponto de referência",
+                        "direções"
+                    },
+
+                    opcoesIngles = new List<string>
+                    {
+                        "directions",
+                        "landmark",
+                        "brochure",
+                        "reach",
+                        "intersection",
+                        "clarify",
+                        "surroundings",
+                        "recommend",
+                        "go straight",
+                        "tourist attraction"
+                    },
+
+                    associacaoCorreta = new List<ParAssociacao>
+                    {
+                        new ParAssociacao { palavraPortugues = "ponto turístico", palavraIngles = "tourist attraction" },
+                        new ParAssociacao { palavraPortugues = "arredores", palavraIngles = "surroundings" },
+                        new ParAssociacao { palavraPortugues = "indicar", palavraIngles = "recommend" },
+                        new ParAssociacao { palavraPortugues = "cruzamento", palavraIngles = "intersection" },
+                        new ParAssociacao { palavraPortugues = "seguir em frente", palavraIngles = "go straight" },
+                        new ParAssociacao { palavraPortugues = "esclarecer", palavraIngles = "clarify" },
+                        new ParAssociacao { palavraPortugues = "folheto", palavraIngles = "brochure" },
+                        new ParAssociacao { palavraPortugues = "chegar a", palavraIngles = "reach" },
+                        new ParAssociacao { palavraPortugues = "ponto de referência", palavraIngles = "landmark" },
+                        new ParAssociacao { palavraPortugues = "direções", palavraIngles = "directions" }
+                    }
+                }
+            );
         }
     }
 }
