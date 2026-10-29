@@ -25,11 +25,15 @@ public class ModalExercicio : MonoBehaviour
     public GameObject exercicioAlternativas;
     public GameObject exercicioSpeaking;
     public GameObject exercicioBlocos;
+    public GameObject exercicioWriting;
+    public GameObject exercicioAssociacao;
     public GameObject crosshair;
 
     public AlternativasUI alternativasUI;
     public SpeakingUI speakingUI;
     public BlocosUI blocosUI;
+    public WritingUI writingUI;
+    public AssociacaoUI associacaoUI;
 
     void Start()
     {
@@ -222,6 +226,60 @@ public class ModalExercicio : MonoBehaviour
                     }
                 }
             }
+            else if (exercicioWriting != null && exercicioWriting.activeSelf)
+            {
+                if (writingUI == null)
+                {
+                    Debug.LogError("Associe o WritingUI no ModalExercicio.");
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+
+                if (!writingUI.SalvarResposta())
+                {
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+            }
+            else if (exercicioAssociacao != null && exercicioAssociacao.activeSelf)
+            {
+                if (associacaoUI == null)
+                {
+                    Debug.LogError("Associe o AssociacaoUI no ModalExercicio.");
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+
+                if (!associacaoUI.Respondeu())
+                {
+                    associacaoUI.MostrarFeedback("Choose a translation for every word.");
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+
+                if (associacaoUI.EstaCorreto())
+                {
+                    associacaoUI.MostrarFeedback("Good job! You got the answer right.");
+                    associacaoUI.BloquearSeletores();
+                    acertouExercicio = true;
+                }
+                else
+                {
+                    associacaoUI.ReduzirTentativa();
+                    int chances = associacaoUI.ObterTentativasRestantes();
+
+                    if (chances > 0)
+                    {
+                        associacaoUI.MostrarFeedback("Incorrect answer. Try again.");
+                        confirmarResposta.interactable = true;
+                        return;
+                    }
+
+                    associacaoUI.MostrarFeedback("You have used all your chances. You can try again later in the revision section.");
+                    associacaoUI.BloquearSeletores();
+                    RegistrarErroParaRevisao();
+                }
+            }
 
             if (acertouExercicio)
             {
@@ -344,6 +402,10 @@ public class ModalExercicio : MonoBehaviour
         exercicioAlternativas.SetActive(false);
         exercicioSpeaking.SetActive(false);
         exercicioBlocos.SetActive(false);
+        if (exercicioWriting != null)
+            exercicioWriting.SetActive(false);
+        if (exercicioAssociacao != null)
+            exercicioAssociacao.SetActive(false);
 
         if (botaoRepetirFalaNPC != null)
         {
@@ -375,6 +437,24 @@ public class ModalExercicio : MonoBehaviour
             titulo.text = "Ordering Exercise";
             exercicioBlocos.SetActive(true);
             blocosUI.InicializarExercicio((ExercicioBlocos)ex);
+        }
+        else if (tipo == TipoExercicio.Writing)
+        {
+            if (exercicioWriting == null || writingUI == null)
+                throw new System.InvalidOperationException("Configure o painel e o WritingUI no ModalExercicio.");
+
+            titulo.text = "Writing Exercise";
+            exercicioWriting.SetActive(true);
+            writingUI.InicializarExercicio((ExercicioWriting)ex);
+        }
+        else if (tipo == TipoExercicio.Associacao)
+        {
+            if (exercicioAssociacao == null || associacaoUI == null)
+                throw new System.InvalidOperationException("Configure o painel e o AssociacaoUI no ModalExercicio.");
+
+            titulo.text = "Matching Exercise";
+            exercicioAssociacao.SetActive(true);
+            associacaoUI.InicializarExercicio((ExercicioAssociacao)ex);
         }
     }
 

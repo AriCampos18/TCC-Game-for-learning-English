@@ -9,7 +9,9 @@ public enum TipoExercicio
 {
     Speaking,
     Alternativas,
-    Blocos
+    Blocos,
+    Writing,
+    Associacao
 }
 
 public class BakeryNPC : InteracaoNPC

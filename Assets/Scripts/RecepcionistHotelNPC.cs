@@ -5,27 +5,36 @@ using UnityEngine.Networking;
 using System.IO;
 using TMPro;
 using System;
+using System.Globalization;
 
 public class RecepcionistHotelNPC: InteracaoNPC
 {
-
     string nivelAtual;
-    string cumrpimento, periodo, periodoIng;
+    string cumprimento, periodo, periodoIng;
     int horaAtual = DateTime.Now.Hour;
+    List<string> dialogoAtual;
 
     public string idNpcParaVoz = "recepcionistHotel";
 
-    public List<ExercicioBase> exerciciosCompletarFrase;
-    public List<ExercicioBase> exerciciosCriarFrases;
-    public List<ExercicioBase> exerciciosSpeaking;
-    public List<ExercicioBase> exerciciosAlternativas;
-    public List<ExercicioBase> exerciciosWriting;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosWriting;
 
-    public List<ExercicioBase> exerciciosAssociacao;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
 
-    public void Start(){
+    protected override void Start()
+    {
+        base.Start();
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Hotel Recepcionist";
+        exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
+        exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
+        exerciciosSpeaking = GarantirListaExercicios(exerciciosSpeaking);
+        exerciciosAlternativas = GarantirListaExercicios(exerciciosAlternativas);
+        exerciciosWriting = GarantirListaExercicios(exerciciosWriting);
+        exerciciosAssociacao = GarantirListaExercicios(exerciciosAssociacao);
 
         if (horaAtual < 12)
         {
@@ -102,7 +111,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                 new ExercicioBlocos()
                 {
                     enunciado= "Arrange the words to form the correct sentence in english: Qual o horário do café da manhã?",
-                    blocosPlavras = new List<string>
+                    blocosPalavras = new List<string>
                     {
                         "dinner",
                         "served",
@@ -182,7 +191,9 @@ public class RecepcionistHotelNPC: InteracaoNPC
                             "floor",
                             "breakfast",
                         },
-                        associacaoCorreta = new ParAssociacao { palavraPortugues = "reserva", palavraIngles = "reservation" },
+                        associacaoCorreta = new List<ParAssociacao>
+                        {
+                        new ParAssociacao { palavraPortugues = "reserva", palavraIngles = "reservation" },
                         new ParAssociacao { palavraPortugues = "nome", palavraIngles = "name" },
                         new ParAssociacao { palavraPortugues = "cartão", palavraIngles = "card" },
                         new ParAssociacao { palavraPortugues = "quarto", palavraIngles = "room" },
@@ -190,6 +201,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                         new ParAssociacao { palavraPortugues = "café da manhã", palavraIngles = "breakfast" },
                         new ParAssociacao { palavraPortugues = "saída", palavraIngles = "checkout" },
                         new ParAssociacao { palavraPortugues = "semana", palavraIngles = "week" }
+                        }
                     }
                 );
         }
@@ -213,7 +225,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                 new ExercicioBlocos()
                 {
                     enunciado= "Arrange the words to form the correct sentence in english: Eu tenho uma reserva para hoje "+periodo,
-                    blocosPlavras = new List<string>
+                    blocosPalavras = new List<string>
                     {
                         "room",
                         "served",
@@ -306,7 +318,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                 new ExercicioBlocos()
                 {
                     enunciado= "Complete the sentence with the correct word: I need to leave at ____ p.m.",
-                    blocosPlavras = new List<string>
+                    blocosPalavras = new List<string>
                     {
                         "10:00",
                         "served",
@@ -366,7 +378,9 @@ public class RecepcionistHotelNPC: InteracaoNPC
                             "room card",
                             "ask"
                         },
-                        associacaoCorreta = new ParAssociacao { palavraPortugues = "noite", palavraIngles = "night" },
+                        associacaoCorreta = new List<ParAssociacao>
+                        {
+                        new ParAssociacao { palavraPortugues = "noite", palavraIngles = "night" },
                         new ParAssociacao { palavraPortugues = "hospedagem", palavraIngles = "stay" },
                         new ParAssociacao { palavraPortugues = "pagar", palavraIngles = "pay" },
                         new ParAssociacao { palavraPortugues = "cartão do quarto", palavraIngles = "room card" },
@@ -374,6 +388,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                         new ParAssociacao { palavraPortugues = "bagagem", palavraIngles = "luggage" },
                         new ParAssociacao { palavraPortugues = "sair", palavraIngles = "leave" },
                         new ParAssociacao { palavraPortugues = "recepção", palavraIngles = "reception desk" }
+                        }
                     }
             );
         }
@@ -446,7 +461,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                 new ExercicioBlocos()
                 {
                     enunciado= "Arrange the words to form the correct sentence in english: Onde fica o elevador?"+periodo,
-                    blocosPlavras = new List<string>
+                    blocosPalavras = new List<string>
                     {
                         "Where",
                         "served",
@@ -526,7 +541,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                 new ExercicioBlocos()
                 {
                     enunciado= "Complete the sentence with the correct word: The late chekout is available until _____ p.m.",
-                    blocosPlavras = new List<string>
+                    blocosPalavras = new List<string>
                     {
                         "10:00",
                         "served",
@@ -568,6 +583,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                             "servido",
                             "com antecedência",
                             "voo",
+                            "sair",
                             "disponibilidade",
                         },
                         opcoesIngles = new List<string>
@@ -579,8 +595,11 @@ public class RecepcionistHotelNPC: InteracaoNPC
                             "book",
                             "in advance",
                             "flight",
+                            "leave",
                         },
-                        associacaoCorreta = new ParAssociacao { palavraPortugues = "reservar", palavraIngles = "book" },
+                        associacaoCorreta = new List<ParAssociacao>
+                        {
+                        new ParAssociacao { palavraPortugues = "reservar", palavraIngles = "book" },
                         new ParAssociacao { palavraPortugues = "quarto de casal", palavraIngles = "double room" },
                         new ParAssociacao { palavraPortugues = "ao lado de", palavraIngles = "next to" },
                         new ParAssociacao { palavraPortugues = "servido", palavraIngles = "served" },
@@ -588,6 +607,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                         new ParAssociacao { palavraPortugues = "voo", palavraIngles = "flight" },
                         new ParAssociacao { palavraPortugues = "sair", palavraIngles = "leave" },
                         new ParAssociacao { palavraPortugues = "disponibilidade", palavraIngles = "availability" }
+                        }
                     }
             );
         }
@@ -629,5 +649,287 @@ public class RecepcionistHotelNPC: InteracaoNPC
         );
 
         return $"{mes} {dia}{sufixo}";
+    }
+
+    protected override async Task IniciarInteracao()
+    {
+        GameProgress.EstaEmDialogo = true;
+        try
+        {
+            nivelAtual = DadosJogador.nivelUsuario;
+            InicializarConteudosPorNivel();
+
+            if (dialogoAtual == null || dialogoAtual.Count == 0)
+                throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
+
+            if (nivelAtual == "A1")
+                await interacaoA1();
+            else if (nivelAtual == "A2")
+                await interacaoA2();
+            else
+                await interacaoB1();
+        }
+        finally
+        {
+            GameProgress.EstaEmDialogo = false;
+            if (modalLegendaComum != null)
+                modalLegendaComum.SetActive(false);
+            if (textoPularDialogoComum != null)
+                textoPularDialogoComum.gameObject.SetActive(false);
+            LiberarControlePlayer();
+        }
+    }
+
+
+
+    private List<ExercicioBase> ObterFilaExercicios()
+    {
+        List<ExercicioBase> fila = new List<ExercicioBase>();
+        fila.AddRange(exerciciosSpeaking);
+        fila.AddRange(exerciciosAlternativas);
+        fila.AddRange(exerciciosCompletarFrase);
+        fila.AddRange(exerciciosCriarFrases);
+        fila.AddRange(exerciciosWriting);
+        fila.AddRange(exerciciosAssociacao);
+        return fila;
+    }
+
+    private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
+    {
+        if (exercicio is ExercicioSpeaking)
+            return TipoExercicio.Speaking;
+        if (exercicio is ExercicioAlternativas)
+            return TipoExercicio.Alternativas;
+        if (exercicio is ExercicioBlocos)
+            return TipoExercicio.Blocos;
+        if (exercicio is ExercicioWriting)
+            return TipoExercicio.Writing;
+        if (exercicio is ExercicioAssociacao)
+            return TipoExercicio.Associacao;
+
+        throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
+    }
+
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
+    {
+        Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+
+        ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
+
+        if (modalLegendaComum != null)
+        {
+            modalLegendaComum.SetActive(false);
+        }
+
+        await EntrarModoExercicio();
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        modalExercicioComum.Abrir(tipo, exercicio, this);
+
+        if (legenda != null)
+        {
+            legenda.AjustarPosicaoPeloEstadoDoJogo();
+        }
+
+        while (!modalExercicioComum.exercicioFinalizado)
+        {
+            await Task.Yield();
+        }
+
+        if (modalLegendaComum != null)
+        {
+            modalLegendaComum.SetActive(false);
+        }
+
+        await SairModoExercicio();
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        if (legenda != null)
+        {
+            legenda.AjustarPosicaoPeloEstadoDoJogo();
+        }
+    }
+
+    private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
+    {
+        ultimaFraseDita = dialogoAtual[indiceDialogo];
+        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
+
+        if (audioBytes != null && audioBytes.Length > 0)
+        {
+            Debug.Log($"\u00c1udio recebido! Tamanho: {audioBytes.Length} bytes");
+            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
+            File.WriteAllBytes(caminho, audioBytes);
+
+            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+                await Task.Yield();
+
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+            audioSourceComum.clip = clip;
+
+            if (mostrarLegenda)
+            {
+                textoPularDialogoComum.gameObject.SetActive(false);
+                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
+            }
+
+            audioSourceComum.Play();
+            while (audioSourceComum.isPlaying)
+            {
+                await Task.Yield();
+            }
+
+            if (textoPularDialogoComum != null)
+            {
+                textoPularDialogoComum.gameObject.SetActive(true);
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+
+            await Task.Delay(150);
+
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
+            }
+
+            bool clicou = false;
+            while (!clicou)
+            {
+                if (Input.GetMouseButtonDown(0))
+                {
+                    clicou = true;
+                }
+                else
+                {
+                    await Task.Yield();
+                }
+            }
+
+            if (textoPularDialogoComum != null)
+            {
+                textoPularDialogoComum.gameObject.SetActive(false);
+            }
+
+            if (modalLegendaComum != null)
+            {
+                modalLegendaComum.SetActive(false);
+            }
+        }
+        else
+        {
+            Debug.LogError("O servidor retornou um array de bytes vazio.");
+            if (mostrarLegenda)
+            {
+                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
+            }
+        }
+    }
+
+    private async Task interacaoA1()
+    {
+        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
+        int indiceExercicio = 0;
+
+        for (int i = 0; i < dialogoAtual.Count; i++)
+        {
+            await PlayAudioETexto(i);
+
+            int dialogosRestantes = dialogoAtual.Count - i;
+            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
+            int exerciciosNesteTrecho =
+                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
+
+            for (int j = 0; j < exerciciosNesteTrecho; j++)
+            {
+                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
+                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
+            }
+        }
+    }
+
+    private async Task interacaoA2()
+    {
+        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
+        int indiceExercicio = 0;
+
+        for (int i = 0; i < dialogoAtual.Count; i++)
+        {
+            await PlayAudioETexto(i);
+
+            int dialogosRestantes = dialogoAtual.Count - i;
+            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
+            int exerciciosNesteTrecho =
+                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
+
+            for (int j = 0; j < exerciciosNesteTrecho; j++)
+            {
+                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
+                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
+            }
+        }
+    }
+
+    private async Task interacaoB1()
+    {
+        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
+        int indiceExercicio = 0;
+
+        for (int i = 0; i < dialogoAtual.Count; i++)
+        {
+            await PlayAudioETexto(i);
+
+            int dialogosRestantes = dialogoAtual.Count - i;
+            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
+            int exerciciosNesteTrecho =
+                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
+
+            for (int j = 0; j < exerciciosNesteTrecho; j++)
+            {
+                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
+                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
+            }
+        }
+    }
+
+    public override async Task FalarFraseCustomizada(string textoParaFalar)
+    {
+        if (string.IsNullOrEmpty(textoParaFalar)) return;
+
+        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
+
+        if (audioBytes != null && audioBytes.Length > 0)
+        {
+            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
+            File.WriteAllBytes(caminho, audioBytes);
+
+            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+                await Task.Yield();
+
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+            audioSourceComum.clip = clip;
+            if (modalLegendaComum != null && modalLegendaComum.activeSelf)
+            {
+                if (textoPularDialogoComum != null) textoPularDialogoComum.gameObject.SetActive(false);
+                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+            }
+
+            audioSourceComum.Play();
+
+            while (audioSourceComum.isPlaying)
+            {
+                await Task.Yield();
+            }
+        }
     }
 }

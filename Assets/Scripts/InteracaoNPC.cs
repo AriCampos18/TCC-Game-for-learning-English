@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using TMPro;
 
 public class InteracaoNPC : MonoBehaviour
 {
@@ -12,6 +14,9 @@ public class InteracaoNPC : MonoBehaviour
     private bool interagindo = false;
     public float alturaFocoCamera = 0.82f;
     public GameObject crosshair;
+    [SerializeField] protected ModalExercicio modalExercicioComum;
+    [SerializeField] protected GameObject modalLegendaComum;
+    [SerializeField] protected TextMeshProUGUI textoPularDialogoComum;
 
     // ✨ Mudado para protected para que ShelfNPC consiga atualizar a posição base após andar
     protected Vector3 npcPosicaoOriginal;
@@ -20,10 +25,14 @@ public class InteracaoNPC : MonoBehaviour
     private Quaternion cameraRotacaoOriginal;
     public string ultimaFraseDita = "";
     private Vector3 cameraPosicaoOriginal;
+    protected AudioSource audioSourceComum;
+    protected BackendManager backendManagerComum;
 
     protected virtual void Start()
     {
         if (avisoUI != null) avisoUI.SetActive(false);
+        audioSourceComum = GetComponent<AudioSource>();
+        backendManagerComum = new BackendManager();
     }
 
     public virtual string nomeExibicaoLegenda 
@@ -199,6 +208,11 @@ public class InteracaoNPC : MonoBehaviour
     protected virtual Task IniciarInteracao()
     {
         return Task.CompletedTask;
+    }
+
+    protected static List<ExercicioBase> GarantirListaExercicios(List<ExercicioBase> exercicios)
+    {
+        return exercicios ?? new List<ExercicioBase>();
     }
 
     public virtual bool PodeInteragir()
