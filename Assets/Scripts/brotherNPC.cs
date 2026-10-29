@@ -150,6 +150,27 @@ public class SecretaryCollegeNPC: InteracaoNPC
                     respostaCorreta = "How have things been going at school lately?\n"
                 }
             );
+
+            exerciciosSpeaking.Add(
+                    new ExercicioSpeaking()
+                    {
+                        enunciado = "Ask your brother about the activities the dog enjoys doing lately.",
+                        opcoesFala = new List<string>()
+                        {
+                            "How many classes does the dog have?\n",
+                            "Where does the dog study?\n",
+                            "What does the dog like doing these days?\n"
+                        },
+                        respostaCorreta = 2
+                    }
+            );
+
+            exerciciosWriting.Add(
+                new ExercicioWriting()
+                {
+                    enunciado = "Write a short paragraph about your relationship with animals, describing your experiences with pets or the animals you would like to have"
+                }
+            );
         }
     }
 }

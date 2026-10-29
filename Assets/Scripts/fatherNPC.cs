@@ -82,6 +82,30 @@ public class SecretaryCollegeNPC: InteracaoNPC
                         respostaCorreta = 0
                     }
             );
+
+            exerciciosCompletarFrase.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Complete the sentence with the correct word: I’m ___, I have to go ____ home early.",
+                    blocosPlavras = new List<string>
+                    {
+                        "not",
+                        "served",
+                        "have",
+                        "You",
+                        "here",
+                        "was",
+                        "Which",
+                        "tonight",
+                        "morning",
+                        "is",
+                        "for",
+                        "back",
+                        "I",
+                    },
+                    respostaCorreta = "not, back\n"
+                }
+            );
         }
     }
 }

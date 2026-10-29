@@ -314,6 +314,69 @@ public class SecretaryCollegeNPC: InteracaoNPC
                         respostaCorreta = 0
                     }
             );
+
+            exerciciosSpeaking.Add(
+                    new ExercicioSpeaking()
+                    {
+                        enunciado = "Say goodbye to your family after dinner, expressing appreciation for the time you spent together.",
+                        opcoesFala = new List<string>()
+                        {
+                            "It was boring to see you all. I’ll call you soon\n",
+                            "It was great seeing everyone again. Thank you for having me\n",
+                            "Thanks for dinner. I’ll see you at work tomorrow\n"
+                        },
+                        respostaCorreta = 1
+                    }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+                    opcoesPort = new List<string>
+                    {
+                        "saudade",
+                        "ultimamente",
+                        "equipe",
+                        "projeto",
+                        "conquistas",
+                        "quintal",
+                        "brincar de buscar",
+                        "ficar durante a noite",
+                        "voltar para casa",
+                        "colega"
+                    },
+
+                    opcoesIngles = new List<string>
+                    {
+                        "backyard",
+                        "spend the night",
+                        "team",
+                        "colleague",
+                        "lately",
+                        "archievements",
+                        "miss",
+                        "project",
+                        "play fetch",
+                        "go back home"
+                    },
+
+                    associacaoCorreta = new List<ParAssociacao>
+                    {
+                        new ParAssociacao { palavraPortugues = "saudade", palavraIngles = "miss" },
+                        new ParAssociacao { palavraPortugues = "ultimamente", palavraIngles = "lately" },
+                        new ParAssociacao { palavraPortugues = "equipe", palavraIngles = "team" },
+                        new ParAssociacao { palavraPortugues = "projeto", palavraIngles = "project" },
+                        new ParAssociacao { palavraPortugues = "conquistas", palavraIngles = "archievements" },
+                        new ParAssociacao { palavraPortugues = "quintal", palavraIngles = "backyard" },
+                        new ParAssociacao { palavraPortugues = "brincar de buscar", palavraIngles = "play fetch" },
+                        new ParAssociacao { palavraPortugues = "ficar durante a noite", palavraIngles = "spend the night" },
+                        new ParAssociacao { palavraPortugues = "voltar para casa", palavraIngles = "go back home" },
+                        new ParAssociacao { palavraPortugues = "colega", palavraIngles = "colleague" }
+                    }
+                }
+            );
         }
     }
 }

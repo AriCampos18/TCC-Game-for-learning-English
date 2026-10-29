@@ -43,6 +43,84 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "Can I see your passport, please?",
                 "Here is your boarding pass. Your gate is twelve."
             };
+
+            exerciciosSpeaking.Add(
+                    new ExercicioSpeaking()
+                    {
+                        enunciado = "Show your passport to the airport staff.",
+                        opcoesFala = new List<string>()
+                        {
+                            "Here is my passport\n",
+                            "Here is my breakfast\n",
+                            "My passport is a boarding gate\n"
+                        },
+                        respostaCorreta = 0
+                    }
+            );
+
+            exerciciosCompletarFrase.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Complete the sentence with the correct word: Your boarding gate is ____.",
+                    blocosPlavras = new List<string>
+                    {
+                        "20",
+                        "12",
+                        "passport",
+                        "18",
+                        "boarding",
+                        "21",
+                        "airport",
+                        "2",
+                        "24",
+                        "ticket"
+                    },
+                    respostaCorreta = "12\n"
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the Portuguese word with the English word.",
+
+                    opcoesPort = new List<string>
+                    {
+                        "passaporte",
+                        "aeroporto",
+                        "portão de embarque",
+                        "cartão de embarque",
+                        "voo",
+                        "bagagem",
+                        "balcão de check-in",
+                        "escadas"
+                    },
+
+                    opcoesIngles = new List<string>
+                    {
+                        "flight",
+                        "stairs",
+                        "passport",
+                        "check-in desk",
+                        "luggage",
+                        "boarding pass",
+                        "airport",
+                        "boarding gate"
+                    },
+
+                    associacaoCorreta = new List<ParAssociacao>
+                    {
+                        new ParAssociacao { palavraPortugues = "passaporte", palavraIngles = "passport" },
+                        new ParAssociacao { palavraPortugues = "aeroporto", palavraIngles = "airport" },
+                        new ParAssociacao { palavraPortugues = "portão de embarque", palavraIngles = "boarding gate" },
+                        new ParAssociacao { palavraPortugues = "cartão de embarque", palavraIngles = "boarding pass" },
+                        new ParAssociacao { palavraPortugues = "voo", palavraIngles = "flight" },
+                        new ParAssociacao { palavraPortugues = "bagagem", palavraIngles = "luggage" },
+                        new ParAssociacao { palavraPortugues = "balcão de check-in", palavraIngles = "check-in desk" },
+                        new ParAssociacao { palavraPortugues = "escadas", palavraIngles = "stairs" }
+                    }
+                }
+            );
         }
         else if(nivelAtual=="A2")
         {
@@ -54,6 +132,135 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "Would you like a window seat or an aisle seat?", 
                 "Your gate is eighteen, and boarding starts at 2:30 p.m. Have a nice flight!"
             };
+
+            exerciciosCriarFrases.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Arrange the words to form the correct sentence in english: Eu estou indo para Londres",
+                    blocosPlavras = new List<string>
+                    {
+                        "London",
+                        "going",
+                        "to",
+                        "I",
+                        "Paris",
+                        "am",
+                        "traveling",
+                        "from",
+                        "is",
+                        "fly",
+                        "the"
+                    },
+                    respostaCorreta = "I am going to London\n"
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                    new ExercicioSpeaking()
+                    {
+                        enunciado = "The airport staff asks to see your passport and booking confirmation. Choose the most appropriate response.",
+                        opcoesFala = new List<string>()
+                        {
+                            "Here is my passport and booking confirmation\n",
+                            "I left my booking confirmation at the hotel\n",
+                            "I showed my passport to the hotel receptionist last week\n"
+                        },
+                        respostaCorreta = 1
+                    }
+            );
+
+            exerciciosSpeaking.Add(
+                    new ExercicioSpeaking()
+                    {
+                        enunciado = "The airport staff asks if you have any luggage to check in. Choose the most appropriate response.",
+                        opcoesFala = new List<string>()
+                        {
+                            "Yes, I need to check in at gate 18\n",
+                            "Yes, I have one suitcase to check in\n",
+                            "Yes, I have already arrived at my destination\n"
+                        },
+                        respostaCorreta = 1
+                    }
+            );
+
+            exerciciosAlternativas.Add(
+                    new ExercicioAlternativas()
+                    {
+                        enunciado = "What time does your boarding start?",
+                        alternativas = new List<string>() { 
+                        "Two p.m.\r\n", 
+                        "Two thirdy p.m.\r\n", 
+                        "Three thirdy p.m.\r\n", 
+                        "Eleven thirdy p.m.\r\n" },
+                        alternativaCorreta = 1
+                    }
+            );     
+
+            exerciciosCompletarFrase.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Complete the sentence with the correct word:  The boarding gate is ____.",
+                    blocosPlavras = new List<string>
+                    {
+                        "passport",
+                        "24",
+                        "18",
+                        "luggage",
+                        "12",
+                        "ticket",
+                        "8",
+                        "28",
+                        "airport",
+                        "21",
+                        "boarding",
+                        "80"
+                    },
+                    respostaCorreta = "18\n"
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+                    opcoesPort = new List<string>
+                    {
+                        "mala de viagem",
+                        "confirmação da reserva",
+                        "despachar bagagem",
+                        "embarque",
+                        "destino",
+                        "horário",
+                        "portão",
+                        "seguir para"
+                    },
+
+                    opcoesIngles = new List<string>
+                    {
+                        "boarding",
+                        "head to",
+                        "suitcase",
+                        "gate",
+                        "departure time",
+                        "destination",
+                        "booking confirmation",
+                        "check in a bag"
+                    },
+
+                    associacaoCorreta = new List<ParAssociacao>
+                    {
+                        new ParAssociacao { palavraPortugues = "mala de viagem", palavraIngles = "suitcase" },
+                        new ParAssociacao { palavraPortugues = "confirmação da reserva", palavraIngles = "booking confirmation" },
+                        new ParAssociacao { palavraPortugues = "despachar bagagem", palavraIngles = "check in a bag" },
+                        new ParAssociacao { palavraPortugues = "embarque", palavraIngles = "boarding" },
+                        new ParAssociacao { palavraPortugues = "destino", palavraIngles = "destination" },
+                        new ParAssociacao { palavraPortugues = "horário", palavraIngles = "departure time" },
+                        new ParAssociacao { palavraPortugues = "portão", palavraIngles = "gate" },
+                        new ParAssociacao { palavraPortugues = "seguir para", palavraIngles = "head to" }
+                    }
+                }
+            );
         }
         else if(nivelAtual=="B1")
         {
@@ -65,6 +272,110 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "You have a connecting flight, so your checked bag will be transferred automatically. Your second flight leaves from gate 24.",
                 "Please check the departure screens in case the gate changes. Boarding usually starts 40 minutes before departure."
             };
+
+            exerciciosSpeaking.Add(
+                    new ExercicioSpeaking()
+                    {
+                        enunciado = "Explain your travel plans to the airport staff, mentioning where is your final destination",
+                        opcoesFala = new List<string>()
+                        {
+                            " I’m travelling to Toronto, and I have a connecting flight\n",
+                            "I have a stop in Toronto before my final destination\n",
+                            "My connecting flight depart from different terminal\n"
+                        },
+                        respostaCorreta = 0
+                    }
+            ); 
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The airport staff asks for your passport and booking confirmation. You have both documents ready. Choose the most appropriate response.",
+                    opcoesFala = new List<string>()
+                    {
+                        "Certainly. I have both documents with me, and I can show them to you now.\n",
+                        "I need to collect my suitcase before I can show you my passport.",
+                        "My connecting flight leaves from another terminal, so I booked a hotel nearby."
+                    },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                    new ExercicioAlternativas()
+                    {
+                        enunciado = "What will happen to the checked bag?",
+                        alternativas = new List<string>() { 
+                        "The user must collect it before boarding the first flight\r\n", 
+                        "It will be transferred automatically\r\n", 
+                        " It will be sent to the information desk\r\n", 
+                        "It must be carried as hand luggage\r\n" },
+                        alternativaCorreta = 1
+                    }
+            );   
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The airport staff advises you to check the departure screens for updates about your connecting flight. Choose the most appropriate response.",
+                    opcoesFala = new List<string>()
+                    {
+                        "hank you. I checked the gate tomorrow\n",
+                        "Thank you. I’ll check the restaurant menu",
+                        "Thank you. I’ll check the departure screens"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+                    opcoesPort = new List<string>
+                    {
+                        "voo de conexão",
+                        "destino final",
+                        "bagagem despachada",
+                        "ser transferido automaticamente",
+                        "telas de partidas",
+                        "atrasado",
+                        "confirmação da reserva",
+                        "mudança de portão",
+                        "balcão de informações",
+                        "terminal"
+                    },
+
+                    opcoesIngles = new List<string>
+                    {
+                        "departure screens",
+                        "checked baggage",
+                        "terminal",
+                        "booking confirmation",
+                        "connecting flight",
+                        "gate change",
+                        "information desk",
+                        "delayed",
+                        "final destination",
+                        "be transferred automatically"
+                    },
+
+                    associacaoCorreta = new List<ParAssociacao>
+                    {
+                        new ParAssociacao { palavraPortugues = "voo de conexão", palavraIngles = "connecting flight" },
+                        new ParAssociacao { palavraPortugues = "destino final", palavraIngles = "final destination" },
+                        new ParAssociacao { palavraPortugues = "bagagem despachada", palavraIngles = "checked baggage" },
+                        new ParAssociacao { palavraPortugues = "ser transferido automaticamente", palavraIngles = "be transferred automatically" },
+                        new ParAssociacao { palavraPortugues = "telas de partidas", palavraIngles = "departure screens" },
+                        new ParAssociacao { palavraPortugues = "atrasado", palavraIngles = "delayed" },
+                        new ParAssociacao { palavraPortugues = "confirmação da reserva", palavraIngles = "booking confirmation" },
+                        new ParAssociacao { palavraPortugues = "mudança de portão", palavraIngles = "gate change" },
+                        new ParAssociacao { palavraPortugues = "balcão de informações", palavraIngles = "information desk" },
+                        new ParAssociacao { palavraPortugues = "terminal", palavraIngles = "terminal" }
+                    }
+                }
+            );
         }
     }
 }
