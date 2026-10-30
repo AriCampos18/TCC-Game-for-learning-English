@@ -132,6 +132,21 @@ public class fatherNPC : InteracaoNPC
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
 
+            MissionManager.AdicionarMissaoNPC(
+                "family_" + nivelAtual.ToLowerInvariant() + "_01",
+                "Enter the house and greet your family",
+                "Entre na casa e cumprimente sua família"
+            );
+
+            if (nivelAtual == "B1")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "family_b1_02",
+                    "Talk to your parents about your routine",
+                    "Converse com seus pais sobre sua rotina"
+                );
+            }
+
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
@@ -186,6 +201,37 @@ public class fatherNPC : InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        bool trabalhoA2 = nivelAtual == "A2" && exercicio.enunciado.Contains("Ask your father how things are going at work");
+        bool rotinaB1 = nivelAtual == "B1" && exercicio.enunciado.Contains("Write a short paragraph about your daily routine");
+        bool trabalhoB1 = nivelAtual == "B1" && exercicio.enunciado.Contains("Ask your father about his recent experiences at work");
+        bool planosNoiteB1 = nivelAtual == "B1" && exercicio.enunciado.Contains("I’m ___, I have to go ____ home early");
+
+        if (trabalhoA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_04",
+                "Talk to your parents about work",
+                "Converse com seus pais sobre o trabalho"
+            );
+        }
+
+        if (trabalhoB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_04",
+                "Talk to your parents about work",
+                "Converse com seus pais sobre o trabalho"
+            );
+        }
+
+        if (planosNoiteB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_08",
+                "Talk to your family about your plans for the night",
+                "Converse com sua família sobre seus planos para a noite"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -211,6 +257,32 @@ public class fatherNPC : InteracaoNPC
             await Task.Yield();
         }
 
+        if (rotinaB1)
+            MissionManager.ConcluirMissaoNPC("family_b1_02");
+
+        if (trabalhoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a2_04");
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_05",
+                "Talk to your brother about school and the dog",
+                "Converse com seu irmão sobre a escola e o cachorro"
+            );
+        }
+
+        if (trabalhoB1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_b1_04");
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_05",
+                "Talk to your brother about school and the dog",
+                "Converse com seu irmão sobre a escola e o cachorro"
+            );
+        }
+
+        if (planosNoiteB1)
+            MissionManager.ConcluirMissaoNPC("family_b1_08");
+
         if (modalLegendaComum != null)
         {
             modalLegendaComum.SetActive(false);
@@ -230,6 +302,9 @@ public class fatherNPC : InteracaoNPC
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
+        if (indiceDialogo == 0)
+            MissionManager.ConcluirMissaoNPC("family_" + nivelAtual.ToLowerInvariant() + "_01");
+
         byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
 
         if (audioBytes != null && audioBytes.Length > 0)

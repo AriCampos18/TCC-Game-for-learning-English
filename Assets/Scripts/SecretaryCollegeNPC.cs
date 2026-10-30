@@ -532,11 +532,40 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
             if (nivelAtual == "A1")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "college_a1_02",
+                    "Complete your enrollment",
+                    "Realize sua matrícula"
+                );
+            }
+            else if (nivelAtual == "A2")
+            {
+                MissionManager.ConcluirMissaoNPC("college_a2_02");
+                MissionManager.AdicionarMissaoNPC(
+                    "college_a2_03",
+                    "Complete your enrollment",
+                    "Faça sua matrícula"
+                );
+            }
+            else
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "college_b1_02",
+                    "Provide your details, confirm your course information, and complete enrollment",
+                    "Informe seus dados, confirme as informações do curso e conclua o processo de matrícula"
+                );
+            }
+
+            if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
             else
                 await interacaoB1();
+
+            if (nivelAtual == "A1")
+                MissionManager.ConcluirMissaoNPC("college_a1_02");
         }
         finally
         {
@@ -582,6 +611,10 @@ public class SecretaryCollegeNPC: InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        bool cronogramaA2 = nivelAtual == "A2"
+            && exercicio.enunciado.Contains("Select the correct option for your classroom number");
+        bool cronogramaB1 = nivelAtual == "B1"
+            && exercicio.enunciado.Contains("You received your schedule, and your first class is in room 305");
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -607,6 +640,12 @@ public class SecretaryCollegeNPC: InteracaoNPC
             await Task.Yield();
         }
 
+        if (cronogramaA2)
+            MissionManager.ConcluirMissaoNPC("college_a2_04");
+
+        if (cronogramaB1)
+            MissionManager.ConcluirMissaoNPC("college_b1_03");
+
         if (modalLegendaComum != null)
         {
             modalLegendaComum.SetActive(false);
@@ -626,7 +665,29 @@ public class SecretaryCollegeNPC: InteracaoNPC
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
-        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
+        string fala = dialogoAtual[indiceDialogo];
+
+        if (nivelAtual == "A2" && fala.Contains("registration is complete"))
+        {
+            MissionManager.ConcluirMissaoNPC("college_a2_03");
+            MissionManager.AdicionarMissaoNPC(
+                "college_a2_04",
+                "Consult your schedule and find the room for your first class",
+                "Consulte seu cronograma e identifique a sala da primeira aula"
+            );
+        }
+
+        if (nivelAtual == "B1" && fala.Contains("enrollment is complete"))
+        {
+            MissionManager.ConcluirMissaoNPC("college_b1_02");
+            MissionManager.AdicionarMissaoNPC(
+                "college_b1_03",
+                "Consult your schedule, find the first-class room, and ask how to get there",
+                "Consulte o cronograma, identifique a sala da primeira aula e pergunte como chegar até ela"
+            );
+        }
+
+        byte[] audioBytes = await backendManagerComum.GerarAudio(fala, idNpcParaVoz);
 
         if (audioBytes != null && audioBytes.Length > 0)
         {

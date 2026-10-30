@@ -68,6 +68,17 @@ public class MissionManager : MonoBehaviour
         missoes.Add(nova);
     }
 
+    public static void AdicionarMissaoNPC(string id, string texto, string traducao)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError("MissionManager não está disponível para adicionar uma missão de NPC.");
+            return;
+        }
+
+        Instance.AdicionarMissao(id, texto, traducao);
+    }
+
     public void ConcluirMissao(string id)
     {
         Missao m =
@@ -80,6 +91,17 @@ public class MissionManager : MonoBehaviour
             if (m.itemUI != null)
                 m.itemUI.AtualizarVisual();
         }
+    }
+
+    public static void ConcluirMissaoNPC(string id)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError("MissionManager não está disponível para concluir uma missão de NPC.");
+            return;
+        }
+
+        Instance.ConcluirMissao(id);
     }
 
     public void RemoverMissao(string id)

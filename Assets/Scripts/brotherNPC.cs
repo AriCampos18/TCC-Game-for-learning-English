@@ -197,6 +197,13 @@ public class brotherNPC : InteracaoNPC
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
 
+            string idMissaoBoasVindas = "family_" + nivelAtual.ToLowerInvariant() + "_01";
+            MissionManager.AdicionarMissaoNPC(
+                idMissaoBoasVindas,
+                "Enter the house and greet your family",
+                "Entre na casa e cumprimente sua família"
+            );
+
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
@@ -251,6 +258,63 @@ public class brotherNPC : InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        string enunciado = exercicio.enunciado;
+        bool cachorroA1 = nivelAtual == "A1" && enunciado.Contains("dog");
+        bool brincarA1 = nivelAtual == "A1" && enunciado.Contains("What does the dog play with");
+        bool escolaA2 = nivelAtual == "A2" && enunciado.Contains("Ask your brother how he is doing at school");
+        bool cachorroA2 = nivelAtual == "A2" && enunciado.Contains("Ask your brother what his dog likes to play with");
+        bool animaisA2 = nivelAtual == "A2" && enunciado.Contains("Talk about the pets you have");
+        bool escolaB1 = nivelAtual == "B1" && enunciado.Contains("Como as coisas têm ido na escola ultimamente");
+        bool cachorroB1 = nivelAtual == "B1" && enunciado.Contains("Ask your brother about the activities the dog enjoys");
+        bool animaisB1 = nivelAtual == "B1" && enunciado.Contains("Write a short paragraph about your relationship with animals");
+
+        if (nivelAtual == "A1" && cachorroA1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a1_04");
+            MissionManager.AdicionarMissaoNPC(
+                "family_a1_05",
+                "Talk about the dog",
+                "Brinque de conversar sobre o cachorro"
+            );
+        }
+
+        if (escolaA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_05",
+                "Talk to your brother about school and the dog",
+                "Converse com seu irmão sobre a escola e o cachorro"
+            );
+        }
+
+        if (escolaB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_05",
+                "Talk to your brother about school and the dog",
+                "Converse com seu irmão sobre a escola e o cachorro"
+            );
+        }
+
+        if (animaisA2)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a2_05");
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_06",
+                "Share stories about pets",
+                "Compartilhe histórias sobre animais de estimação"
+            );
+        }
+
+        if (animaisB1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_b1_05");
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_06",
+                "Share your experiences with pets",
+                "Compartilhe experiências sobre animais de estimação"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -276,6 +340,21 @@ public class brotherNPC : InteracaoNPC
             await Task.Yield();
         }
 
+        if (brincarA1)
+            MissionManager.ConcluirMissaoNPC("family_a1_05");
+
+        if (cachorroA2)
+            MissionManager.ConcluirMissaoNPC("family_a2_05");
+
+        if (cachorroB1)
+            MissionManager.ConcluirMissaoNPC("family_b1_05");
+
+        if (animaisA2)
+            MissionManager.ConcluirMissaoNPC("family_a2_06");
+
+        if (animaisB1)
+            MissionManager.ConcluirMissaoNPC("family_b1_06");
+
         if (modalLegendaComum != null)
         {
             modalLegendaComum.SetActive(false);
@@ -295,6 +374,12 @@ public class brotherNPC : InteracaoNPC
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
+        if (indiceDialogo == 0)
+            MissionManager.ConcluirMissaoNPC("family_" + nivelAtual.ToLowerInvariant() + "_01");
+
+        if (nivelAtual == "A1" && indiceDialogo == 0)
+            MissionManager.ConcluirMissaoNPC("family_a1_04");
+
         byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
 
         if (audioBytes != null && audioBytes.Length > 0)

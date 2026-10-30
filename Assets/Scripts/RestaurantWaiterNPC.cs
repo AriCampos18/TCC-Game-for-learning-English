@@ -579,6 +579,13 @@ public class RestaurantWaiterNPC : InteracaoNPC
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
+            string idPrimeiraMissao = "restaurant_" + nivelAtual.ToLowerInvariant() + "_01";
+            MissionManager.AdicionarMissaoNPC(
+                idPrimeiraMissao,
+                "Enter the restaurant and sit at a table",
+                "Entre no restaurante e sente-se em uma mesa"
+            );
+
             if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
@@ -630,6 +637,116 @@ public class RestaurantWaiterNPC : InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        string enunciado = exercicio.enunciado;
+        bool pedidoA1 = nivelAtual == "A1" && enunciado.Contains("You want a hamburger");
+        bool levarA1 = nivelAtual == "A1" && enunciado.Contains("Posso levar isso para viagem");
+        bool pagamentoA1 = nivelAtual == "A1" && enunciado.Contains("how you want to pay");
+        bool pedidoA2 = nivelAtual == "A2" && enunciado.Contains("Eu gostaria de um hambúrguer e um suco de laranja");
+        bool levarA2 = nivelAtual == "A2" && enunciado.Contains("wrap up the");
+        bool pagamentoA2 = nivelAtual == "A2" && enunciado.Contains("Select the correct option to answer the waiter");
+        bool perguntaPratoB1 = nivelAtual == "B1" && enunciado.Contains("You are interested in the hambuger");
+        bool recomendacaoB1 = nivelAtual == "B1" && enunciado.Contains("Ask the restaurant employee for a recommendation");
+        bool pedidoB1 = nivelAtual == "B1" && enunciado.Contains("Eu gostaria de pedir um hambúrguer");
+        bool comerB1 = nivelAtual == "B1" && enunciado.Contains("Compliment the burger");
+        bool levarB1 = nivelAtual == "B1" && enunciado.Contains("wrap the rest for you");
+        bool contaB1 = nivelAtual == "B1" && enunciado.Contains("Ask the waiter for the bill politely");
+        bool pagamentoB1 = nivelAtual == "B1" && enunciado.Contains("how you would like to pay");
+
+        if (pedidoA1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a1_01");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a1_02",
+                "Look at the menu and place your order",
+                "Olhe o menu e faça seu pedido"
+            );
+        }
+
+        if (pedidoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a2_01");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a2_02",
+                "Place your order with the waiter",
+                "Faça seu pedido ao garçom"
+            );
+        }
+
+        if (perguntaPratoB1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_01");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_02",
+                "Ask the waiter about the dishes",
+                "Pergunte sobre pratos para o garçom"
+            );
+        }
+
+        if (levarA1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a1_03");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a1_04",
+                "Ask to have the meal packed to take away",
+                "Solicite a refeição para viagem"
+            );
+        }
+
+        if (pagamentoA1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a1_05",
+                "Pay for your meal",
+                "Realize o pagamento"
+            );
+        }
+
+        if (levarA2)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a2_03");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a2_04",
+                "Ask for a container to take the leftovers away",
+                "Peça uma embalagem para levar o resto para viagem"
+            );
+        }
+
+        if (pagamentoA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a2_05",
+                "Pay your bill",
+                "Pague sua conta"
+            );
+        }
+
+        if (comerB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_05",
+                "Eat your food",
+                "Coma sua comida"
+            );
+        }
+
+        if (levarB1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_05");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_06",
+                "Ask to take your food away",
+                "Solicite para levar para viagem"
+            );
+        }
+
+        if (contaB1 || pagamentoB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_07",
+                "Pay the bill",
+                "Pague a conta"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -654,6 +771,95 @@ public class RestaurantWaiterNPC : InteracaoNPC
         {
             await Task.Yield();
         }
+
+        if (pedidoA1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a1_02");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a1_03",
+                "Eat your food",
+                "Coma a comida"
+            );
+        }
+
+        if (levarA1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a1_04");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a1_05",
+                "Pay for your meal",
+                "Realize o pagamento"
+            );
+        }
+
+        if (pagamentoA1)
+            MissionManager.ConcluirMissaoNPC("restaurant_a1_05");
+
+        if (pedidoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a2_02");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a2_03",
+                "Eat your food",
+                "Coma a comida"
+            );
+        }
+
+        if (levarA2)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_a2_04");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_a2_05",
+                "Pay your bill",
+                "Pague sua conta"
+            );
+        }
+
+        if (pagamentoA2)
+            MissionManager.ConcluirMissaoNPC("restaurant_a2_05");
+
+        if (recomendacaoB1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_02");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_03",
+                "Place your order",
+                "Faça seu pedido"
+            );
+        }
+
+        if (pedidoB1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_03");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_04",
+                "Talk to the other customer",
+                "Converse com o outro cliente"
+            );
+        }
+
+        if (comerB1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_05");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_06",
+                "Ask to take your food away",
+                "Solicite para levar para viagem"
+            );
+        }
+
+        if (levarB1)
+        {
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_06");
+            MissionManager.AdicionarMissaoNPC(
+                "restaurant_b1_07",
+                "Pay the bill",
+                "Pague a conta"
+            );
+        }
+
+        if (pagamentoB1)
+            MissionManager.ConcluirMissaoNPC("restaurant_b1_07");
 
         if (modalLegendaComum != null)
         {

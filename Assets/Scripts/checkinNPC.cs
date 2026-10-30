@@ -406,6 +406,32 @@ public class checkinNPC : InteracaoNPC
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
             if (nivelAtual == "A1")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_a1_03",
+                    "Go to the check-in desk and show your passport",
+                    "Dirija-se ao balcão de check-in e apresente seu passaporte"
+                );
+            }
+            else if (nivelAtual == "A2")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_a2_01",
+                    "Arrive at the airport and find the check-in desk",
+                    "Chegue ao aeroporto e procure o balcão de check-in"
+                );
+            }
+            else
+            {
+                MissionManager.ConcluirMissaoNPC("airport_b1_03");
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_b1_04",
+                    "Tell the employee your destination and connecting-flight details",
+                    "Informe seu destino e os detalhes do voo de conexão"
+                );
+            }
+
+            if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
@@ -456,6 +482,54 @@ public class checkinNPC : InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        string enunciado = exercicio.enunciado;
+        bool apresentarPassaporte = nivelAtual == "A1" && enunciado.Contains("Show your passport");
+        bool portaoA1 = nivelAtual == "A1" && enunciado.Contains("Your boarding gate is");
+        bool destinoA2 = nivelAtual == "A2" && enunciado.Contains("Eu estou indo para Londres");
+        bool documentosA2 = nivelAtual == "A2" && enunciado.Contains("passport and booking confirmation");
+        bool bagagemA2 = nivelAtual == "A2" && enunciado.Contains("any luggage to check in");
+        bool horarioA2 = nivelAtual == "A2" && enunciado.Contains("What time does your boarding start");
+        bool portaoA2 = nivelAtual == "A2" && enunciado.Contains("The boarding gate is");
+        bool destinoB1 = nivelAtual == "B1" && enunciado.Contains("Explain your travel plans");
+        bool documentosB1 = nivelAtual == "B1" && enunciado.Contains("passport and booking confirmation");
+        bool bagagemB1 = nivelAtual == "B1" && enunciado.Contains("What will happen to the checked bag");
+        bool paineisB1 = nivelAtual == "B1" && enunciado.Contains("check the departure screens");
+
+        if (documentosA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_03",
+                "Show your passport and booking confirmation",
+                "Apresente seu passaporte e confirmação da reserva"
+            );
+        }
+
+        if (bagagemA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_04",
+                "Tell the employee about the baggage you are checking",
+                "Informe sua bagagem para despacho"
+            );
+        }
+
+        if (horarioA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_05",
+                "Find out the boarding time",
+                "Descubra o horário de embarque"
+            );
+        }
+
+        if (destinoB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "airport_b1_04",
+                "Tell the employee your destination and connecting-flight details",
+                "Informe seu destino e os detalhes do voo de conexão"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -481,6 +555,103 @@ public class checkinNPC : InteracaoNPC
             await Task.Yield();
         }
 
+        if (destinoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a2_01");
+            MissionManager.ConcluirMissaoNPC("airport_a2_02");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_03",
+                "Show your passport and booking confirmation",
+                "Apresente seu passaporte e confirmação da reserva"
+            );
+        }
+
+        if (documentosA2)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a2_03");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_04",
+                "Tell the employee about the baggage you are checking",
+                "Informe sua bagagem para despacho"
+            );
+        }
+
+        if (bagagemA2)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a2_04");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_05",
+                "Find out the boarding time",
+                "Descubra o horário de embarque"
+            );
+        }
+
+        if (horarioA2)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a2_05");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_06",
+                "Find gate 18",
+                "Encontre o portão 18"
+            );
+        }
+
+        if (portaoA2)
+            MissionManager.ConcluirMissaoNPC("airport_a2_06");
+
+        if (destinoB1)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_b1_04");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_b1_05",
+                "Present your travel documents",
+                "Apresente seus documentos de viagem"
+            );
+        }
+
+        if (documentosB1)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_b1_05");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_b1_06",
+                "Confirm the checked-baggage information",
+                "Confirme as informações sobre a bagagem despachada"
+            );
+        }
+
+        if (bagagemB1)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_b1_06");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_b1_07",
+                "Check the departure screens",
+                "Consulte os painéis de partida"
+            );
+        }
+
+        if (paineisB1)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_b1_07");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_b1_08",
+                "Find gate 24 for your flight",
+                "Encontre o portão 24 para seu voo"
+            );
+        }
+
+        if (apresentarPassaporte)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a1_03");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a1_04",
+                "Check your boarding pass",
+                "Consulte seu cartão de embarque"
+            );
+        }
+
+        if (portaoA1)
+            MissionManager.ConcluirMissaoNPC("airport_a1_05");
+
         if (modalLegendaComum != null)
         {
             modalLegendaComum.SetActive(false);
@@ -500,6 +671,31 @@ public class checkinNPC : InteracaoNPC
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
+        string fala = dialogoAtual[indiceDialogo];
+
+        if (nivelAtual == "A2" && indiceDialogo == 0)
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a2_01");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a2_02",
+                "Tell the employee your destination",
+                "Informe seu destino ao funcionário"
+            );
+        }
+
+        if (nivelAtual == "A1" && fala.Contains("boarding pass"))
+        {
+            MissionManager.ConcluirMissaoNPC("airport_a1_04");
+            MissionManager.AdicionarMissaoNPC(
+                "airport_a1_05",
+                "Find gate 12",
+                "Encontre o portão 12"
+            );
+        }
+
+        if (nivelAtual == "B1" && fala.Contains("gate 24"))
+            MissionManager.ConcluirMissaoNPC("airport_b1_08");
+
         byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
 
         if (audioBytes != null && audioBytes.Length > 0)

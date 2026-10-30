@@ -238,12 +238,28 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
+            string idMissaoInicial = "college_" + nivelAtual.ToLowerInvariant() + "_01";
+            string textoMissaoInicial = nivelAtual == "A1"
+                ? "Talk to the receptionist and find out how to get to the secretary's office"
+                : nivelAtual == "A2"
+                    ? "Talk to the receptionist"
+                    : "Ask the receptionist for detailed directions and clarify the office location";
+            string traducaoMissaoInicial = nivelAtual == "A1"
+                ? "Converse com o recepcionista e descubra como chegar ao escritório da secretaria"
+                : nivelAtual == "A2"
+                    ? "Converse com a recepcionista"
+                    : "Peça orientações detalhadas ao recepcionista e esclareça dúvidas sobre a localização do escritório";
+            MissionManager.AdicionarMissaoNPC(idMissaoInicial, textoMissaoInicial, traducaoMissaoInicial);
+
             if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
             else
                 await interacaoB1();
+
+            if (nivelAtual == "A1")
+                MissionManager.ConcluirMissaoNPC(idMissaoInicial);
         }
         finally
         {
@@ -289,6 +305,20 @@ public class RecepcionistCollegeNPC: InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        bool orientacaoA2 = nivelAtual == "A2"
+            && exercicio.enunciado.Contains("Eu gostaria de encontrar o escritório da secretária");
+        bool esclarecimentoB1 = nivelAtual == "B1"
+            && exercicio.enunciado.Contains("Ask the receptionist for clarification");
+
+        if (orientacaoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("college_a2_01");
+            MissionManager.AdicionarMissaoNPC(
+                "college_a2_02",
+                "Find the secretary's office",
+                "Encontre o escritório da secretaria"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -313,6 +343,9 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         {
             await Task.Yield();
         }
+
+        if (esclarecimentoB1)
+            MissionManager.ConcluirMissaoNPC("college_b1_01");
 
         if (modalLegendaComum != null)
         {

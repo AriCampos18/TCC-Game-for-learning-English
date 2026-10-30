@@ -112,12 +112,31 @@ public class RestaurantClient : InteracaoNPC
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
+            if (nivelAtual == "B1")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "restaurant_b1_04",
+                    "Talk to the other customer",
+                    "Converse com o outro cliente"
+                );
+            }
+
             if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
             else
                 await interacaoB1();
+
+            if (nivelAtual == "B1")
+            {
+                MissionManager.ConcluirMissaoNPC("restaurant_b1_04");
+                MissionManager.AdicionarMissaoNPC(
+                    "restaurant_b1_05",
+                    "Eat your food",
+                    "Coma sua comida"
+                );
+            }
         }
         finally
         {

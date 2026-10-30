@@ -216,6 +216,23 @@ public class AirportInfoNPC : InteracaoNPC
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
             if (nivelAtual == "A1")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_a1_01",
+                    "Arrive at the airport and find the information desk",
+                    "Chegue ao aeroporto e procure o balcão de informações"
+                );
+            }
+            else if (nivelAtual == "B1")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_b1_01",
+                    "Arrive at the airport and go to the information desk",
+                    "Chegue ao aeroporto e dirija-se ao balcão de informações"
+                );
+            }
+
+            if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
@@ -266,6 +283,31 @@ public class AirportInfoNPC : InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        bool perguntaOrientacao = exercicio.enunciado.Contains("Ask the airport staff where you can find the check-in")
+            || exercicio.enunciado.Contains("Ask the airport employee where the check-in desk are")
+            || exercicio.enunciado.Contains("where your airline's check-in desks are located");
+
+        if (perguntaOrientacao)
+        {
+            if (nivelAtual == "A1")
+            {
+                MissionManager.ConcluirMissaoNPC("airport_a1_01");
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_a1_02",
+                    "Ask for directions to find the check-in desk",
+                    "Peça orientações para encontrar o balcão de check-in"
+                );
+            }
+            else if (nivelAtual == "B1")
+            {
+                MissionManager.ConcluirMissaoNPC("airport_b1_01");
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_b1_02",
+                    "Ask for directions to find the check-in desk",
+                    "Peça orientações para encontrar o balcão de check-in"
+                );
+            }
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -289,6 +331,28 @@ public class AirportInfoNPC : InteracaoNPC
         while (!modalExercicioComum.exercicioFinalizado)
         {
             await Task.Yield();
+        }
+
+        if (perguntaOrientacao)
+        {
+            if (nivelAtual == "A1")
+            {
+                MissionManager.ConcluirMissaoNPC("airport_a1_02");
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_a1_03",
+                    "Go to the check-in desk and show your passport",
+                    "Dirija-se ao balcão de check-in e apresente seu passaporte"
+                );
+            }
+            else if (nivelAtual == "B1")
+            {
+                MissionManager.ConcluirMissaoNPC("airport_b1_02");
+                MissionManager.AdicionarMissaoNPC(
+                    "airport_b1_03",
+                    "Go to the check-in desk",
+                    "Dirija-se ao balcão de check-in"
+                );
+            }
         }
 
         if (modalLegendaComum != null)

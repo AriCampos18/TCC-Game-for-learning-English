@@ -662,12 +662,31 @@ public class RecepcionistHotelNPC: InteracaoNPC
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
+            string idMissaoInicial = "hotel_" + nivelAtual.ToLowerInvariant() + "_01";
+            string textoMissaoInicial = nivelAtual == "A1"
+                ? "Talk to the hotel receptionist"
+                : nivelAtual == "A2"
+                    ? "Talk to the hotel receptionist and check in"
+                    : "Talk to the hotel receptionist and confirm your reservation";
+            string traducaoMissaoInicial = nivelAtual == "A1"
+                ? "Fale com o recepcionista do hotel"
+                : nivelAtual == "A2"
+                    ? "Fale com o recepcionista do hotel e realize seu check in"
+                    : "Fale com o recepcionista do hotel e confirme sua reserva";
+            MissionManager.AdicionarMissaoNPC(idMissaoInicial, textoMissaoInicial, traducaoMissaoInicial);
+
             if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
             else
                 await interacaoB1();
+
+            if (nivelAtual == "A1")
+                MissionManager.ConcluirMissaoNPC("hotel_a1_02");
+
+            if (nivelAtual == "B1")
+                MissionManager.ConcluirMissaoNPC("hotel_b1_03");
         }
         finally
         {
@@ -713,6 +732,10 @@ public class RecepcionistHotelNPC: InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        bool respostaInicialA1 = nivelAtual == "A1"
+            && exercicio.enunciado.Contains("You are at the hotel");
+        bool confirmacaoReservaB1 = nivelAtual == "B1"
+            && exercicio.enunciado.Contains("Confirm the question made by the recepcionist");
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -738,6 +761,26 @@ public class RecepcionistHotelNPC: InteracaoNPC
             await Task.Yield();
         }
 
+        if (respostaInicialA1)
+        {
+            MissionManager.ConcluirMissaoNPC("hotel_a1_01");
+            MissionManager.AdicionarMissaoNPC(
+                "hotel_a1_02",
+                "Learn about the hotel's services during the conversation",
+                "Conheça os serviços do hotel durante a conversa"
+            );
+        }
+
+        if (confirmacaoReservaB1)
+        {
+            MissionManager.ConcluirMissaoNPC("hotel_b1_01");
+            MissionManager.AdicionarMissaoNPC(
+                "hotel_b1_02",
+                "Pick up the room card at the counter",
+                "Pegue o cartão do quarto no balcão"
+            );
+        }
+
         if (modalLegendaComum != null)
         {
             modalLegendaComum.SetActive(false);
@@ -757,7 +800,21 @@ public class RecepcionistHotelNPC: InteracaoNPC
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
-        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
+        string fala = dialogoAtual[indiceDialogo];
+        bool entregaCartaoA2 = nivelAtual == "A2" && fala.Contains("Here is your key card");
+        bool entregaCartaoB1 = nivelAtual == "B1" && fala.Contains("Here is your key card");
+
+        if (entregaCartaoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("hotel_a2_01");
+            MissionManager.AdicionarMissaoNPC(
+                "hotel_a2_02",
+                "Pick up the room card",
+                "Pegue o cartão do quarto"
+            );
+        }
+
+        byte[] audioBytes = await backendManagerComum.GerarAudio(fala, idNpcParaVoz);
 
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -830,6 +887,21 @@ public class RecepcionistHotelNPC: InteracaoNPC
             {
                 modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
             }
+        }
+
+        if (entregaCartaoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("hotel_a2_02");
+        }
+
+        if (entregaCartaoB1)
+        {
+            MissionManager.ConcluirMissaoNPC("hotel_b1_02");
+            MissionManager.AdicionarMissaoNPC(
+                "hotel_b1_03",
+                "Ask about checkout and hotel services",
+                "Faça perguntas sobre check out e serviços do hotel"
+            );
         }
     }
 

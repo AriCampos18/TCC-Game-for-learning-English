@@ -396,6 +396,30 @@ public class motherNPC : InteracaoNPC
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
 
+            string idMissaoBoasVindas = "family_" + nivelAtual.ToLowerInvariant() + "_01";
+            MissionManager.AdicionarMissaoNPC(
+                idMissaoBoasVindas,
+                "Enter the house and greet your family",
+                "Entre na casa e cumprimente sua família"
+            );
+
+            if (nivelAtual == "A1" || nivelAtual == "A2")
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "family_" + nivelAtual.ToLowerInvariant() + "_02",
+                    "Talk to your mother about your day",
+                    "Converse com sua mãe sobre seu dia"
+                );
+            }
+            else
+            {
+                MissionManager.AdicionarMissaoNPC(
+                    "family_b1_02",
+                    "Talk to your parents about your routine",
+                    "Converse com seus pais sobre sua rotina"
+                );
+            }
+
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
@@ -450,6 +474,85 @@ public class motherNPC : InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        string enunciado = exercicio.enunciado;
+        bool diaA1 = nivelAtual == "A1" && enunciado.Contains("Tell about your day at work");
+        bool banheiroA1 = nivelAtual == "A1" && enunciado.Contains("Say something nice about the bathroom");
+        bool diaA2 = nivelAtual == "A2" && enunciado.Contains("Talk about something you did during the day");
+        bool quartoA2 = nivelAtual == "A2" && enunciado.Contains("Describe what you like about the room");
+        bool rotinaB1 = nivelAtual == "B1" && enunciado.Contains("Tell your family how you have been feeling lately");
+        bool cozinhaB1 = nivelAtual == "B1" && enunciado.Contains("complimenting your family on the new kitchen");
+        bool despedidaA1 = nivelAtual == "A1" && enunciado.Contains("Say goodbye to your family");
+        bool despedidaA2 = nivelAtual == "A2" && enunciado.Contains("Obrigado pelo jantar");
+        bool despedidaB1 = nivelAtual == "B1" && enunciado.Contains("Say goodbye to your family after dinner");
+
+        if (banheiroA1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_a1_03",
+                "See the renovated bathroom",
+                "Conheça o banheiro após a reforma"
+            );
+        }
+
+        if (quartoA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_03",
+                "See the changes in the bedroom",
+                "Conheça as mudanças no quarto"
+            );
+        }
+
+        if (cozinhaB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_03",
+                "See the changes in the kitchen",
+                "Conheça as mudanças na cozinha"
+            );
+        }
+
+        if (despedidaA1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_a1_06",
+                "Go to the table for dinner",
+                "Vá até a mesa para jantar"
+            );
+            MissionManager.AdicionarMissaoNPC(
+                "family_a1_07",
+                "Say goodbye to your family",
+                "Despeça-se da família"
+            );
+        }
+
+        if (despedidaA2)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_07",
+                "Go to the table for dinner",
+                "Vá até a mesa para jantar"
+            );
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_08",
+                "Thank your family for dinner and say goodbye",
+                "Agradeça pelo jantar e despeça-se da família"
+            );
+        }
+
+        if (despedidaB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_07",
+                "Go to the table for dinner",
+                "Vá até a mesa para jantar"
+            );
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_09",
+                "Say goodbye to your family",
+                "Despeça-se da família"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -475,6 +578,63 @@ public class motherNPC : InteracaoNPC
             await Task.Yield();
         }
 
+        if (diaA1)
+            MissionManager.ConcluirMissaoNPC("family_a1_02");
+
+        if (banheiroA1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a1_03");
+            MissionManager.AdicionarMissaoNPC(
+                "family_a1_04",
+                "Talk with your parents and your brother",
+                "Converse com seus pais e seu irmão"
+            );
+        }
+
+        if (diaA2)
+            MissionManager.ConcluirMissaoNPC("family_a2_02");
+
+        if (quartoA2)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a2_03");
+            MissionManager.AdicionarMissaoNPC(
+                "family_a2_04",
+                "Talk to your parents about work",
+                "Converse com seus pais sobre o trabalho"
+            );
+        }
+
+        if (rotinaB1)
+            MissionManager.ConcluirMissaoNPC("family_b1_02");
+
+        if (cozinhaB1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_b1_03");
+            MissionManager.AdicionarMissaoNPC(
+                "family_b1_04",
+                "Talk to your parents about work",
+                "Converse com seus pais sobre o trabalho"
+            );
+        }
+
+        if (despedidaA1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a1_06");
+            MissionManager.ConcluirMissaoNPC("family_a1_07");
+        }
+
+        if (despedidaA2)
+        {
+            MissionManager.ConcluirMissaoNPC("family_a2_07");
+            MissionManager.ConcluirMissaoNPC("family_a2_08");
+        }
+
+        if (despedidaB1)
+        {
+            MissionManager.ConcluirMissaoNPC("family_b1_07");
+            MissionManager.ConcluirMissaoNPC("family_b1_09");
+        }
+
         if (modalLegendaComum != null)
         {
             modalLegendaComum.SetActive(false);
@@ -494,6 +654,25 @@ public class motherNPC : InteracaoNPC
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
+        string fala = dialogoAtual[indiceDialogo];
+
+        if (indiceDialogo == 0)
+            MissionManager.ConcluirMissaoNPC("family_" + nivelAtual.ToLowerInvariant() + "_01");
+
+        if (fala.Contains("Dinner is ready"))
+        {
+            string idJantar = nivelAtual == "A1"
+                ? "family_a1_06"
+                : nivelAtual == "A2"
+                    ? "family_a2_07"
+                    : "family_b1_07";
+            MissionManager.AdicionarMissaoNPC(
+                idJantar,
+                "Go to the table for dinner",
+                "Vá até a mesa para jantar"
+            );
+        }
+
         byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
 
         if (audioBytes != null && audioBytes.Length > 0)

@@ -14,6 +14,11 @@ public class VisitorCenterNPC: InteracaoNPC
     List<string> dialogoAtual;
 
     public string idNpcParaVoz = "tourGuide";
+    public Transform pontoChegadaCityPark;
+
+    private bool aguardandoChegadaCityPark;
+    private string idMissaoChegadaCityPark;
+    private const float DistanciaChegadaCityPark = 2f;
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -45,6 +50,24 @@ public class VisitorCenterNPC: InteracaoNPC
         else
         {
             cumprimento = "Good evening!";
+        }
+    }
+
+    private void Update()
+    {
+        if (!aguardandoChegadaCityPark)
+            return;
+
+        if (pontoChegadaCityPark == null || movimentoPlayer == null)
+            return;
+
+        Vector3 deslocamento = movimentoPlayer.transform.position - pontoChegadaCityPark.position;
+        deslocamento.y = 0f;
+
+        if (deslocamento.sqrMagnitude <= DistanciaChegadaCityPark * DistanciaChegadaCityPark)
+        {
+            MissionManager.ConcluirMissaoNPC(idMissaoChegadaCityPark);
+            aguardandoChegadaCityPark = false;
         }
     }
 
@@ -476,6 +499,14 @@ public class VisitorCenterNPC: InteracaoNPC
             if (dialogoAtual == null || dialogoAtual.Count == 0)
                 throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
 
+            string idMissaoConversar = "visitor_" + nivelAtual.ToLowerInvariant() + "_01";
+            string textoMissaoConversar = "Start a conversation with the visitor-center employee";
+            MissionManager.AdicionarMissaoNPC(
+                idMissaoConversar,
+                textoMissaoConversar,
+                "Inicie uma conversa com a funcionária do visitor center"
+            );
+
             if (nivelAtual == "A1")
                 await interacaoA1();
             else if (nivelAtual == "A2")
@@ -527,6 +558,25 @@ public class VisitorCenterNPC: InteracaoNPC
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
     {
         Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        string enunciado = exercicio.enunciado;
+        bool escolhaDestinoA1 = nivelAtual == "A1" && enunciado.Contains("What place");
+        bool escolhaDestinoA2 = nivelAtual == "A2" && enunciado.Contains("tourist attractions in the brochure");
+        bool escolhaDestinoB1 = nivelAtual == "B1" && enunciado.Contains("After choosing the City Park");
+
+        if (escolhaDestinoA1 || escolhaDestinoA2 || escolhaDestinoB1)
+        {
+            MissionManager.AdicionarMissaoNPC(
+                "visitor_" + nivelAtual.ToLowerInvariant() + "_02",
+                nivelAtual == "B1"
+                    ? "Choose City Park as your destination"
+                    : "Learn about the city's tourist attractions",
+                nivelAtual == "A1"
+                    ? "Conheça os pontos turísticos da cidade e escolha um para visitar"
+                    : nivelAtual == "A2"
+                        ? "Conheça as atrações disponíveis no panfleto"
+                        : "Escolha o City Park como destino"
+            );
+        }
 
         ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
 
@@ -550,6 +600,36 @@ public class VisitorCenterNPC: InteracaoNPC
         while (!modalExercicioComum.exercicioFinalizado)
         {
             await Task.Yield();
+        }
+
+        if (escolhaDestinoA1 || escolhaDestinoA2 || escolhaDestinoB1)
+        {
+            string prefixoMissao = "visitor_" + nivelAtual.ToLowerInvariant() + "_";
+            MissionManager.ConcluirMissaoNPC(prefixoMissao + "01");
+            MissionManager.ConcluirMissaoNPC(prefixoMissao + "02");
+            idMissaoChegadaCityPark = prefixoMissao + "03";
+            MissionManager.AdicionarMissaoNPC(
+                idMissaoChegadaCityPark,
+                "Follow the directions to reach City Park",
+                nivelAtual == "A1"
+                    ? "Encontre o City Park"
+                    : nivelAtual == "A2"
+                        ? "Siga as instruções até o destino"
+                        : "Interprete as instruções detalhadas e percorra o trajeto até chegar ao City Park"
+            );
+
+            if (pontoChegadaCityPark == null)
+            {
+                Debug.LogError("Ponto de chegada do City Park não configurado no VisitorCenterNPC.");
+            }
+            else if (movimentoPlayer == null)
+            {
+                Debug.LogError("Referência de movimento do jogador não configurada no VisitorCenterNPC.");
+            }
+            else
+            {
+                aguardandoChegadaCityPark = true;
+            }
         }
 
         if (modalLegendaComum != null)
