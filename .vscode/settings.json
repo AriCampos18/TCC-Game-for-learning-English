@@ -55,5 +55,6 @@
         "UserSettings/": true,
         "temp/": true,
         "Temp/": true
-    }
+    },
+    "dotnet.defaultSolution": "TCC-Game-for-learning-English.slnx"
 }

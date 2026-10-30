@@ -449,6 +449,16 @@ public class CashierNPC : InteracaoNPC
     {
         if (RevisaoManager.Instance != null)
         {
+            List<ExercicioRevisao> associacoes = RevisaoManager.Instance.GetAssociacoesPendentes();
+            foreach (ExercicioRevisao item in associacoes)
+            {
+                await AbrirExercicioRevisao(
+                    TipoExercicio.Associacao,
+                    item.exercicio,
+                    false,
+                    true);
+            }
+
             if (RevisaoManager.Instance.TemRevisao())
             {
                 if (modalAvisoRevisao != null)
@@ -483,10 +493,20 @@ public class CashierNPC : InteracaoNPC
         }
     }
 
-    private async Task AbrirExercicioRevisao(TipoExercicio tipo, ExercicioBase ex)
+    private async Task AbrirExercicioRevisao(
+        TipoExercicio tipo,
+        ExercicioBase ex,
+        bool revisao = true,
+        bool faseAssociacao = false)
     {
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
+
+        if (modalExercicio == null || modalExercicio.panel == null)
+        {
+            Debug.LogError("ModalExercicio ou painel não está configurado no CashierNPC.");
+            return;
+        }
 
         RectTransform rect = modalExercicio.panel.GetComponent<RectTransform>();
 
@@ -498,8 +518,7 @@ public class CashierNPC : InteracaoNPC
             rect.anchoredPosition = Vector2.zero;
         }
 
-        if (modalExercicio != null)
-            modalExercicio.Abrir(tipo, ex, this, true);
+        modalExercicio.Abrir(tipo, ex, this, revisao, faseAssociacao);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

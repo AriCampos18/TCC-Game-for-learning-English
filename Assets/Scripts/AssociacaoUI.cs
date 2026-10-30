@@ -1,144 +1,504 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AssociacaoUI : MonoBehaviour
 {
+    [SerializeField] private Button prefabBotaoPalavra;
+    [SerializeField] private Transform containerPortugues;
+    [SerializeField] private Transform containerIngles;
+    public TextMeshProUGUI textoFeedback;
     public TMP_Dropdown[] seletores;
     public TextMeshProUGUI[] rotulosPortugues;
-    public TextMeshProUGUI textoFeedback;
 
-    private ExercicioAssociacao exercicioAtual;
+    private readonly List<Button> botoesPortugues = new List<Button>();
+    private readonly List<Button> botoesIngles = new List<Button>();
+    private readonly List<Color> coresPortugues = new List<Color>();
+    private readonly List<Color> coresIngles = new List<Color>();
+    private bool[] portuguesConcluido;
+    private bool[] inglesConcluido;
+    private ExercicioAssociacao exercicio;
+    private int indicePortuguesSelecionado = -1;
+    private int indiceInglesSelecionado = -1;
     private int tentativasRestantes;
-    private bool configuracaoValida;
+    private bool processandoPar;
 
-    public void InicializarExercicio(ExercicioAssociacao exercicio)
+    public event Action EstadoFinalizado;
+
+    public bool TodasAssociacoesConcluidas { get; private set; }
+    public bool TentativasEsgotadas { get; private set; }
+    public bool PodeContinuar { get; private set; }
+
+    public bool InicializarExercicio(ExercicioAssociacao novoExercicio)
     {
-        exercicioAtual = exercicio;
+        LimparBotoes();
+        exercicio = novoExercicio;
+        TodasAssociacoesConcluidas = false;
+        TentativasEsgotadas = false;
+        PodeContinuar = false;
         tentativasRestantes = 3;
-        configuracaoValida = false;
+        indicePortuguesSelecionado = -1;
+        indiceInglesSelecionado = -1;
+        processandoPar = false;
+        OcultarControlesAntigos();
 
-        if (exercicio == null || exercicio.opcoesPort == null ||
-            exercicio.opcoesPort.Count == 0 || exercicio.opcoesIngles == null ||
-            exercicio.opcoesIngles.Count == 0 ||
-            exercicio.associacaoCorreta == null ||
-            seletores == null || rotulosPortugues == null ||
-            seletores.Length != exercicio.opcoesPort.Count ||
-            rotulosPortugues.Length != exercicio.opcoesPort.Count)
+        if (!ValidarExercicio(novoExercicio))
         {
-            Debug.LogError("Configure os rótulos e seletores de associação no Inspector para cada opção em português.");
+            ExibirFeedback("Este exercício de associação está configurado incorretamente.");
+            return false;
+        }
+
+        portuguesConcluido = new bool[novoExercicio.opcoesPort.Count];
+        inglesConcluido = new bool[novoExercicio.opcoesIngles.Count];
+        CriarContainersSeNecessario();
+
+        for (int i = 0; i < novoExercicio.opcoesPort.Count; i++)
+        {
+            int indice = i;
+            Button botao = CriarBotao(novoExercicio.opcoesPort[i], containerPortugues);
+            botoesPortugues.Add(botao);
+            coresPortugues.Add(botao.image.color);
+            botao.onClick.AddListener(() => SelecionarPortugues(indice));
+        }
+
+        for (int i = 0; i < novoExercicio.opcoesIngles.Count; i++)
+        {
+            int indice = i;
+            Button botao = CriarBotao(novoExercicio.opcoesIngles[i], containerIngles);
+            botoesIngles.Add(botao);
+            coresIngles.Add(botao.image.color);
+            botao.onClick.AddListener(() => SelecionarIngles(indice));
+        }
+
+        ExibirFeedback("Selecione uma palavra em cada coluna para formar um par.");
+        return true;
+    }
+
+    private bool ValidarExercicio(ExercicioAssociacao exercicioAssociacao)
+    {
+        if (exercicioAssociacao == null
+            || exercicioAssociacao.opcoesPort == null
+            || exercicioAssociacao.opcoesIngles == null
+            || exercicioAssociacao.associacaoCorreta == null
+            || exercicioAssociacao.opcoesPort.Count == 0
+            || exercicioAssociacao.opcoesIngles.Count == 0
+            || exercicioAssociacao.opcoesPort.Count != exercicioAssociacao.associacaoCorreta.Count)
+        {
+            Debug.LogError("Exercício de associação com listas vazias ou quantidades incompatíveis.");
+            return false;
+        }
+
+        HashSet<string> portugues = new HashSet<string>(exercicioAssociacao.opcoesPort);
+        HashSet<string> ingles = new HashSet<string>(exercicioAssociacao.opcoesIngles);
+        if (portugues.Count != exercicioAssociacao.opcoesPort.Count
+            || ingles.Count != exercicioAssociacao.opcoesIngles.Count)
+        {
+            Debug.LogError("As palavras de cada coluna de associação devem ser únicas.");
+            return false;
+        }
+
+        HashSet<string> portuguesAssociado = new HashSet<string>();
+        HashSet<string> inglesAssociado = new HashSet<string>();
+        foreach (ParAssociacao par in exercicioAssociacao.associacaoCorreta)
+        {
+            if (par == null
+                || !portugues.Contains(par.palavraPortugues)
+                || !ingles.Contains(par.palavraIngles)
+                || !portuguesAssociado.Add(par.palavraPortugues)
+                || !inglesAssociado.Add(par.palavraIngles))
+            {
+                Debug.LogError("A chave de associação contém palavras ausentes ou repetidas.");
+                return false;
+            }
+        }
+
+        return portuguesAssociado.Count == portugues.Count
+            && inglesAssociado.Count == exercicioAssociacao.associacaoCorreta.Count;
+    }
+
+    private void CriarContainersSeNecessario()
+    {
+        if (containerPortugues != null && containerIngles != null)
+        {
+            GarantirTextoFeedback();
             return;
         }
 
-        foreach (string palavraPortugues in exercicio.opcoesPort)
-        {
-            bool encontrouPar = false;
-            foreach (ParAssociacao par in exercicio.associacaoCorreta)
-            {
-                if (par != null && par.palavraPortugues == palavraPortugues &&
-                    exercicio.opcoesIngles.Contains(par.palavraIngles))
-                {
-                    encontrouPar = true;
-                    break;
-                }
-            }
+        GameObject colunas = new GameObject(
+            "ColunasAssociacao",
+            typeof(RectTransform),
+            typeof(HorizontalLayoutGroup));
+        colunas.transform.SetParent(transform, false);
 
-            if (!encontrouPar)
-            {
-                Debug.LogError("O gabarito de associação não contém um par válido para: " + palavraPortugues);
-                return;
-            }
-        }
+        RectTransform rectColunas = colunas.GetComponent<RectTransform>();
+        rectColunas.anchorMin = Vector2.zero;
+        rectColunas.anchorMax = Vector2.one;
+        rectColunas.offsetMin = new Vector2(20f, 72f);
+        rectColunas.offsetMax = new Vector2(-20f, -62f);
 
-        List<string> opcoes = new List<string> { "Choose a translation" };
-        opcoes.AddRange(exercicio.opcoesIngles);
+        HorizontalLayoutGroup layoutColunas = colunas.GetComponent<HorizontalLayoutGroup>();
+        layoutColunas.spacing = 20f;
+        layoutColunas.childControlWidth = true;
+        layoutColunas.childControlHeight = true;
+        layoutColunas.childForceExpandWidth = true;
+        layoutColunas.childForceExpandHeight = false;
 
-        for (int i = 0; i < exercicio.opcoesPort.Count; i++)
-        {
-            if (seletores[i] == null || rotulosPortugues[i] == null)
-            {
-                Debug.LogError("Todos os seletores e rótulos do exercício de associação precisam estar atribuídos.");
-                return;
-            }
-
-            rotulosPortugues[i].text = exercicio.opcoesPort[i];
-            seletores[i].ClearOptions();
-            seletores[i].AddOptions(opcoes);
-            seletores[i].value = 0;
-            seletores[i].RefreshShownValue();
-            seletores[i].interactable = true;
-        }
-
-        configuracaoValida = true;
-
-        if (textoFeedback != null)
-            textoFeedback.text = string.Empty;
+        containerPortugues = CriarColuna("ColunaPortugues", colunas.transform);
+        containerIngles = CriarColuna("ColunaIngles", colunas.transform);
+        GarantirTextoFeedback();
     }
 
-    public bool Respondeu()
+    private Transform CriarColuna(string nome, Transform pai)
     {
-        if (!configuracaoValida || seletores == null)
-            return false;
+        GameObject coluna = new GameObject(
+            nome,
+            typeof(RectTransform),
+            typeof(VerticalLayoutGroup),
+            typeof(LayoutElement));
+        coluna.transform.SetParent(pai, false);
 
-        foreach (TMP_Dropdown seletor in seletores)
-        {
-            if (seletor == null || seletor.value == 0)
-                return false;
-        }
+        VerticalLayoutGroup layout = coluna.GetComponent<VerticalLayoutGroup>();
+        layout.spacing = 8f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
 
-        return true;
+        coluna.GetComponent<LayoutElement>().flexibleWidth = 1f;
+        CriarCabecalhoColuna(
+            nome == "ColunaPortugues" ? "Português" : "English",
+            coluna.transform);
+        return coluna.transform;
     }
 
-    public bool EstaCorreto()
+    private void CriarCabecalhoColuna(string rotulo, Transform container)
     {
-        if (!configuracaoValida || exercicioAtual == null || seletores == null || !Respondeu())
-            return false;
+        GameObject objetoTexto = new GameObject(
+            "RotuloColuna",
+            typeof(RectTransform),
+            typeof(TextMeshProUGUI),
+            typeof(LayoutElement));
+        objetoTexto.transform.SetParent(container, false);
 
-        for (int i = 0; i < exercicioAtual.opcoesPort.Count; i++)
+        TextMeshProUGUI texto = objetoTexto.GetComponent<TextMeshProUGUI>();
+        texto.font = TMP_Settings.defaultFontAsset;
+        texto.text = rotulo;
+        texto.alignment = TextAlignmentOptions.Center;
+        texto.fontSize = 22f;
+        texto.color = Color.white;
+
+        objetoTexto.GetComponent<LayoutElement>().preferredHeight = 32f;
+    }
+
+    private Button CriarBotao(string palavra, Transform container)
+    {
+        Button botao;
+        if (prefabBotaoPalavra != null)
         {
-            string palavraInglesCorreta = null;
-            foreach (ParAssociacao par in exercicioAtual.associacaoCorreta)
+            botao = Instantiate(prefabBotaoPalavra, container);
+        }
+        else
+        {
+            GameObject objetoBotao = new GameObject(
+                "BotaoPalavra",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Button),
+                typeof(LayoutElement));
+            objetoBotao.transform.SetParent(container, false);
+            botao = objetoBotao.GetComponent<Button>();
+
+            GameObject objetoTexto = new GameObject(
+                "Texto",
+                typeof(RectTransform),
+                typeof(TextMeshProUGUI));
+            objetoTexto.transform.SetParent(objetoBotao.transform, false);
+
+            RectTransform rectTexto = objetoTexto.GetComponent<RectTransform>();
+            rectTexto.anchorMin = Vector2.zero;
+            rectTexto.anchorMax = Vector2.one;
+            rectTexto.offsetMin = new Vector2(8f, 4f);
+            rectTexto.offsetMax = new Vector2(-8f, -4f);
+
+            TextMeshProUGUI texto = objetoTexto.GetComponent<TextMeshProUGUI>();
+            texto.font = TMP_Settings.defaultFontAsset;
+            texto.alignment = TextAlignmentOptions.Center;
+            texto.fontSize = 24f;
+            texto.color = Color.black;
+
+            LayoutElement layout = objetoBotao.GetComponent<LayoutElement>();
+            layout.minHeight = 48f;
+            layout.flexibleWidth = 1f;
+        }
+
+        if (botao.image == null)
+        {
+            Image imagem = botao.GetComponent<Image>();
+            if (imagem == null)
+                imagem = botao.gameObject.AddComponent<Image>();
+            botao.targetGraphic = imagem;
+        }
+
+        LayoutElement elementoLayout = botao.GetComponent<LayoutElement>();
+        if (elementoLayout == null)
+            elementoLayout = botao.gameObject.AddComponent<LayoutElement>();
+        elementoLayout.minHeight = 48f;
+        elementoLayout.flexibleWidth = 1f;
+        botao.gameObject.SetActive(true);
+        botao.interactable = true;
+
+        TMP_Text rotulo = botao.GetComponentInChildren<TMP_Text>();
+        if (rotulo == null)
+        {
+            Debug.LogError("O prefab do botão de associação precisa conter um componente TMP_Text.");
+            botao.interactable = false;
+            return botao;
+        }
+
+        rotulo.text = palavra;
+        return botao;
+    }
+
+    private void SelecionarPortugues(int indice)
+    {
+        if (!PodeSelecionar() || portuguesConcluido[indice])
+            return;
+
+        if (indicePortuguesSelecionado >= 0)
+            RestaurarBotao(botoesPortugues[indicePortuguesSelecionado], coresPortugues[indicePortuguesSelecionado]);
+
+        indicePortuguesSelecionado = indice;
+        botoesPortugues[indice].image.color = new Color(0.72f, 0.86f, 1f);
+        ValidarParSelecionado();
+    }
+
+    private void SelecionarIngles(int indice)
+    {
+        if (!PodeSelecionar() || inglesConcluido[indice])
+            return;
+
+        if (indiceInglesSelecionado >= 0)
+            RestaurarBotao(botoesIngles[indiceInglesSelecionado], coresIngles[indiceInglesSelecionado]);
+
+        indiceInglesSelecionado = indice;
+        botoesIngles[indice].image.color = new Color(0.72f, 0.86f, 1f);
+        ValidarParSelecionado();
+    }
+
+    private bool PodeSelecionar()
+    {
+        return exercicio != null && !processandoPar && !PodeContinuar;
+    }
+
+    private void ValidarParSelecionado()
+    {
+        if (indicePortuguesSelecionado < 0 || indiceInglesSelecionado < 0)
+            return;
+
+        string palavraPortugues = exercicio.opcoesPort[indicePortuguesSelecionado];
+        string palavraIngles = exercicio.opcoesIngles[indiceInglesSelecionado];
+        bool correto = false;
+        foreach (ParAssociacao par in exercicio.associacaoCorreta)
+        {
+            if (par.palavraPortugues == palavraPortugues && par.palavraIngles == palavraIngles)
             {
-                if (par.palavraPortugues == exercicioAtual.opcoesPort[i])
-                {
-                    palavraInglesCorreta = par.palavraIngles;
-                    break;
-                }
+                correto = true;
+                break;
+            }
+        }
+
+        if (correto)
+        {
+            portuguesConcluido[indicePortuguesSelecionado] = true;
+            inglesConcluido[indiceInglesSelecionado] = true;
+            MarcarParConcluido(botoesPortugues[indicePortuguesSelecionado]);
+            MarcarParConcluido(botoesIngles[indiceInglesSelecionado]);
+            indicePortuguesSelecionado = -1;
+            indiceInglesSelecionado = -1;
+
+            int paresConcluidos = 0;
+            foreach (bool concluido in portuguesConcluido)
+            {
+                if (concluido)
+                    paresConcluidos++;
             }
 
-            if (palavraInglesCorreta == null ||
-                seletores[i].options[seletores[i].value].text != palavraInglesCorreta)
-                return false;
+            TodasAssociacoesConcluidas = paresConcluidos == portuguesConcluido.Length;
+            if (TodasAssociacoesConcluidas)
+            {
+                DesabilitarPalavrasRestantes();
+                ExibirFeedback("Todos os pares foram associados corretamente.");
+                FinalizarExercicio();
+            }
+            else
+            {
+                ExibirFeedback("Par correto. Continue associando as palavras.");
+            }
+
+            return;
         }
 
-        return true;
-    }
-
-    public void ReduzirTentativa()
-    {
+        processandoPar = true;
         tentativasRestantes--;
+        ExibirFeedback("Par incorreto. Tentativas restantes: " + tentativasRestantes + ".");
+        StartCoroutine(PiscarParIncorreto(
+            botoesPortugues[indicePortuguesSelecionado],
+            botoesIngles[indiceInglesSelecionado]));
     }
 
-    public int ObterTentativasRestantes()
+    private IEnumerator PiscarParIncorreto(Button botaoPortugues, Button botaoIngles)
     {
-        return tentativasRestantes;
+        Color vermelhoClaro = new Color(1f, 0.65f, 0.65f);
+        for (int i = 0; i < 8; i++)
+        {
+            botaoPortugues.image.color = i % 2 == 0
+                ? vermelhoClaro
+                : coresPortugues[indicePortuguesSelecionado];
+            botaoIngles.image.color = i % 2 == 0
+                ? vermelhoClaro
+                : coresIngles[indiceInglesSelecionado];
+            yield return new WaitForSeconds(0.25f);
+        }
+
+        indicePortuguesSelecionado = -1;
+        indiceInglesSelecionado = -1;
+        processandoPar = false;
+
+        if (tentativasRestantes == 0)
+        {
+            TentativasEsgotadas = true;
+            DesabilitarPalavrasRestantes();
+            ExibirFeedback("As tentativas acabaram. Use Continue para prosseguir.");
+            FinalizarExercicio();
+        }
+        else
+        {
+            RestaurarBotoesDisponiveis();
+        }
     }
 
-    public void MostrarFeedback(string mensagem)
+    private void RestaurarBotoesDisponiveis()
+    {
+        for (int i = 0; i < botoesPortugues.Count; i++)
+        {
+            if (!portuguesConcluido[i])
+                RestaurarBotao(botoesPortugues[i], coresPortugues[i]);
+        }
+
+        for (int i = 0; i < botoesIngles.Count; i++)
+        {
+            if (!inglesConcluido[i])
+                RestaurarBotao(botoesIngles[i], coresIngles[i]);
+        }
+    }
+
+    private void DesabilitarPalavrasRestantes()
+    {
+        foreach (Button botao in botoesPortugues)
+        {
+            if (botao.interactable)
+                botao.interactable = false;
+        }
+
+        foreach (Button botao in botoesIngles)
+        {
+            if (botao.interactable)
+                botao.interactable = false;
+        }
+    }
+
+    private void MarcarParConcluido(Button botao)
+    {
+        botao.image.color = new Color(0.72f, 0.9f, 0.74f);
+        botao.interactable = false;
+    }
+
+    private void RestaurarBotao(Button botao, Color cor)
+    {
+        if (botao != null && botao.interactable)
+            botao.image.color = cor;
+    }
+
+    private void FinalizarExercicio()
+    {
+        PodeContinuar = true;
+        EstadoFinalizado?.Invoke();
+    }
+
+    private void ExibirFeedback(string mensagem)
     {
         if (textoFeedback != null)
             textoFeedback.text = mensagem;
     }
 
-    public void BloquearSeletores()
+    private void GarantirTextoFeedback()
     {
-        if (seletores == null)
+        if (textoFeedback != null)
             return;
 
-        foreach (TMP_Dropdown seletor in seletores)
+        GameObject objetoTexto = new GameObject(
+            "FeedbackAssociacao",
+            typeof(RectTransform),
+            typeof(TextMeshProUGUI));
+        objetoTexto.transform.SetParent(transform, false);
+
+        RectTransform rect = objetoTexto.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, -12f);
+        rect.sizeDelta = new Vector2(-40f, 42f);
+
+        TextMeshProUGUI texto = objetoTexto.GetComponent<TextMeshProUGUI>();
+        texto.font = TMP_Settings.defaultFontAsset;
+        texto.alignment = TextAlignmentOptions.Center;
+        texto.fontSize = 20f;
+        texto.color = Color.white;
+        texto.raycastTarget = false;
+        textoFeedback = texto;
+    }
+
+    private void OcultarControlesAntigos()
+    {
+        if (seletores != null)
         {
-            if (seletor != null)
-                seletor.interactable = false;
+            foreach (TMP_Dropdown seletor in seletores)
+            {
+                if (seletor != null)
+                    seletor.gameObject.SetActive(false);
+            }
         }
+
+        if (rotulosPortugues != null)
+        {
+            foreach (TextMeshProUGUI rotulo in rotulosPortugues)
+            {
+                if (rotulo != null)
+                    rotulo.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private void LimparBotoes()
+    {
+        foreach (Button botao in botoesPortugues)
+        {
+            if (botao != null)
+                Destroy(botao.gameObject);
+        }
+
+        foreach (Button botao in botoesIngles)
+        {
+            if (botao != null)
+                Destroy(botao.gameObject);
+        }
+
+        botoesPortugues.Clear();
+        botoesIngles.Clear();
+        coresPortugues.Clear();
+        coresIngles.Clear();
     }
 }

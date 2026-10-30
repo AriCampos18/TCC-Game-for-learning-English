@@ -78,6 +78,64 @@ public class BackendManager
         }
     }
 
+    public async Task<string> EnviarAudioSpeakingLivre(byte[] audioBytes, string enunciado, string nivel)
+    {
+        try
+        {
+            using (var multipartForm = new MultipartFormDataContent())
+            {
+                var audioContent = new ByteArrayContent(audioBytes);
+                audioContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/wav");
+                multipartForm.Add(audioContent, "audio", "audio_gravado.wav");
+                multipartForm.Add(new StringContent(enunciado, Encoding.UTF8), "enunciado");
+                multipartForm.Add(new StringContent(nivel, Encoding.UTF8), "nivel");
+
+                Debug.Log($"Enviando resposta de Speaking Livre para avaliação. Nível: {nivel}");
+                var response = await client.PostAsync("http://localhost:5000/speakingLivre", multipartForm);
+                string resposta = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                    return resposta;
+
+                Debug.LogError($"Erro no Servidor Speaking Livre: {response.StatusCode} | {resposta}");
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Erro de conexão no Speaking Livre: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<string> AvaliarWriting(string enunciado, string resposta, string nivel)
+    {
+        try
+        {
+            var dados = new
+            {
+                enunciado = enunciado,
+                resposta = resposta,
+                nivel = nivel
+            };
+            string json = JsonConvert.SerializeObject(dados);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("http://localhost:5000/avaliarWriting", content);
+            string respostaJson = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+                return respostaJson;
+
+            Debug.LogError($"Erro no Servidor Writing: {response.StatusCode} | {respostaJson}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Erro de conexão ao avaliar Writing: {ex.Message}");
+            return null;
+        }
+    }
+
     public async Task<RetornoIANivelamento> ProcessarRespostasNivelamento(string json)
     {
         try

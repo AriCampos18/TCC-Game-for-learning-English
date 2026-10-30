@@ -21,6 +21,7 @@ public class ModalExercicio : MonoBehaviour
     public TextMeshProUGUI titulo, enunciado;
 
     public Button botaoRepetirFalaNPC; 
+    public GameObject modalAvisoCampoVazio;
 
     public GameObject exercicioAlternativas;
     public GameObject exercicioSpeaking;
@@ -38,6 +39,8 @@ public class ModalExercicio : MonoBehaviour
     void Start()
     {
         panel.SetActive(false);
+        if (modalAvisoCampoVazio != null)
+            modalAvisoCampoVazio.SetActive(false);
 
         if (confirmarResposta != null)
         {
@@ -54,6 +57,24 @@ public class ModalExercicio : MonoBehaviour
 
     public async void Confirmar()
     {
+        if (tipoAtual == TipoExercicio.Associacao &&
+            exercicioAssociacao != null &&
+            exercicioAssociacao.activeSelf)
+        {
+            if (associacaoUI == null || !associacaoUI.PodeContinuar)
+                return;
+
+            if (!associacaoUI.TodasAssociacoesConcluidas)
+                RegistrarErroParaRevisao();
+            else if (ProgressoNivelManager.Instance != null)
+                ProgressoNivelManager.Instance.RegistrarAcerto(exercicioAtual);
+
+            if (RevisaoManager.Instance != null)
+                RevisaoManager.Instance.ConcluirAssociacao(exercicioAtual);
+
+            Fechar();
+            return;
+        }
 
         if (aguardandoOkFinal)
         {
@@ -129,60 +150,91 @@ public class ModalExercicio : MonoBehaviour
                         return;
                     }
 
-                    int respostaCorretaDoExercicio = speakingUI.ObterIndiceCorreto();
-
-                    if (resultado.indice_detectado != respostaCorretaDoExercicio)
+                    if (speakingUI.tipoSpeaking == SpeakingUI.TipoSpeaking.Livre)
                     {
-                        speakingUI.ReduzirTentativa();
-                        int chances = speakingUI.ObterTentativasRestantes();
+                        speakingUI.MostrarFeedbackSpeakingLivre(resultado.feedback, resultado.correto);
 
-                        string erroTexto = "Você escolheu ou pronunciou a alternativa errada. Tente responder novamente!";
-                        
-                        // Não mostra palavras erradas quando a opção detectada foi outra
-                        speakingUI.AtualizarTextoFeedback(erroTexto, null);
+                        if (!resultado.correto)
+                        {
+                            speakingUI.ReduzirTentativa();
+                            int chances = speakingUI.ObterTentativasRestantes();
 
-                        if (!modoRevisao)
-                        {
-                            if (chances == 1 && botaoRepetirFalaNPC != null)
-                                botaoRepetirFalaNPC.gameObject.SetActive(true);
-                        }
+                            MostrarBotaoRepetirNaUltimaTentativa(chances);
 
-                        if (chances > 0)
-                        {
-                            confirmarResposta.interactable = true;
-                            return;
-                        }
-                        else
-                        {
-                            speakingUI.MostrarFeedbackFimTentativas();
+                            if (chances > 0)
+                            {
+                                confirmarResposta.interactable = true;
+                                return;
+                            }
+
+                            if (speakingUI.statusGravacao != null)
+                                speakingUI.statusGravacao.text = "No attempts remaining.";
                             speakingUI.BloquearSpeaking();
                             RegistrarErroParaRevisao();
                         }
-                    }
-                    else if (resultado.acuracia < 70f)
-                    {
-                        speakingUI.ReduzirTentativa();
-                        int chances = speakingUI.ObterTentativasRestantes();
-
-                        speakingUI.MostrarFeedbackPronuncia(resultado.palavras_erradas, false);
-
-                        if (chances > 0)
-                        {
-                            confirmarResposta.interactable = true;
-                            return;
-                        }
                         else
                         {
-                            speakingUI.MostrarFeedbackFimTentativas();
                             speakingUI.BloquearSpeaking();
-                            RegistrarErroParaRevisao();
+                            acertouExercicio = true;
                         }
                     }
                     else
                     {
-                        speakingUI.MostrarFeedbackPronuncia(resultado.palavras_erradas, true);
-                        speakingUI.BloquearSpeaking();
-                        acertouExercicio = true;
+                        int respostaCorretaDoExercicio = speakingUI.ObterIndiceCorreto();
+
+                        if (resultado.indice_detectado != respostaCorretaDoExercicio)
+                        {
+                            speakingUI.ReduzirTentativa();
+                            int chances = speakingUI.ObterTentativasRestantes();
+
+                            string erroTexto = "Você escolheu ou pronunciou a alternativa errada. Tente responder novamente!";
+
+                            // Não mostra palavras erradas quando a opção detectada foi outra
+                            speakingUI.AtualizarTextoFeedback(erroTexto, null);
+
+                            if (!modoRevisao)
+                            {
+                                if (chances == 1 && botaoRepetirFalaNPC != null)
+                                    botaoRepetirFalaNPC.gameObject.SetActive(true);
+                            }
+
+                            if (chances > 0)
+                            {
+                                confirmarResposta.interactable = true;
+                                return;
+                            }
+                            else
+                            {
+                                speakingUI.MostrarFeedbackFimTentativas();
+                                speakingUI.BloquearSpeaking();
+                                RegistrarErroParaRevisao();
+                            }
+                        }
+                        else if (resultado.acuracia < 70f)
+                        {
+                            speakingUI.ReduzirTentativa();
+                            int chances = speakingUI.ObterTentativasRestantes();
+
+                            speakingUI.MostrarFeedbackPronuncia(resultado.palavras_erradas, false);
+
+                            if (chances > 0)
+                            {
+                                confirmarResposta.interactable = true;
+                                return;
+                            }
+                            else
+                            {
+                                speakingUI.MostrarFeedbackFimTentativas();
+                                speakingUI.BloquearSpeaking();
+                                RegistrarErroParaRevisao();
+                            }
+                        }
+                        else
+                        {
+                            speakingUI.MostrarFeedbackPronuncia(resultado.palavras_erradas, true);
+                            speakingUI.BloquearSpeaking();
+                            acertouExercicio = true;
+                        }
                     }
                 }
             }
@@ -237,50 +289,63 @@ public class ModalExercicio : MonoBehaviour
 
                 if (!writingUI.SalvarResposta())
                 {
-                    confirmarResposta.interactable = true;
-                    return;
-                }
-            }
-            else if (exercicioAssociacao != null && exercicioAssociacao.activeSelf)
-            {
-                if (associacaoUI == null)
-                {
-                    Debug.LogError("Associe o AssociacaoUI no ModalExercicio.");
+                    if (writingUI.RespostaVazia() && modalAvisoCampoVazio != null)
+                        modalAvisoCampoVazio.SetActive(true);
+
                     confirmarResposta.interactable = true;
                     return;
                 }
 
-                if (!associacaoUI.Respondeu())
+                BackendManager backendManager = new BackendManager();
+                string respostaJson = await backendManager.AvaliarWriting(
+                    exercicioAtual.enunciado,
+                    ((ExercicioWriting)exercicioAtual).respostaJogador,
+                    DadosJogador.nivelUsuario
+                );
+
+                if (string.IsNullOrWhiteSpace(respostaJson))
                 {
-                    associacaoUI.MostrarFeedback("Choose a translation for every word.");
+                    writingUI.MostrarFeedback("The answer could not be evaluated. Please try again.");
                     confirmarResposta.interactable = true;
                     return;
                 }
 
-                if (associacaoUI.EstaCorreto())
+                SpeakingResult resultadoWriting = JsonUtility.FromJson<SpeakingResult>(respostaJson);
+                if (resultadoWriting == null || string.IsNullOrWhiteSpace(resultadoWriting.feedback))
                 {
-                    associacaoUI.MostrarFeedback("Good job! You got the answer right.");
-                    associacaoUI.BloquearSeletores();
-                    acertouExercicio = true;
+                    Debug.LogError("Resposta inválida recebida do servidor de Writing.");
+                    writingUI.MostrarFeedback("The answer could not be evaluated. Please try again.");
+                    confirmarResposta.interactable = true;
+                    return;
                 }
-                else
+
+                writingUI.MostrarFeedback(resultadoWriting.feedback);
+                if (!resultadoWriting.correto)
                 {
-                    associacaoUI.ReduzirTentativa();
-                    int chances = associacaoUI.ObterTentativasRestantes();
+                    writingUI.ReduzirTentativa();
+                    int chances = writingUI.ObterTentativasRestantes();
+
+                    MostrarBotaoRepetirNaUltimaTentativa(chances);
 
                     if (chances > 0)
                     {
-                        associacaoUI.MostrarFeedback("Incorrect answer. Try again.");
                         confirmarResposta.interactable = true;
                         return;
                     }
 
-                    associacaoUI.MostrarFeedback("You have used all your chances. You can try again later in the revision section.");
-                    associacaoUI.BloquearSeletores();
+                    writingUI.MostrarFeedback(
+                        resultadoWriting.feedback +
+                        "\nYou have used all your chances. You can try again later in the revision section."
+                    );
+                    writingUI.BloquearResposta();
                     RegistrarErroParaRevisao();
                 }
+                else
+                {
+                    writingUI.BloquearResposta();
+                    acertouExercicio = true;
+                }
             }
-
             if (acertouExercicio)
             {
                 if (ProgressoNivelManager.Instance != null)
@@ -307,6 +372,18 @@ public class ModalExercicio : MonoBehaviour
                 textoBotao.text = "OK";
             }
         }
+    }
+
+    private void MostrarBotaoRepetirNaUltimaTentativa(int tentativasRestantes)
+    {
+        if (modoRevisao ||
+            tentativasRestantes != 1 ||
+            botaoRepetirFalaNPC == null ||
+            npcAtual == null ||
+            string.IsNullOrWhiteSpace(npcAtual.ultimaFraseDita))
+            return;
+
+        botaoRepetirFalaNPC.gameObject.SetActive(true);
     }
 
     private async void RepetirUltimaFala()
@@ -353,7 +430,9 @@ public class ModalExercicio : MonoBehaviour
                 {
                     string contexto = "";
 
-                    if (tipoAtual == TipoExercicio.Speaking || tipoAtual == TipoExercicio.Alternativas)
+                    if (tipoAtual == TipoExercicio.Speaking ||
+                        tipoAtual == TipoExercicio.Alternativas ||
+                        tipoAtual == TipoExercicio.Writing)
                     {
                         if (npcAtual != null)
                         {
@@ -371,12 +450,32 @@ public class ModalExercicio : MonoBehaviour
         }
     }
 
-    public void Abrir(TipoExercicio tipo, ExercicioBase ex, InteracaoNPC npc, bool revisao = false)
+    public void Abrir(
+        TipoExercicio tipo,
+        ExercicioBase ex,
+        InteracaoNPC npc,
+        bool revisao = false,
+        bool faseAssociacao = false)
     {
         tipoAtual = tipo;
         exercicioAtual = ex;
         npcAtual = npc;
         modoRevisao = revisao;
+
+        if (tipo == TipoExercicio.Associacao && !revisao && !faseAssociacao)
+        {
+            if (RevisaoManager.Instance != null)
+            {
+                RevisaoManager.Instance.RegistrarAssociacao(ex as ExercicioAssociacao);
+                exercicioFinalizado = true;
+                return;
+            }
+
+            Debug.LogError("RevisaoManager não está disponível para adiar o exercício de associação.");
+        }
+
+        if (tipo == TipoExercicio.Associacao)
+            GarantirPainelAssociacao();
 
         if (enunciado != null && ex != null)
         {
@@ -395,13 +494,19 @@ public class ModalExercicio : MonoBehaviour
 
         if (confirmarResposta != null)
         {
-            confirmarResposta.interactable = true;
-            confirmarResposta.GetComponentInChildren<TextMeshProUGUI>().text = textoOriginalBotao;
+            TextMeshProUGUI textoBotao = confirmarResposta.GetComponentInChildren<TextMeshProUGUI>();
+            if (textoBotao != null)
+                textoBotao.text = tipo == TipoExercicio.Associacao ? "Continue" : textoOriginalBotao;
+
+            confirmarResposta.interactable = tipo != TipoExercicio.Associacao;
         }
 
-        exercicioAlternativas.SetActive(false);
-        exercicioSpeaking.SetActive(false);
-        exercicioBlocos.SetActive(false);
+        if (exercicioAlternativas != null)
+            exercicioAlternativas.SetActive(false);
+        if (exercicioSpeaking != null)
+            exercicioSpeaking.SetActive(false);
+        if (exercicioBlocos != null)
+            exercicioBlocos.SetActive(false);
         if (exercicioWriting != null)
             exercicioWriting.SetActive(false);
         if (exercicioAssociacao != null)
@@ -411,6 +516,8 @@ public class ModalExercicio : MonoBehaviour
         {
             botaoRepetirFalaNPC.gameObject.SetActive(false);
         }
+        if (modalAvisoCampoVazio != null)
+            modalAvisoCampoVazio.SetActive(false);
 
         if (tipo == TipoExercicio.Alternativas)
         {
@@ -449,13 +556,42 @@ public class ModalExercicio : MonoBehaviour
         }
         else if (tipo == TipoExercicio.Associacao)
         {
-            if (exercicioAssociacao == null || associacaoUI == null)
-                throw new System.InvalidOperationException("Configure o painel e o AssociacaoUI no ModalExercicio.");
-
             titulo.text = "Matching Exercise";
             exercicioAssociacao.SetActive(true);
-            associacaoUI.InicializarExercicio((ExercicioAssociacao)ex);
+            associacaoUI.EstadoFinalizado -= AtualizarBotaoContinueAssociacao;
+            associacaoUI.EstadoFinalizado += AtualizarBotaoContinueAssociacao;
+            if (!associacaoUI.InicializarExercicio((ExercicioAssociacao)ex))
+                Debug.LogError("Não foi possível inicializar o exercício de associação.");
         }
+    }
+
+    private void GarantirPainelAssociacao()
+    {
+        if (exercicioAssociacao == null)
+        {
+            GameObject painel = new GameObject(
+                "ExercicioAssociacao",
+                typeof(RectTransform));
+            painel.transform.SetParent(panel.transform, false);
+
+            RectTransform rect = painel.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            exercicioAssociacao = painel;
+        }
+
+        if (associacaoUI == null)
+            associacaoUI = exercicioAssociacao.GetComponent<AssociacaoUI>();
+        if (associacaoUI == null)
+            associacaoUI = exercicioAssociacao.AddComponent<AssociacaoUI>();
+    }
+
+    private void AtualizarBotaoContinueAssociacao()
+    {
+        if (confirmarResposta != null && associacaoUI != null)
+            confirmarResposta.interactable = associacaoUI.PodeContinuar;
     }
 
     public void Fechar()

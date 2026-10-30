@@ -8,6 +8,13 @@ using System.Collections.Generic;
 
 public class SpeakingUI : MonoBehaviour
 {
+    public enum TipoSpeaking
+    {
+        ComOpcoes,
+        Livre
+    }
+
+    public TipoSpeaking tipoSpeaking;
     public Button botaoMicrofone;
     public GameObject modalLegendaNPC;
     public GameObject microfoneIcon;
@@ -156,6 +163,9 @@ public class SpeakingUI : MonoBehaviour
     public void InicializarExercicio(ExercicioSpeaking ex, InteracaoNPC npcQueChamou)
     {
         dadosExercicioAtual = ex;
+        tipoSpeaking = ex.opcoesFala != null && ex.opcoesFala.Count > 0
+            ? TipoSpeaking.ComOpcoes
+            : TipoSpeaking.Livre;
         npcAtivo = npcQueChamou;
         tentativesRestantes = 3;
         dadosAudioWav = null;
@@ -178,18 +188,47 @@ public class SpeakingUI : MonoBehaviour
         if (pularEx != null)
             pularEx.interactable = true;
 
-        for (int i = 0; i < textosOpcoesFala.Length; i++)
+        if (textosOpcoesFala != null)
         {
-            if (i < ex.opcoesFala.Count)
+            for (int i = 0; i < textosOpcoesFala.Length; i++)
             {
-                textosOpcoesFala[i].gameObject.SetActive(true);
-                textosOpcoesFala[i].text = ex.opcoesFala[i];
-            }
-            else
-            {
-                textosOpcoesFala[i].gameObject.SetActive(false);
+                TextMeshProUGUI textoOpcao = textosOpcoesFala[i];
+                if (textoOpcao == null)
+                    continue;
+
+                if (tipoSpeaking == TipoSpeaking.ComOpcoes &&
+                    ex.opcoesFala != null &&
+                    i < ex.opcoesFala.Count)
+                {
+                    textoOpcao.gameObject.SetActive(true);
+                    textoOpcao.text = ex.opcoesFala[i];
+                }
+                else
+                {
+                    textoOpcao.gameObject.SetActive(false);
+                }
             }
         }
+
+        AtualizarVisibilidadeContainerOpcoes(tipoSpeaking == TipoSpeaking.ComOpcoes);
+    }
+
+    private void AtualizarVisibilidadeContainerOpcoes(bool ativo)
+    {
+        if (textosOpcoesFala == null || textosOpcoesFala.Length == 0 || textosOpcoesFala[0] == null)
+            return;
+
+        Transform container = textosOpcoesFala[0].transform.parent;
+        if (container == null)
+            return;
+
+        foreach (TextMeshProUGUI textoOpcao in textosOpcoesFala)
+        {
+            if (textoOpcao == null || textoOpcao.transform.parent != container)
+                return;
+        }
+
+        container.gameObject.SetActive(ativo);
     }
 
     public void PrepararParaNivelamento()
@@ -233,6 +272,8 @@ public class SpeakingUI : MonoBehaviour
                     textoOpcao.gameObject.SetActive(false);
             }
         }
+
+        AtualizarVisibilidadeContainerOpcoes(false);
     }
 
     public byte[] ObterAudioWav()
@@ -279,29 +320,48 @@ public class SpeakingUI : MonoBehaviour
         if (botaoMicrofone != null)
             botaoMicrofone.interactable = false;
 
-        statusGravacao.text = "Analyzing speech accuracy...";
+        statusGravacao.text = tipoSpeaking == TipoSpeaking.Livre
+            ? "Analyzing your answer..."
+            : "Analyzing speech accuracy...";
 
-        // 1. Limpa e empacota a lista de strings em um formato JSON nativo legível para o Python
-        List<string> frasesLimpas = new List<string>();
-        foreach (var frase in dadosExercicioAtual.opcoesFala)
-        {
-            frasesLimpas.Add(frase.Replace("\n", "").Replace("\r", "").Trim());
-        }
-        
-        // Cria a string JSON manual ["frase1", "frase2", "frase3"]
-        string jsonFrases = "[\"" + string.Join("\",\"", frasesLimpas) + "\"]";
-
-        // 2. Chama o gerenciador de backend para fazer a requisição pesada
         BackendManager backendManager = new BackendManager();
-        string jsonResposta = await backendManager.EnviarAudioWhisperFast(dadosAudioWav, jsonFrases);
+        string jsonResposta;
 
-        // 3. Processa a string de resposta que veio do backend
+        if (tipoSpeaking == TipoSpeaking.Livre)
+        {
+            jsonResposta = await backendManager.EnviarAudioSpeakingLivre(
+                dadosAudioWav,
+                dadosExercicioAtual.enunciado,
+                DadosJogador.nivelUsuario
+            );
+        }
+        else
+        {
+            // Mantém o envio e a avaliação existentes para Speaking com opções.
+            List<string> frasesLimpas = new List<string>();
+            foreach (var frase in dadosExercicioAtual.opcoesFala)
+            {
+                frasesLimpas.Add(frase.Replace("\n", "").Replace("\r", "").Trim());
+            }
+
+            string jsonFrases = "[\"" + string.Join("\",\"", frasesLimpas) + "\"]";
+            jsonResposta = await backendManager.EnviarAudioWhisperFast(dadosAudioWav, jsonFrases);
+        }
+
         if (!string.IsNullOrEmpty(jsonResposta))
         {
             Debug.Log($"Resposta do Servidor recebida via BackendManager: {jsonResposta}");
             
-            // Conversão direta de JSON string para o objeto C# (mantendo o JsonUtility nativo da sua UI)
             SpeakingResult resultado = JsonUtility.FromJson<SpeakingResult>(jsonResposta);
+            if (resultado == null ||
+                (tipoSpeaking == TipoSpeaking.Livre && string.IsNullOrWhiteSpace(resultado.feedback)))
+            {
+                statusGravacao.text = "<color=red>Invalid response from the server.</color>";
+                if (!bloqueado && botaoMicrofone != null)
+                    botaoMicrofone.interactable = true;
+                return null;
+            }
+
             if (!bloqueado && botaoMicrofone != null)
                 botaoMicrofone.interactable = true;
             return resultado;
@@ -314,6 +374,20 @@ public class SpeakingUI : MonoBehaviour
             return null;
         }
     }
+
+    public void MostrarFeedbackSpeakingLivre(string feedback, bool correto)
+    {
+        if (statusGravacao != null)
+        {
+            statusGravacao.text = correto
+                ? "<color=#2E7D32>Answer accepted.</color>"
+                : "<color=#C62828>Try again.</color>";
+        }
+
+        if (textoFeedback != null)
+            textoFeedback.text = feedback;
+    }
+
     public void AtualizarTextoFeedback(string mensagemBase, List<string> palavrasErradas)
     {
         StringBuilder sb = new StringBuilder();

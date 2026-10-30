@@ -49,9 +49,6 @@ public class ModalSelecaoAvatar : MonoBehaviour
         if (textoErro != null)
             textoErro.gameObject.SetActive(false);
         
-        Debug.Log($"CardF Outline: {outlineFeminino.enabled}");
-        Debug.Log($"CardM Outline: {outlineMasculino.enabled}");
-
         if (containerFeminino != null)
         {
             outlineFeminino = containerFeminino.GetComponent<Outline>();

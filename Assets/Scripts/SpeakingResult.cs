@@ -6,4 +6,6 @@ public class SpeakingResult
     public float? acuracia;
     public string transcricao;
     public List<string> palavras_erradas;
+    public bool correto;
+    public string feedback;
 }

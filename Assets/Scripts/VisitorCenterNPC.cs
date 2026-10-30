@@ -147,8 +147,8 @@ public class VisitorCenterNPC: InteracaoNPC
                             "cidade",
                             "parque",
                             "museu",
-                            "virar",
-                            "help",
+                            "passagem",
+                            "ajuda",
                             "direita",
                             "esquerda",
                             "em frente"
