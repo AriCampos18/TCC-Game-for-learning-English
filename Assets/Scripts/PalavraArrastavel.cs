@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class PalavraArrastavel : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    private DropZoneCompletarFrase dropZonePermitida;
     private CompletarFraseUI controlador;
     private RectTransform canvasRaiz;
     private CanvasGroup canvasGroup;
@@ -20,11 +19,9 @@ public class PalavraArrastavel : MonoBehaviour, IBeginDragHandler, IDragHandler,
     private bool bloqueado;
 
     public void Configurar(
-        DropZoneCompletarFrase destino,
         Transform containerOrigem,
         CompletarFraseUI ui)
     {
-        dropZonePermitida = destino;
         paiOriginal = containerOrigem;
         controlador = ui;
         canvasGroup = GetComponent<CanvasGroup>();
@@ -38,7 +35,7 @@ public class PalavraArrastavel : MonoBehaviour, IBeginDragHandler, IDragHandler,
 
     public bool PodeSerRecebidoEm(DropZoneCompletarFrase zona)
     {
-        return !bloqueado && !dropAceito && zona == dropZonePermitida;
+        return !bloqueado && !dropAceito && zona != null;
     }
 
     public bool TentarSoltarEm(DropZoneCompletarFrase zona)

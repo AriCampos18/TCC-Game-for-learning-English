@@ -99,10 +99,17 @@ public class fatherNPC : InteracaoNPC
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: I’m ___, I have to go ____ home early.",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct words:",
+                    partesFrase = new List<string>
+                    {
+                        "I’m ",
+                        ", I have to go ",
+                        " home early."
+                    },
+                    respostaCorreta = "not, back",
+                    opcoes = new List<string>
                     {
                         "not",
                         "served",
@@ -117,8 +124,7 @@ public class fatherNPC : InteracaoNPC
                         "for",
                         "back",
                         "I",
-                    },
-                    respostaCorreta = "not, back\n"
+                    }
                 }
             );
         }

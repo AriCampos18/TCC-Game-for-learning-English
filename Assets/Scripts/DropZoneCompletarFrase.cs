@@ -4,15 +4,19 @@ using UnityEngine.EventSystems;
 public class DropZoneCompletarFrase : MonoBehaviour, IDropHandler
 {
     private CompletarFraseUI controlador;
+    private int indiceResposta;
 
-    public void Configurar(CompletarFraseUI ui)
+    public int IndiceResposta => indiceResposta;
+
+    public void Configurar(CompletarFraseUI ui, int indice)
     {
         controlador = ui;
+        indiceResposta = indice;
     }
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (eventData.pointerDrag == null)
+        if (controlador == null || eventData.pointerDrag == null)
             return;
 
         PalavraArrastavel palavra = eventData.pointerDrag.GetComponent<PalavraArrastavel>();

@@ -287,10 +287,13 @@ public class VisitorCenterNPC: InteracaoNPC
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: The park is about ___ minutes away.",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "The park is about ",
+                    fraseDepois = " minutes away.",
+                    respostaCorreta = "ten",
+                    opcoes = new List<string>
                     {
                         "11:00",
                         "served",
@@ -303,8 +306,7 @@ public class VisitorCenterNPC: InteracaoNPC
                         "for",
                         "twenty",
                         "I",
-                    },
-                    respostaCorreta = "ten\n"
+                    }
                 }
             );
 

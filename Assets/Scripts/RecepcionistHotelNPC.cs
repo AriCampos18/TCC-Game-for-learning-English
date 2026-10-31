@@ -315,10 +315,13 @@ public class RecepcionistHotelNPC: InteracaoNPC
             ); 
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: I need to leave at ____ p.m.",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "I need to leave at ",
+                    fraseDepois = " p.m.",
+                    respostaCorreta = "12:00",
+                    opcoes = new List<string>
                     {
                         "10:00",
                         "served",
@@ -333,8 +336,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                         "20:00",
                         "I",
                         "1:00"
-                    },
-                    respostaCorreta = "12:00\n"
+                    }
                 }
             );
 
@@ -538,10 +540,13 @@ public class RecepcionistHotelNPC: InteracaoNPC
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: The late chekout is available until _____ p.m.",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "The late checkout is available until ",
+                    fraseDepois = " p.m.",
+                    respostaCorreta = "2:00",
+                    opcoes = new List<string>
                     {
                         "10:00",
                         "served",
@@ -552,8 +557,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                         "morning",
                         "12:00",                        "5:00",
                         "I",
-                    },
-                    respostaCorreta = "2:00\n"
+                    }
                 }
             );
 

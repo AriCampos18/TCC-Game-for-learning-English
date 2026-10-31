@@ -421,10 +421,17 @@ public class SecretaryCollegeNPC: InteracaoNPC
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: Yes, ____ __ corret",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct words:",
+                    partesFrase = new List<string>
+                    {
+                        "Yes, ",
+                        " ",
+                        " correct."
+                    },
+                    respostaCorreta = "that, is",
+                    opcoes = new List<string>
                     {
                         "that",
                         "served",
@@ -435,9 +442,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
                         "morning",
                         "no",                        
                         "this",
-                        "is",
-                    },
-                    respostaCorreta = "that, is\n"
+                        "is"
+                    }
                 }
             );
 

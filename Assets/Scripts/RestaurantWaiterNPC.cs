@@ -258,10 +258,17 @@ public class RestaurantWaiterNPC : InteracaoNPC
             ); 
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: Could you ____ up the ___ of my burger, please?",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct words:",
+                    partesFrase = new List<string>
+                    {
+                        "Could you ",
+                        " up the ",
+                        " of my burger, please?"
+                    },
+                    respostaCorreta = "wrap, rest",
+                    opcoes = new List<string>
                     {
                         "everything",
                         "rest",
@@ -273,17 +280,23 @@ public class RestaurantWaiterNPC : InteracaoNPC
                         "the",
                         "food",
                         "very",
-                        "it",
-                    },
-                    respostaCorreta = "wrap, rest\n"
+                        "it"
+                    }
                 }
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: _____ I have the ____, please?",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct words:",
+                    partesFrase = new List<string>
+                    {
+                        "",
+                        " I have the ",
+                        ", please?"
+                    },
+                    respostaCorreta = "Could, bill",
+                    opcoes = new List<string>
                     {
                         "bill",
                         "price",
@@ -293,8 +306,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
                         "cut",
                         "order",
                         "Could"
-                    },
-                    respostaCorreta = "Could, bill\n"
+                    }
                 }
             );
 
@@ -447,10 +459,17 @@ public class RestaurantWaiterNPC : InteracaoNPC
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: Your order should be ready in about __ _______, please?",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct words:",
+                    partesFrase = new List<string>
+                    {
+                        "Your order should be ready in about ",
+                        " ",
+                        ", please?"
+                    },
+                    respostaCorreta = "20, minutes",
+                    opcoes = new List<string>
                     {
                         "minutes",
                         "price",
@@ -464,8 +483,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
                         "half",
                         "hour",
                         "ready"
-                    },
-                    respostaCorreta = "20, minutes\n"
+                    }
                 }
             );
 

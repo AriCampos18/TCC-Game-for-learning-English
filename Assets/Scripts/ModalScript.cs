@@ -299,11 +299,7 @@ public class ModalExercicio : MonoBehaviour
                 }
                 else if (!completarFraseUI.Respondeu())
                 {
-                    if (!completarFraseUI.HouveTentativaIncorreta)
-                    {
-                        completarFraseUI.MostrarFeedback("Drag a word to complete the sentence.", Color.yellow);
-                    }
-
+                    completarFraseUI.MostrarFeedback("Complete every blank before confirming.", Color.yellow);
                     confirmarResposta.interactable = true;
                     return;
                 }

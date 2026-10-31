@@ -6,29 +6,30 @@ using UnityEngine.UI;
 
 public class CompletarFraseUI : MonoBehaviour
 {
-    public TextMeshProUGUI textoAntes;
-    public TextMeshProUGUI textoDepois;
     public TextMeshProUGUI textoFeedback;
+    public Transform containerFrase;
+    public TextMeshProUGUI prefabTrechoFrase;
+    public GameObject prefabDropZone;
     public Transform containerOpcoes;
     public GameObject blocoPrefab;
-    public DropZoneCompletarFrase dropZone;
 
     private readonly List<PalavraArrastavel> blocos = new List<PalavraArrastavel>();
+    private readonly List<GameObject> elementosFrase = new List<GameObject>();
+    private readonly List<string> respostasCorretas = new List<string>();
+    private readonly List<PalavraArrastavel> respostasSelecionadas = new List<PalavraArrastavel>();
     private ExercicioCompletarFrase exercicioAtual;
-    private PalavraArrastavel respostaSelecionada;
     private int tentativasRestantes;
     private bool configuracaoValida;
-
-    public bool HouveTentativaIncorreta { get; private set; }
 
     public void InicializarExercicio(ExercicioCompletarFrase exercicio)
     {
         LimparOpcoes();
+        LimparFrase();
         exercicioAtual = exercicio;
-        respostaSelecionada = null;
+        respostasCorretas.Clear();
+        respostasSelecionadas.Clear();
         tentativasRestantes = 3;
         configuracaoValida = false;
-        HouveTentativaIncorreta = false;
 
         MostrarFeedback(string.Empty, Color.white);
 
@@ -39,23 +40,30 @@ public class CompletarFraseUI : MonoBehaviour
             return;
         }
 
-        if (textoAntes == null || textoDepois == null || containerOpcoes == null ||
-            blocoPrefab == null || dropZone == null)
+        if (containerFrase == null || prefabTrechoFrase == null || prefabDropZone == null ||
+            containerOpcoes == null || blocoPrefab == null)
         {
             Debug.LogError("Configure as referências visuais do CompletarFraseUI no Inspector.");
             return;
         }
 
-        Graphic graficoDropZone = dropZone.GetComponent<Graphic>();
-        if (graficoDropZone == null)
+        List<string> respostas = SepararRespostas(exercicio.respostaCorreta);
+        List<string> partes = ObterPartesFrase(exercicio, respostas.Count);
+        if (respostas.Count == 0 || partes == null || partes.Count != respostas.Count + 1)
         {
-            Debug.LogError("A DropZone precisa ter um componente Graphic, como Image, para receber o raycast.");
+            Debug.LogError("Informe uma parte de frase antes, entre e depois de cada resposta.");
             return;
         }
 
-        graficoDropZone.raycastTarget = true;
+        if (prefabDropZone.GetComponent<Graphic>() == null ||
+            prefabDropZone.GetComponent<DropZoneCompletarFrase>() == null)
+        {
+            Debug.LogError("O prefab da DropZone precisa ter um Graphic e DropZoneCompletarFrase no objeto raiz.");
+            return;
+        }
 
-        bool respostaDisponivel = false;
+        Dictionary<string, int> opcoesDisponiveis =
+            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (string opcao in exercicio.opcoes)
         {
             if (string.IsNullOrWhiteSpace(opcao))
@@ -64,19 +72,37 @@ public class CompletarFraseUI : MonoBehaviour
                 return;
             }
 
-            if (string.Equals(opcao.Trim(), exercicio.respostaCorreta.Trim(), StringComparison.OrdinalIgnoreCase))
-                respostaDisponivel = true;
+            string opcaoLimpa = opcao.Trim();
+            if (!opcoesDisponiveis.ContainsKey(opcaoLimpa))
+                opcoesDisponiveis.Add(opcaoLimpa, 0);
+
+            opcoesDisponiveis[opcaoLimpa]++;
         }
 
-        if (!respostaDisponivel)
+        foreach (string resposta in respostas)
         {
-            Debug.LogError("A resposta correta precisa estar entre as opções do exercício de completar frase.");
-            return;
+            int quantidadeDisponivel;
+            if (!opcoesDisponiveis.TryGetValue(resposta, out quantidadeDisponivel) ||
+                quantidadeDisponivel == 0)
+            {
+                Debug.LogError("As opções precisam incluir cada resposta correta, incluindo repetições: " + resposta);
+                return;
+            }
+
+            opcoesDisponiveis[resposta] = quantidadeDisponivel - 1;
         }
 
-        textoAntes.text = exercicio.fraseAntes ?? string.Empty;
-        textoDepois.text = exercicio.fraseDepois ?? string.Empty;
-        dropZone.Configurar(this);
+        respostasCorretas.AddRange(respostas);
+        for (int i = 0; i < respostas.Count; i++)
+            respostasSelecionadas.Add(null);
+
+        for (int i = 0; i < partes.Count; i++)
+        {
+            CriarTrechoFrase(partes[i]);
+            if (i < respostas.Count)
+                CriarDropZone(i);
+        }
+
         configuracaoValida = true;
 
         foreach (string opcao in exercicio.opcoes)
@@ -106,26 +132,27 @@ public class CompletarFraseUI : MonoBehaviour
             if (palavra == null)
                 palavra = novoBloco.AddComponent<PalavraArrastavel>();
 
-            palavra.Configurar(dropZone, containerOpcoes, this);
+            palavra.Configurar(containerOpcoes, this);
             blocos.Add(palavra);
         }
     }
 
     public bool ProcessarSoltura(PalavraArrastavel palavra, DropZoneCompletarFrase zona)
     {
-        if (!configuracaoValida || palavra == null || zona != dropZone ||
-            tentativasRestantes <= 0 || respostaSelecionada != null)
+        int indice = zona != null ? zona.IndiceResposta : -1;
+        if (!configuracaoValida || palavra == null || indice < 0 ||
+            indice >= respostasCorretas.Count ||
+            tentativasRestantes <= 0 || respostasSelecionadas[indice] != null)
             return false;
 
         string palavraSolta = palavra.ObterPalavra();
-        if (string.Equals(palavraSolta.Trim(), exercicioAtual.respostaCorreta.Trim(), StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(palavraSolta.Trim(), respostasCorretas[indice], StringComparison.OrdinalIgnoreCase))
         {
-            respostaSelecionada = palavra;
+            respostasSelecionadas[indice] = palavra;
             MostrarFeedback(string.Empty, Color.white);
             return true;
         }
 
-        HouveTentativaIncorreta = true;
         tentativasRestantes--;
         if (tentativasRestantes > 0)
         {
@@ -144,16 +171,33 @@ public class CompletarFraseUI : MonoBehaviour
 
     public bool Respondeu()
     {
-        return configuracaoValida && respostaSelecionada != null;
+        if (!configuracaoValida)
+            return false;
+
+        foreach (PalavraArrastavel resposta in respostasSelecionadas)
+        {
+            if (resposta == null)
+                return false;
+        }
+
+        return true;
     }
 
     public bool EstaCorreto()
     {
-        return Respondeu() &&
-            string.Equals(
-                respostaSelecionada.ObterPalavra().Trim(),
-                exercicioAtual.respostaCorreta.Trim(),
-                StringComparison.OrdinalIgnoreCase);
+        if (!Respondeu())
+            return false;
+
+        for (int i = 0; i < respostasSelecionadas.Count; i++)
+        {
+            if (!string.Equals(
+                    respostasSelecionadas[i].ObterPalavra().Trim(),
+                    respostasCorretas[i],
+                    StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        return true;
     }
 
     public int ObterTentativasRestantes()
@@ -168,6 +212,62 @@ public class CompletarFraseUI : MonoBehaviour
             if (bloco != null)
                 bloco.Bloquear();
         }
+    }
+
+    private static List<string> SepararRespostas(string respostaCorreta)
+    {
+        List<string> respostas = new List<string>();
+        if (string.IsNullOrWhiteSpace(respostaCorreta))
+            return respostas;
+
+        string[] separadas = respostaCorreta.Split(',');
+        foreach (string resposta in separadas)
+        {
+            string respostaLimpa = resposta.Trim();
+            if (respostaLimpa.Length == 0)
+                return new List<string>();
+
+            respostas.Add(respostaLimpa);
+        }
+
+        return respostas;
+    }
+
+    private static List<string> ObterPartesFrase(ExercicioCompletarFrase exercicio, int quantidadeRespostas)
+    {
+        if (exercicio.partesFrase != null && exercicio.partesFrase.Count > 0)
+            return exercicio.partesFrase;
+
+        if (quantidadeRespostas == 1)
+        {
+            return new List<string>
+            {
+                exercicio.fraseAntes ?? string.Empty,
+                exercicio.fraseDepois ?? string.Empty
+            };
+        }
+
+        return null;
+    }
+
+    private void CriarTrechoFrase(string texto)
+    {
+        TextMeshProUGUI trecho = Instantiate(prefabTrechoFrase, containerFrase);
+        trecho.gameObject.SetActive(true);
+        trecho.text = texto;
+        elementosFrase.Add(trecho.gameObject);
+    }
+
+    private void CriarDropZone(int indice)
+    {
+        GameObject objeto = Instantiate(prefabDropZone, containerFrase);
+        objeto.SetActive(true);
+        Graphic grafico = objeto.GetComponent<Graphic>();
+        grafico.raycastTarget = true;
+
+        DropZoneCompletarFrase zona = objeto.GetComponent<DropZoneCompletarFrase>();
+        zona.Configurar(this, indice);
+        elementosFrase.Add(objeto);
     }
 
     public void MostrarFeedback(string mensagem, Color cor)
@@ -188,5 +288,16 @@ public class CompletarFraseUI : MonoBehaviour
         }
 
         blocos.Clear();
+    }
+
+    private void LimparFrase()
+    {
+        foreach (GameObject elemento in elementosFrase)
+        {
+            if (elemento != null)
+                Destroy(elemento);
+        }
+
+        elementosFrase.Clear();
     }
 }

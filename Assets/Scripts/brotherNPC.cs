@@ -61,10 +61,13 @@ public class brotherNPC : InteracaoNPC
             ); 
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: What does the dog ____ to play with?",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "What does the dog ",
+                    fraseDepois = " to play with?",
+                    respostaCorreta = "like",
+                    opcoes = new List<string>
                     {
                         "want",
                         "fetch",
@@ -77,8 +80,7 @@ public class brotherNPC : InteracaoNPC
                         "walk",
                         "play",
                         "likes"
-                    },
-                    respostaCorreta = "like\n"
+                    }
                 }
             );
 

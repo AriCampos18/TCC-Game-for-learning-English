@@ -74,10 +74,13 @@ public class checkinNPC : InteracaoNPC
             );
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word: Your boarding gate is ____.",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "Your boarding gate is ",
+                    fraseDepois = ".",
+                    respostaCorreta = "12",
+                    opcoes = new List<string>
                     {
                         "20",
                         "12",
@@ -89,8 +92,7 @@ public class checkinNPC : InteracaoNPC
                         "2",
                         "24",
                         "ticket"
-                    },
-                    respostaCorreta = "12\n"
+                    }
                 }
             );
 
@@ -212,10 +214,13 @@ public class checkinNPC : InteracaoNPC
             );     
 
             exerciciosCompletarFrase.Add(
-                new ExercicioBlocos()
+                new ExercicioCompletarFrase()
                 {
-                    enunciado= "Complete the sentence with the correct word:  The boarding gate is ____.",
-                    blocosPalavras = new List<string>
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "The boarding gate is ",
+                    fraseDepois = ".",
+                    respostaCorreta = "18",
+                    opcoes = new List<string>
                     {
                         "passport",
                         "24",
@@ -229,8 +234,7 @@ public class checkinNPC : InteracaoNPC
                         "21",
                         "boarding",
                         "80"
-                    },
-                    respostaCorreta = "18\n"
+                    }
                 }
             );
 
