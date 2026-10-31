@@ -294,6 +294,8 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             return TipoExercicio.Alternativas;
         if (exercicio is ExercicioBlocos)
             return TipoExercicio.Blocos;
+        if (exercicio is ExercicioCompletarFrase)
+            return TipoExercicio.CompletarFrase;
         if (exercicio is ExercicioWriting)
             return TipoExercicio.Writing;
         if (exercicio is ExercicioAssociacao)

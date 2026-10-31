@@ -14,7 +14,7 @@ public class AirportInfoNPC : InteracaoNPC
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
 
-    [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
+    public List<ExercicioCompletarFrase> exerciciosCompletarFrase = new List<ExercicioCompletarFrase>();
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
     [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
     [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
@@ -28,7 +28,8 @@ public class AirportInfoNPC : InteracaoNPC
         base.Start();
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Airport Employee";
-        exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
+        if (exerciciosCompletarFrase == null)
+            exerciciosCompletarFrase = new List<ExercicioCompletarFrase>();
         exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
         exerciciosSpeaking = GarantirListaExercicios(exerciciosSpeaking);
         exerciciosAlternativas = GarantirListaExercicios(exerciciosAlternativas);
@@ -272,6 +273,8 @@ public class AirportInfoNPC : InteracaoNPC
             return TipoExercicio.Alternativas;
         if (exercicio is ExercicioBlocos)
             return TipoExercicio.Blocos;
+        if (exercicio is ExercicioCompletarFrase)
+            return TipoExercicio.CompletarFrase;
         if (exercicio is ExercicioWriting)
             return TipoExercicio.Writing;
         if (exercicio is ExercicioAssociacao)

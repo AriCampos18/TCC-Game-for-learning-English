@@ -11,7 +11,8 @@ public enum TipoExercicio
     Alternativas,
     Blocos,
     Writing,
-    Associacao
+    Associacao,
+    CompletarFrase
 }
 
 public class BakeryNPC : InteracaoNPC

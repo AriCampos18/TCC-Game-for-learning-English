@@ -28,6 +28,7 @@ public class ModalExercicio : MonoBehaviour
     public GameObject exercicioBlocos;
     public GameObject exercicioWriting;
     public GameObject exercicioAssociacao;
+    public GameObject exercicioCompletarFrase;
     public GameObject crosshair;
 
     public AlternativasUI alternativasUI;
@@ -35,6 +36,7 @@ public class ModalExercicio : MonoBehaviour
     public BlocosUI blocosUI;
     public WritingUI writingUI;
     public AssociacaoUI associacaoUI;
+    public CompletarFraseUI completarFraseUI;
 
     void Start()
     {
@@ -278,6 +280,46 @@ public class ModalExercicio : MonoBehaviour
                     }
                 }
             }
+            else if (exercicioCompletarFrase != null && exercicioCompletarFrase.activeSelf)
+            {
+                if (completarFraseUI == null)
+                {
+                    Debug.LogError("Associe o CompletarFraseUI no ModalExercicio.");
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+
+                if (completarFraseUI.ObterTentativasRestantes() <= 0)
+                {
+                    completarFraseUI.MostrarFeedback(
+                        "You have used all your chances. You can try again later in the revision section.",
+                        Color.red);
+                    completarFraseUI.BloquearOpcoes();
+                    RegistrarErroParaRevisao();
+                }
+                else if (!completarFraseUI.Respondeu())
+                {
+                    if (!completarFraseUI.HouveTentativaIncorreta)
+                    {
+                        completarFraseUI.MostrarFeedback("Drag a word to complete the sentence.", Color.yellow);
+                    }
+
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+                else if (completarFraseUI.EstaCorreto())
+                {
+                    completarFraseUI.MostrarFeedback("Good job! You got the answer right.", new Color32(46, 125, 50, 255));
+                    completarFraseUI.BloquearOpcoes();
+                    acertouExercicio = true;
+                }
+                else
+                {
+                    Debug.LogError("O CompletarFraseUI reportou uma resposta selecionada incorreta.");
+                    confirmarResposta.interactable = true;
+                    return;
+                }
+            }
             else if (exercicioWriting != null && exercicioWriting.activeSelf)
             {
                 if (writingUI == null)
@@ -511,6 +553,8 @@ public class ModalExercicio : MonoBehaviour
             exercicioWriting.SetActive(false);
         if (exercicioAssociacao != null)
             exercicioAssociacao.SetActive(false);
+        if (exercicioCompletarFrase != null)
+            exercicioCompletarFrase.SetActive(false);
 
         if (botaoRepetirFalaNPC != null)
         {
@@ -562,6 +606,15 @@ public class ModalExercicio : MonoBehaviour
             associacaoUI.EstadoFinalizado += AtualizarBotaoContinueAssociacao;
             if (!associacaoUI.InicializarExercicio((ExercicioAssociacao)ex))
                 Debug.LogError("Não foi possível inicializar o exercício de associação.");
+        }
+        else if (tipo == TipoExercicio.CompletarFrase)
+        {
+            if (exercicioCompletarFrase == null || completarFraseUI == null)
+                throw new System.InvalidOperationException("Configure o painel e o CompletarFraseUI no ModalExercicio.");
+
+            titulo.text = "Complete the Sentence";
+            exercicioCompletarFrase.SetActive(true);
+            completarFraseUI.InicializarExercicio((ExercicioCompletarFrase)ex);
         }
     }
 
