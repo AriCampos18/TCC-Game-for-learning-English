@@ -66,7 +66,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
             {
                 "Hello. Can I help you?",
                 "What is yout name?",
-                "Cash or card?",
+                "Would you like to pay by cash or card?",
                 "Your room is 103. It is on the first floor",
                 "Breakfast is from 7:00 a.m. to 9:00 a.m.",
                 "Checkout is on "+dataCheckout+".",
@@ -249,7 +249,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
             exerciciosWriting.Add(
                 new ExercicioWriting()
                 {
-                    enunciado = "Say how is your name"
+                    enunciado = "What is your name? Write your answer."
                 }
             );
 
@@ -283,7 +283,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
             exerciciosWriting.Add(
                 new ExercicioWriting()
                 {
-                    enunciado = "The receptionist asks for the name on the reservation. Write your answer in a complete sentence."
+                    enunciado = "You want to know where you can have breakfast and what time it is. Ask these informations for the receptionist"
                 }
             );
 
@@ -655,68 +655,6 @@ public class RecepcionistHotelNPC: InteracaoNPC
         return $"{mes} {dia}{sufixo}";
     }
 
-    protected override async Task IniciarInteracao()
-    {
-        GameProgress.EstaEmDialogo = true;
-        try
-        {
-            nivelAtual = DadosJogador.nivelUsuario;
-            InicializarConteudosPorNivel();
-
-            if (dialogoAtual == null || dialogoAtual.Count == 0)
-                throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
-
-            string idMissaoInicial = "hotel_" + nivelAtual.ToLowerInvariant() + "_01";
-            string textoMissaoInicial = nivelAtual == "A1"
-                ? "Talk to the hotel receptionist"
-                : nivelAtual == "A2"
-                    ? "Talk to the hotel receptionist and check in"
-                    : "Talk to the hotel receptionist and confirm your reservation";
-            string traducaoMissaoInicial = nivelAtual == "A1"
-                ? "Fale com o recepcionista do hotel"
-                : nivelAtual == "A2"
-                    ? "Fale com o recepcionista do hotel e realize seu check in"
-                    : "Fale com o recepcionista do hotel e confirme sua reserva";
-            MissionManager.AdicionarMissaoNPC(idMissaoInicial, textoMissaoInicial, traducaoMissaoInicial);
-
-            if (nivelAtual == "A1")
-                await interacaoA1();
-            else if (nivelAtual == "A2")
-                await interacaoA2();
-            else
-                await interacaoB1();
-
-            if (nivelAtual == "A1")
-                MissionManager.ConcluirMissaoNPC("hotel_a1_02");
-
-            if (nivelAtual == "B1")
-                MissionManager.ConcluirMissaoNPC("hotel_b1_03");
-        }
-        finally
-        {
-            GameProgress.EstaEmDialogo = false;
-            if (modalLegendaComum != null)
-                modalLegendaComum.SetActive(false);
-            if (textoPularDialogoComum != null)
-                textoPularDialogoComum.gameObject.SetActive(false);
-            LiberarControlePlayer();
-        }
-    }
-
-
-
-    private List<ExercicioBase> ObterFilaExercicios()
-    {
-        List<ExercicioBase> fila = new List<ExercicioBase>();
-        fila.AddRange(exerciciosSpeaking);
-        fila.AddRange(exerciciosAlternativas);
-        fila.AddRange(exerciciosCompletarFrase);
-        fila.AddRange(exerciciosCriarFrases);
-        fila.AddRange(exerciciosWriting);
-        fila.AddRange(exerciciosAssociacao);
-        return fila;
-    }
-
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
     {
         if (exercicio is ExercicioSpeaking)
@@ -735,19 +673,205 @@ public class RecepcionistHotelNPC: InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
+    protected override async Task IniciarInteracao()
     {
-        Debug.Log("Abrindo exerc\u00edcio: " + tipo);
-        bool respostaInicialA1 = nivelAtual == "A1"
-            && exercicio.enunciado.Contains("You are at the hotel");
-        bool confirmacaoReservaB1 = nivelAtual == "B1"
-            && exercicio.enunciado.Contains("Confirm the question made by the recepcionist");
+        GameProgress.EstaEmDialogo = true;
+        nivelAtual = DadosJogador.nivelUsuario;
+        InicializarConteudosPorNivel();
 
-        ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
-
-        if (modalLegendaComum != null)
+        if (nivelAtual == "A1")
         {
-            modalLegendaComum.SetActive(false);
+            await interacaoA1();
+        }
+        else if (nivelAtual == "A2")
+        {
+            await interacaoA2();
+        }
+        else
+        {
+            await interacaoB1();
+        }
+
+        // Desativa o estado quando a conversa acabar completamente!
+        GameProgress.EstaEmDialogo = false;
+        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
+
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
+
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+
+        GameProgress.EstaEmDialogo = false;
+
+        LiberarControlePlayer();
+    }
+
+    private async Task interacaoA1()
+    {
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    private async Task interacaoA2()
+    {
+        int i = 0;
+        
+        // cumprimento+". Welcome to the hotel. Do you have a reservation?",
+        await PlayAudioETexto(i++);
+        
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        //"Great. Could I have your name, please?",
+        await PlayAudioETexto(i++);
+        
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        // "Thank you. How many nights are you staying with us?"
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+
+        //"Would you like to pay by card or cash?",
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        // "Your room is 205, on the second floor. Here is your key card.",
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosWriting[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        //Breakfast is from 7:00 a.m. to 10:00 a.m. in the restaurant. It's on the first floor
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[1]), exerciciosAlternativas[1]);
+
+        //Is there anything else you would like to know?
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        //Checkout is at 12:00 p.m. on
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        await PlayAudioETexto(i++);
+ 
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    private async Task interacaoB1()
+    {
+        int i = 0;
+        
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[4]), exerciciosSpeaking[4]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    {
+        //Debug.Log("Abrindo exercício: " + tipo);
+
+        ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
         }
 
         await EntrarModoExercicio();
@@ -755,45 +879,26 @@ public class RecepcionistHotelNPC: InteracaoNPC
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        modalExercicioComum.Abrir(tipo, exercicio, this);
+        modalExercicio.Abrir(tipo, ex, this);
 
-        if (legenda != null)
+        if (legenda != null) 
         {
-            legenda.AjustarPosicaoPeloEstadoDoJogo();
+            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
         }
 
-        while (!modalExercicioComum.exercicioFinalizado)
+        while (!modalExercicio.exercicioFinalizado)
         {
             await Task.Yield();
         }
 
-        if (respostaInicialA1)
+        if (modalLegenda != null)
         {
-            MissionManager.ConcluirMissaoNPC("hotel_a1_01");
-            MissionManager.AdicionarMissaoNPC(
-                "hotel_a1_02",
-                "Learn about the hotel's services during the conversation",
-                "Conheça os serviços do hotel durante a conversa"
-            );
-        }
-
-        if (confirmacaoReservaB1)
-        {
-            MissionManager.ConcluirMissaoNPC("hotel_b1_01");
-            MissionManager.AdicionarMissaoNPC(
-                "hotel_b1_02",
-                "Pick up the room card at the counter",
-                "Pegue o cartão do quarto no balcão"
-            );
-        }
-
-        if (modalLegendaComum != null)
-        {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await SairModoExercicio();
 
+        // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -803,177 +908,80 @@ public class RecepcionistHotelNPC: InteracaoNPC
         }
     }
 
-    private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
+    private async Task PlayAudioETexto(int i)
     {
-        ultimaFraseDita = dialogoAtual[indiceDialogo];
-        string fala = dialogoAtual[indiceDialogo];
-        bool entregaCartaoA2 = nivelAtual == "A2" && fala.Contains("Here is your key card");
-        bool entregaCartaoB1 = nivelAtual == "B1" && fala.Contains("Here is your key card");
-
-        if (entregaCartaoA2)
-        {
-            MissionManager.ConcluirMissaoNPC("hotel_a2_01");
-            MissionManager.AdicionarMissaoNPC(
-                "hotel_a2_02",
-                "Pick up the room card",
-                "Pegue o cartão do quarto"
-            );
-        }
-
-        byte[] audioBytes = await backendManagerComum.GerarAudio(fala, idNpcParaVoz);
-
+        ultimaFraseDita = dialogoAtual[i];
+        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
+        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        
         if (audioBytes != null && audioBytes.Length > 0)
         {
-            Debug.Log($"\u00c1udio recebido! Tamanho: {audioBytes.Length} bytes");
+            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
             File.WriteAllBytes(caminho, audioBytes);
-
+            
             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
             var operation = www.SendWebRequest();
-
+            
             while (!operation.isDone)
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
+            audioSource.clip = clip;
 
-            if (mostrarLegenda)
-            {
-                textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
 
-            audioSourceComum.Play();
-            while (audioSourceComum.isPlaying)
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+            audioSource.Play();
+            while (audioSource.isPlaying)
             {
                 await Task.Yield();
             }
 
-            if (textoPularDialogoComum != null)
+            if (textoPularDialogo != null)
             {
-                textoPularDialogoComum.gameObject.SetActive(true);
+                textoPularDialogo.gameObject.SetActive(true);
+
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
 
-            await Task.Delay(150);
-
-            while (Input.GetMouseButton(0))
-            {
-                await Task.Yield();
-            }
+            await Task.Yield();
 
             bool clicou = false;
             while (!clicou)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0)) 
                 {
-                    clicou = true;
+                    clicou = true; 
                 }
                 else
                 {
-                    await Task.Yield();
+                    await Task.Yield(); 
                 }
             }
 
-            if (textoPularDialogoComum != null)
+
+            if (textoPularDialogo != null)
             {
-                textoPularDialogoComum.gameObject.SetActive(false);
+                textoPularDialogo.gameObject.SetActive(false);
             }
 
-            if (modalLegendaComum != null)
+            if (modalLegenda != null)
             {
-                modalLegendaComum.SetActive(false);
+                modalLegenda.SetActive(false);
+            }
+            
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
             }
         }
         else
         {
             Debug.LogError("O servidor retornou um array de bytes vazio.");
-            if (mostrarLegenda)
-            {
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
-        }
-
-        if (entregaCartaoA2)
-        {
-            MissionManager.ConcluirMissaoNPC("hotel_a2_02");
-        }
-
-        if (entregaCartaoB1)
-        {
-            MissionManager.ConcluirMissaoNPC("hotel_b1_02");
-            MissionManager.AdicionarMissaoNPC(
-                "hotel_b1_03",
-                "Ask about checkout and hotel services",
-                "Faça perguntas sobre check out e serviços do hotel"
-            );
-        }
-    }
-
-    private async Task interacaoA1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoA2()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoB1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
         }
     }
 
@@ -981,32 +989,42 @@ public class RecepcionistHotelNPC: InteracaoNPC
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
-
+        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        
         if (audioBytes != null && audioBytes.Length > 0)
         {
             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
             File.WriteAllBytes(caminho, audioBytes);
-
+            
             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
             var operation = www.SendWebRequest();
-
+            
             while (!operation.isDone)
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
-            if (modalLegendaComum != null && modalLegendaComum.activeSelf)
+            audioSource.clip = clip;
+            if (modalLegenda != null)
             {
-                if (textoPularDialogoComum != null) textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+                modalLegenda.SetActive(true);
+
+                if (textoPularDialogo != null)
+                    textoPularDialogo.gameObject.SetActive(false);
+
+                modalLegenda.GetComponent<ModalLegenda>()
+                    .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
-
-            audioSourceComum.Play();
-
-            while (audioSourceComum.isPlaying)
+            
+            audioSource.Play();
+            
+            while (audioSource.isPlaying)
             {
                 await Task.Yield();
+            }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
             }
         }
     }

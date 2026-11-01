@@ -146,7 +146,6 @@ public class checkinNPC : InteracaoNPC
                 cumprimento+". Where are you flying today?",
                 "May I see your passport and booking confirmation, please?",
                 "Do you have any bags to check in?",
-                "Would you like a window seat or an aisle seat?", 
                 "Your gate is eighteen, and boarding starts at 2:30 p.m. Have a nice flight!"
             };
 
@@ -287,7 +286,7 @@ public class checkinNPC : InteracaoNPC
             {
                 cumprimento+". Where are you travelling today?",
                 "Could I see your passport and booking confirmation, please?",
-                "Would you prefer a window or an aisle seat? Are you checking any bags today?",
+                "Are you checking any bags today?",
                 "You have a connecting flight, so your checked bag will be transferred automatically. Your second flight leaves from gate 24.",
                 "Please check the departure screens in case the gate changes. Boarding usually starts 40 minutes before departure."
             };
@@ -398,75 +397,6 @@ public class checkinNPC : InteracaoNPC
         }
     }
 
-    protected override async Task IniciarInteracao()
-    {
-        GameProgress.EstaEmDialogo = true;
-        try
-        {
-            nivelAtual = DadosJogador.nivelUsuario;
-            InicializarConteudosPorNivel();
-
-            if (dialogoAtual == null || dialogoAtual.Count == 0)
-                throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
-
-            if (nivelAtual == "A1")
-            {
-                MissionManager.AdicionarMissaoNPC(
-                    "airport_a1_03",
-                    "Go to the check-in desk and show your passport",
-                    "Dirija-se ao balcão de check-in e apresente seu passaporte"
-                );
-            }
-            else if (nivelAtual == "A2")
-            {
-                MissionManager.AdicionarMissaoNPC(
-                    "airport_a2_01",
-                    "Arrive at the airport and find the check-in desk",
-                    "Chegue ao aeroporto e procure o balcão de check-in"
-                );
-            }
-            else
-            {
-                MissionManager.ConcluirMissaoNPC("airport_b1_03");
-                MissionManager.AdicionarMissaoNPC(
-                    "airport_b1_04",
-                    "Tell the employee your destination and connecting-flight details",
-                    "Informe seu destino e os detalhes do voo de conexão"
-                );
-            }
-
-            if (nivelAtual == "A1")
-                await interacaoA1();
-            else if (nivelAtual == "A2")
-                await interacaoA2();
-            else
-                await interacaoB1();
-        }
-        finally
-        {
-            GameProgress.EstaEmDialogo = false;
-            if (modalLegendaComum != null)
-                modalLegendaComum.SetActive(false);
-            if (textoPularDialogoComum != null)
-                textoPularDialogoComum.gameObject.SetActive(false);
-            LiberarControlePlayer();
-        }
-    }
-
-
-
-    private List<ExercicioBase> ObterFilaExercicios()
-    {
-        List<ExercicioBase> fila = new List<ExercicioBase>();
-        fila.AddRange(exerciciosSpeaking);
-        fila.AddRange(exerciciosAlternativas);
-        fila.AddRange(exerciciosCompletarFrase);
-        fila.AddRange(exerciciosCriarFrases);
-        fila.AddRange(exerciciosWriting);
-        fila.AddRange(exerciciosAssociacao);
-        return fila;
-    }
-
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
     {
         if (exercicio is ExercicioSpeaking)
@@ -485,63 +415,125 @@ public class checkinNPC : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
+    protected override async Task IniciarInteracao()
     {
-        Debug.Log("Abrindo exerc\u00edcio: " + tipo);
-        string enunciado = exercicio.enunciado;
-        bool apresentarPassaporte = nivelAtual == "A1" && enunciado.Contains("Show your passport");
-        bool portaoA1 = nivelAtual == "A1" && enunciado.Contains("Your boarding gate is");
-        bool destinoA2 = nivelAtual == "A2" && enunciado.Contains("Eu estou indo para Londres");
-        bool documentosA2 = nivelAtual == "A2" && enunciado.Contains("passport and booking confirmation");
-        bool bagagemA2 = nivelAtual == "A2" && enunciado.Contains("any luggage to check in");
-        bool horarioA2 = nivelAtual == "A2" && enunciado.Contains("What time does your boarding start");
-        bool portaoA2 = nivelAtual == "A2" && enunciado.Contains("The boarding gate is");
-        bool destinoB1 = nivelAtual == "B1" && enunciado.Contains("Explain your travel plans");
-        bool documentosB1 = nivelAtual == "B1" && enunciado.Contains("passport and booking confirmation");
-        bool bagagemB1 = nivelAtual == "B1" && enunciado.Contains("What will happen to the checked bag");
-        bool paineisB1 = nivelAtual == "B1" && enunciado.Contains("check the departure screens");
+        GameProgress.EstaEmDialogo = true;
+        nivelAtual = DadosJogador.nivelUsuario;
+        InicializarConteudosPorNivel();
 
-        if (documentosA2)
+        if (nivelAtual == "A1")
         {
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_03",
-                "Show your passport and booking confirmation",
-                "Apresente seu passaporte e confirmação da reserva"
-            );
+            await interacaoA1();
+        }
+        else if (nivelAtual == "A2")
+        {
+            await interacaoA2();
+        }
+        else
+        {
+            await interacaoB1();
         }
 
-        if (bagagemA2)
-        {
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_04",
-                "Tell the employee about the baggage you are checking",
-                "Informe sua bagagem para despacho"
-            );
-        }
+        // Desativa o estado quando a conversa acabar completamente!
+        GameProgress.EstaEmDialogo = false;
+        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
 
-        if (horarioA2)
-        {
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_05",
-                "Find out the boarding time",
-                "Descubra o horário de embarque"
-            );
-        }
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
 
-        if (destinoB1)
-        {
-            MissionManager.AdicionarMissaoNPC(
-                "airport_b1_04",
-                "Tell the employee your destination and connecting-flight details",
-                "Informe seu destino e os detalhes do voo de conexão"
-            );
-        }
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
 
-        ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
+        GameProgress.EstaEmDialogo = false;
 
-        if (modalLegendaComum != null)
+        LiberarControlePlayer();
+    }
+
+    private async Task interacaoA1()
+    {
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCompletarFrase[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    private async Task interacaoA2()
+    {
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+        
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+        
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        exAtual = exerciciosCompletarFrase[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    private async Task interacaoB1()
+    {
+        int i = 0;
+        
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);//
+
+        await PlayAudioETexto(i++);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    {
+        //Debug.Log("Abrindo exercício: " + tipo);
+
+        ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+        if (modalLegenda != null)
         {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await EntrarModoExercicio();
@@ -549,122 +541,26 @@ public class checkinNPC : InteracaoNPC
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        modalExercicioComum.Abrir(tipo, exercicio, this);
+        modalExercicio.Abrir(tipo, ex, this);
 
-        if (legenda != null)
+        if (legenda != null) 
         {
-            legenda.AjustarPosicaoPeloEstadoDoJogo();
+            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
         }
 
-        while (!modalExercicioComum.exercicioFinalizado)
+        while (!modalExercicio.exercicioFinalizado)
         {
             await Task.Yield();
         }
 
-        if (destinoA2)
+        if (modalLegenda != null)
         {
-            MissionManager.ConcluirMissaoNPC("airport_a2_01");
-            MissionManager.ConcluirMissaoNPC("airport_a2_02");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_03",
-                "Show your passport and booking confirmation",
-                "Apresente seu passaporte e confirmação da reserva"
-            );
-        }
-
-        if (documentosA2)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_a2_03");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_04",
-                "Tell the employee about the baggage you are checking",
-                "Informe sua bagagem para despacho"
-            );
-        }
-
-        if (bagagemA2)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_a2_04");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_05",
-                "Find out the boarding time",
-                "Descubra o horário de embarque"
-            );
-        }
-
-        if (horarioA2)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_a2_05");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_06",
-                "Find gate 18",
-                "Encontre o portão 18"
-            );
-        }
-
-        if (portaoA2)
-            MissionManager.ConcluirMissaoNPC("airport_a2_06");
-
-        if (destinoB1)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_b1_04");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_b1_05",
-                "Present your travel documents",
-                "Apresente seus documentos de viagem"
-            );
-        }
-
-        if (documentosB1)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_b1_05");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_b1_06",
-                "Confirm the checked-baggage information",
-                "Confirme as informações sobre a bagagem despachada"
-            );
-        }
-
-        if (bagagemB1)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_b1_06");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_b1_07",
-                "Check the departure screens",
-                "Consulte os painéis de partida"
-            );
-        }
-
-        if (paineisB1)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_b1_07");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_b1_08",
-                "Find gate 24 for your flight",
-                "Encontre o portão 24 para seu voo"
-            );
-        }
-
-        if (apresentarPassaporte)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_a1_03");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a1_04",
-                "Check your boarding pass",
-                "Consulte seu cartão de embarque"
-            );
-        }
-
-        if (portaoA1)
-            MissionManager.ConcluirMissaoNPC("airport_a1_05");
-
-        if (modalLegendaComum != null)
-        {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await SairModoExercicio();
 
+        // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -674,173 +570,80 @@ public class checkinNPC : InteracaoNPC
         }
     }
 
-    private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
+    private async Task PlayAudioETexto(int i)
     {
-        ultimaFraseDita = dialogoAtual[indiceDialogo];
-        string fala = dialogoAtual[indiceDialogo];
-
-        if (nivelAtual == "A2" && indiceDialogo == 0)
-        {
-            MissionManager.ConcluirMissaoNPC("airport_a2_01");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a2_02",
-                "Tell the employee your destination",
-                "Informe seu destino ao funcionário"
-            );
-        }
-
-        if (nivelAtual == "A1" && fala.Contains("boarding pass"))
-        {
-            MissionManager.ConcluirMissaoNPC("airport_a1_04");
-            MissionManager.AdicionarMissaoNPC(
-                "airport_a1_05",
-                "Find gate 12",
-                "Encontre o portão 12"
-            );
-        }
-
-        if (nivelAtual == "B1" && fala.Contains("gate 24"))
-            MissionManager.ConcluirMissaoNPC("airport_b1_08");
-
-        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
-
+        ultimaFraseDita = dialogoAtual[i];
+        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
+        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        
         if (audioBytes != null && audioBytes.Length > 0)
         {
-            Debug.Log($"\u00c1udio recebido! Tamanho: {audioBytes.Length} bytes");
+            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
             File.WriteAllBytes(caminho, audioBytes);
-
+            
             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
             var operation = www.SendWebRequest();
-
+            
             while (!operation.isDone)
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
+            audioSource.clip = clip;
 
-            if (mostrarLegenda)
-            {
-                textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
 
-            audioSourceComum.Play();
-            while (audioSourceComum.isPlaying)
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+            audioSource.Play();
+            while (audioSource.isPlaying)
             {
                 await Task.Yield();
             }
 
-            if (textoPularDialogoComum != null)
+            if (textoPularDialogo != null)
             {
-                textoPularDialogoComum.gameObject.SetActive(true);
+                textoPularDialogo.gameObject.SetActive(true);
+
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
 
-            await Task.Delay(150);
-
-            while (Input.GetMouseButton(0))
-            {
-                await Task.Yield();
-            }
+            await Task.Yield();
 
             bool clicou = false;
             while (!clicou)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0)) 
                 {
-                    clicou = true;
+                    clicou = true; 
                 }
                 else
                 {
-                    await Task.Yield();
+                    await Task.Yield(); 
                 }
             }
 
-            if (textoPularDialogoComum != null)
+
+            if (textoPularDialogo != null)
             {
-                textoPularDialogoComum.gameObject.SetActive(false);
+                textoPularDialogo.gameObject.SetActive(false);
             }
 
-            if (modalLegendaComum != null)
+            if (modalLegenda != null)
             {
-                modalLegendaComum.SetActive(false);
+                modalLegenda.SetActive(false);
+            }
+            
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
             }
         }
         else
         {
             Debug.LogError("O servidor retornou um array de bytes vazio.");
-            if (mostrarLegenda)
-            {
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
-        }
-    }
-
-    private async Task interacaoA1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoA2()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoB1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
         }
     }
 
@@ -848,32 +651,42 @@ public class checkinNPC : InteracaoNPC
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
-
+        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        
         if (audioBytes != null && audioBytes.Length > 0)
         {
             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
             File.WriteAllBytes(caminho, audioBytes);
-
+            
             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
             var operation = www.SendWebRequest();
-
+            
             while (!operation.isDone)
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
-            if (modalLegendaComum != null && modalLegendaComum.activeSelf)
+            audioSource.clip = clip;
+            if (modalLegenda != null)
             {
-                if (textoPularDialogoComum != null) textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+                modalLegenda.SetActive(true);
+
+                if (textoPularDialogo != null)
+                    textoPularDialogo.gameObject.SetActive(false);
+
+                modalLegenda.GetComponent<ModalLegenda>()
+                    .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
-
-            audioSourceComum.Play();
-
-            while (audioSourceComum.isPlaying)
+            
+            audioSource.Play();
+            
+            while (audioSource.isPlaying)
             {
                 await Task.Yield();
+            }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
             }
         }
     }

@@ -36,9 +36,9 @@ public class ShelfNPC : InteracaoNPC
     private BackendManager backendManager;
     private MissionManager missaoManager; 
 
-    public List<ExercicioBase> exerciciosBlocos;
-    public List<ExercicioBase> exerciciosSpeaking;
-    public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosBlocos;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
     public ExercicioBase exAtual;
 
     public GameObject modalLegenda, modalMissoes;
@@ -85,7 +85,6 @@ public class ShelfNPC : InteracaoNPC
         podeInteragirCenario = false;
         
         nivelAtual = DadosJogador.nivelUsuario;
-        Debug.Log("Nível do jogador capturado na Interação: " + nivelAtual);
 
         InicializarConteudosPorNivel();
 

@@ -443,18 +443,6 @@ public class motherNPC : InteracaoNPC
 
 
 
-    private List<ExercicioBase> ObterFilaExercicios()
-    {
-        List<ExercicioBase> fila = new List<ExercicioBase>();
-        fila.AddRange(exerciciosSpeaking);
-        fila.AddRange(exerciciosAlternativas);
-        fila.AddRange(exerciciosCompletarFrase);
-        fila.AddRange(exerciciosCriarFrases);
-        fila.AddRange(exerciciosWriting);
-        fila.AddRange(exerciciosAssociacao);
-        return fila;
-    }
-
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
     {
         if (exercicio is ExercicioSpeaking)

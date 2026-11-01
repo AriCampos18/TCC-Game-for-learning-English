@@ -60,11 +60,109 @@ public class RestaurantWaiterNPC : InteracaoNPC
                 "Sure! Here is a blue T-shirt in size small.",
                 "Would you like to try it on?",
                 "How does it fit?",
-                "Would you like a larger size?",
+                "I'll bring you a larger one.",
                 "Here is a larger one. Would you like to buy it?",
                 "Of course! Would you like a bag?",
                 "Thank you. Have a nice day!"
             };
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You are in a clothing store. Tell the salesperson what you are looking for.",
+                    opcoesFala = new List<string>() {
+                        "I'm looking for a T-shirt\r\n",
+                        "I need to book a hotel room\r\n",
+                        "Where is the airport?\r\n"
+                    },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "Say your size to the salesperson:",
+                    alternativas = new List<string>() { 
+                        "At five o'clock\r\n", 
+                        "It's blue yesterday\r\n", 
+                        "Small, please\r\n", 
+                        "On the second floor\r\n" },
+                    alternativaCorreta = 2
+                }
+            );
+
+            exerciciosWriting.Add(
+                new ExercicioWriting()
+                {
+                    enunciado = "Tell the salesperson what color T-shirt you want with a sentence."
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Choose the correct answer to the salesperson's question.",
+                    opcoesFala = new List<string>() {
+                        "I would like the bill\r\n",
+                        "Yes, please\r\n",
+                        "I am a T-shirt\r\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Choose the correct answer to the salesperson's question about the T-shirt.",
+                    opcoesFala = new List<string>() {
+                        "It's too small\r\n",
+                        "It's on the table\r\n",
+                        "I have a blue yesterday\r\n"
+                    },
+                    respostaCorreta = 0
+                }
+            );
+
+            exerciciosCriarFrases.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Arrange the words to form the correct sentence in english: Eu gostaria de comprar esta camiseta, por favor.",
+                    blocosPalavras = new List<string>
+                    {
+                        "please.",
+                        "buy",
+                        "that",
+                        "would",
+                        "T-shirt",
+                        "sell",
+                        "I",
+                        "shirt",
+                        "to",
+                        "could",
+                        "this",
+                        "like",
+                        "want",
+                        "the",
+                        "you"
+                    },
+                    respostaCorreta = "I would like to buy this T-shirt, please.\n"
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Choose the correct answer to the question.",
+                    opcoesFala = new List<string>() {
+                        "I would like a car\r\n",
+                        "The shirt it's looks good\r\n",
+                        "Yes, plase. Thank you\r\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
 
             exerciciosAssociacao.Add(new ExercicioAssociacao
             {
@@ -125,6 +223,160 @@ public class RestaurantWaiterNPC : InteracaoNPC
                 "Great! That will be thirty-five dollars. How would you like to pay?",
                 "Perfect! Thank you for shopping with us. Have a great day!"
             };
+
+            exerciciosCriarFrases.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Arrange the words to form the correct sentence in english: Estou procurando uma camisa para um jantar de família.",
+                    blocosPalavras = new List<string>
+                    {
+                        "dinner",
+                        "a",
+                        "family",
+                        "I'm",
+                        "dress",
+                        "for",
+                        "shirt",
+                        "buying",
+                        "the",
+                        "at",
+                        "is",
+                        "my",
+                        "for",
+                        "looking"
+                    },
+                    respostaCorreta = "I'm looking for a shirt for a family dinner\n"
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Say what kind of style you want for your dinner:",
+                    opcoesFala = new List<string>() {
+                        "I would like to check in at the restaurant\r\n",
+                        "I usually eat dinner at seven\r\n",
+                        "Something casual but elegant\r\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You would like to see another color. Ask the salesperson if it is available in a different color",
+                    opcoesFala = new List<string>() {
+                        "How much does the dress cost?\r\n",
+                        "Do you have this in another color?\r\n",
+                        "Where can I find the park?\r\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "Which answer tells the salesperson your clothing size?",
+                    alternativas = new List<string>() { 
+                        "I have a reservation for two\r\n", 
+                        "I would like to pay tomorrow\r\n", 
+                        "I usually go to work by bus\r\n", 
+                        "I usually wear a medium\r\n" },
+                    alternativaCorreta = 3
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "How much does the shirt cost?",
+                    alternativas = new List<string>() { 
+                        "$35\r\n", 
+                        "$15\r\n", 
+                        "$25\r\n", 
+                        "$50\r\n" },
+                    alternativaCorreta = 0
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You found a black shirt you like. Ask the salesperson if you can try it on."
+                }
+            );
+
+            exerciciosWriting.Add(
+                new ExercicioWriting()
+                {
+                    enunciado = "The shirt feels a little tight. Ask the salesperson for a bigger size with a sentece."
+                }
+            );
+
+            exerciciosCompletarFrase.Add(
+                new ExercicioCompletarFrase()
+                {
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "This size is ",
+                    fraseDepois = " comfortable than the medium one.",
+                    respostaCorreta = "more",
+                    opcoes = new List<string>
+                    {
+                        "better",
+                        "very",
+                        "more",
+                        "less",
+                        "too",
+                        "much",
+                        "most",
+                        "enough",
+                        "quite",
+                        "really",
+                        "as"
+                    }
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The salesperson gives you a larger size to try. Answer if the shirt fits better now.",
+                    opcoesFala = new List<string>() {
+                        "Yes, it fits many better\r\n",
+                        "No, I would like to find the cashier\r\n",
+                        "Yes, it fits much better\r\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You have decided to buy the shirt. Tell the salesperson you would like to purchase it.",
+                    opcoesFala = new List<string>() {
+                        "I would like to try the restaurant\r\n",
+                        "Yes, I'll take it, please\r\n",
+                        "I have a class at eight\r\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "How can you tell the salesperson that you want to pay by card?",
+                    alternativas = new List<string>() { 
+                        "I'd like to wear a card, please\r\n", 
+                        "I'd like to pay by card, please\r\n", 
+                        "I'd like to pay by shirt, plase\r\n", 
+                        "I'd like to buy a different color, plase\r\n" },
+                    alternativaCorreta = 1
+                }
+            );
 
             exerciciosAssociacao.Add(new ExercicioAssociacao
             {
@@ -187,6 +439,162 @@ public class RestaurantWaiterNPC : InteracaoNPC
                 "Perfect! Your purchase is complete. Thank you for shopping with us. I hope you enjoy your new outfit!"
             };
 
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You are attending a work event next week and need an appropriate outfit. Explain to the salesperson what kind of clothing you are looking for."
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Tell the salesperson what colors and style you prefer for your outfit.",
+                    opcoesFala = new List<string>() {
+                        "I would like to reserve a table for two\r\n",
+                        "I'd prefer something in neutral colors, preferably navy or black\r\n",
+                        "I'd prefer something in neutral colors, preferably navy or black, because it match the event\r\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "Why does the salesperson recommend the blazer?",
+                    alternativas = new List<string>() { 
+                        "Because it has a smart-casual design and can be combined with different trousers\r\n", 
+                        "Because it is the cheapest item in the store\r\n", 
+                        "Because it is only available in sports sizes\r\n", 
+                        "Because it is designed for cold weather only\r\n" },
+                    alternativaCorreta = 0
+                }
+            );
+
+            exerciciosWriting.Add(
+                new ExercicioWriting()
+                {
+                    enunciado = "You like the blazer and want to know more about it. Ask the salesperson if it is available in navy and how to care for the fabric."
+                }
+            );
+
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "How should the blazer be cleaned?",
+                    alternativas = new List<string>() { 
+                        "It should be cleaned with a wet cloth\r\n", 
+                        "It should be washed with cold water only\r\n", 
+                        "It should be machine washed\r\n", 
+                        "It should be dry cleaned\r\n" },
+                    alternativaCorreta = 3
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "You would like to complete your outfit with a pair of trousers. Ask the salesperson about the available styles and their prices."
+                }
+            );
+
+            exerciciosCriarFrases.Add(
+                new ExercicioBlocos()
+                {
+                    enunciado= "Arrange the words to form the correct sentence in english: Embora o blazer seja um pouco caro, acho que vale a pena comprá-lo",
+                    blocosPalavras = new List<string>
+                    {
+                        "buying",
+                        "Although",
+                        "worth",
+                        "the",
+                        "expensive,",
+                        "think",
+                        "blazer",
+                        "a",
+                        "it's",
+                        "little",
+                        "I",
+                        "worth",
+                        "because",
+                        "is",
+                        "buy"
+                    },
+                    respostaCorreta = "Although the blazer is a little expensive, I think it's worth buying\n"
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The salesperson shows you how the blazer and trousers look together. Tell them what you think about the combination.",
+                    opcoesFala = new List<string>() {
+                        "No, I would like to order some food\r\n",
+                        "Yes, I have been working at the airport\r\n",
+                        "Yes, I'd like to see how they look together\r\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The blazer looks good, but the shoulders feel a little tight. Explain the problem to the salesperson and ask if they have a larger size."
+                }
+            );
+
+            exerciciosCompletarFrase.Add(
+                new ExercicioCompletarFrase()
+                {
+                    enunciado = "Complete the sentence with the correct word:",
+                    fraseAntes = "The larger size fits ",
+                    fraseDepois = " than the previous one.",
+                    respostaCorreta = "better",
+                    opcoes = new List<string>
+                    {
+                        "quite",
+                        "best",
+                        "as",
+                        "comfortable",
+                        "too",
+                        "worse",
+                        "more",
+                        "enough",
+                        "less",
+                        "really",
+                        "better"
+                    }
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The salesperson asks if you would like to buy both the blazer and the trousers. Tell them you have decided to purchase both items.",
+                    opcoesFala = new List<string>() {
+                        "No, I didn’t like it this way. Do have another combination?\r\n",
+                        "Yes, I'll take both, please. They are exactly what I was looking for\r\n",
+                        "Yes, and I have a flight at five o'clock\r\n"
+                    },
+                    respostaCorreta = 1
+                }
+            );
+
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "The salesperson tells you the total price of both items. Say how much they cost together.",
+                    opcoesFala = new List<string>() {
+                        "One hundred and sixty-four dollars\r\n",
+                        "One hundred and six dollars\r\n",
+                        "One hundred and sixty-four dollars\r\n"
+                    },
+                    respostaCorreta = 2
+                }
+            );
+
             exerciciosAssociacao.Add(new ExercicioAssociacao
             {
                 enunciado = "Match the Portuguese word with the English word.",
@@ -227,6 +635,390 @@ public class RestaurantWaiterNPC : InteracaoNPC
                     new ParAssociacao { palavraPortugues = "vale a pena", palavraIngles = "worth it" }
                 }
             });
+        }
+    }
+
+    private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
+    {
+        if (exercicio is ExercicioSpeaking)
+            return TipoExercicio.Speaking;
+        if (exercicio is ExercicioAlternativas)
+            return TipoExercicio.Alternativas;
+        if (exercicio is ExercicioBlocos)
+            return TipoExercicio.Blocos;
+        if (exercicio is ExercicioCompletarFrase)
+            return TipoExercicio.CompletarFrase;
+        if (exercicio is ExercicioWriting)
+            return TipoExercicio.Writing;
+        if (exercicio is ExercicioAssociacao)
+            return TipoExercicio.Associacao;
+
+        throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
+    }
+
+    protected override async Task IniciarInteracao()
+    {
+        GameProgress.EstaEmDialogo = true;
+        nivelAtual = DadosJogador.nivelUsuario;
+        InicializarConteudosPorNivel();
+
+        if (nivelAtual == "A1")
+        {
+            await interacaoA1();
+        }
+        else if (nivelAtual == "A2")
+        {
+            await interacaoA2();
+        }
+        else
+        {
+            await interacaoB1();
+        }
+
+        // Desativa o estado quando a conversa acabar completamente!
+        GameProgress.EstaEmDialogo = false;
+        MissionManager.Instance.ConcluirMissao("finalizar_compra");
+
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
+
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+
+        GameProgress.EstaEmDialogo = false;
+
+        LiberarControlePlayer();
+    }
+
+    private async Task interacaoA1()
+    {
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PegarRoupa(blue_tshirt);
+
+        await PlayAudioETexto(i++);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        await PlayAudioETexto(i++);
+
+        await PegarRoupa(blue_tshirt_large);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    private async Task interacaoA2()
+    {
+        int i = 0;
+        
+        await PlayAudioETexto(i++);
+        
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+        
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        await PlayAudioETexto(i++);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[4]), exerciciosSpeaking[4]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+ 
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    private async Task interacaoB1()
+    {
+        int i = 0;
+        
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosAlternativas[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[4]), exerciciosSpeaking[4]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[5]), exerciciosSpeaking[5]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[6]), exerciciosSpeaking[6]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+    }
+
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    {
+        //Debug.Log("Abrindo exercício: " + tipo);
+
+        ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
+        }
+
+        await EntrarModoExercicio();
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        modalExercicio.Abrir(tipo, ex, this);
+
+        if (legenda != null) 
+        {
+            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
+        }
+
+        while (!modalExercicio.exercicioFinalizado)
+        {
+            await Task.Yield();
+        }
+
+        if (modalLegenda != null)
+        {
+            modalLegenda.SetActive(false);
+        }
+
+        await SairModoExercicio();
+
+        // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        if (legenda != null)
+        {
+            legenda.AjustarPosicaoPeloEstadoDoJogo();
+        }
+    }
+
+    private async Task PlayAudioETexto(int i)
+    {
+        ultimaFraseDita = dialogoAtual[i];
+        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
+        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        
+        if (audioBytes != null && audioBytes.Length > 0)
+        {
+            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
+            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
+            File.WriteAllBytes(caminho, audioBytes);
+            
+            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+            var operation = www.SendWebRequest();
+            
+            while (!operation.isDone)
+                await Task.Yield();
+
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+            audioSource.clip = clip;
+
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
+
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+            audioSource.Play();
+            while (audioSource.isPlaying)
+            {
+                await Task.Yield();
+            }
+
+            if (textoPularDialogo != null)
+            {
+                textoPularDialogo.gameObject.SetActive(true);
+
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+
+            await Task.Yield();
+
+            bool clicou = false;
+            while (!clicou)
+            {
+                if (Input.GetMouseButtonDown(0)) 
+                {
+                    clicou = true; 
+                }
+                else
+                {
+                    await Task.Yield(); 
+                }
+            }
+
+
+            if (textoPularDialogo != null)
+            {
+                textoPularDialogo.gameObject.SetActive(false);
+            }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
+            }
+            
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
+            }
+        }
+        else
+        {
+            Debug.LogError("O servidor retornou um array de bytes vazio.");
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+        }
+    }
+
+    public override async Task FalarFraseCustomizada(string textoParaFalar)
+    {
+        if (string.IsNullOrEmpty(textoParaFalar)) return;
+
+        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        
+        if (audioBytes != null && audioBytes.Length > 0)
+        {
+            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
+            File.WriteAllBytes(caminho, audioBytes);
+            
+            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+            var operation = www.SendWebRequest();
+            
+            while (!operation.isDone)
+                await Task.Yield();
+
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+            audioSource.clip = clip;
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(true);
+
+                if (textoPularDialogo != null)
+                    textoPularDialogo.gameObject.SetActive(false);
+
+                modalLegenda.GetComponent<ModalLegenda>()
+                    .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+            }
+            
+            audioSource.Play();
+            
+            while (audioSource.isPlaying)
+            {
+                await Task.Yield();
+            }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
+            }
         }
     }
 }

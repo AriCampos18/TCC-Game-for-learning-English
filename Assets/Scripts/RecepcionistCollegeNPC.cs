@@ -230,60 +230,35 @@ public class RecepcionistCollegeNPC: InteracaoNPC
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
-        try
+        nivelAtual = DadosJogador.nivelUsuario;
+        InicializarConteudosPorNivel();
+
+        if (nivelAtual == "A1")
         {
-            nivelAtual = DadosJogador.nivelUsuario;
-            InicializarConteudosPorNivel();
-
-            if (dialogoAtual == null || dialogoAtual.Count == 0)
-                throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
-
-            string idMissaoInicial = "college_" + nivelAtual.ToLowerInvariant() + "_01";
-            string textoMissaoInicial = nivelAtual == "A1"
-                ? "Talk to the receptionist and find out how to get to the secretary's office"
-                : nivelAtual == "A2"
-                    ? "Talk to the receptionist"
-                    : "Ask the receptionist for detailed directions and clarify the office location";
-            string traducaoMissaoInicial = nivelAtual == "A1"
-                ? "Converse com o recepcionista e descubra como chegar ao escritório da secretaria"
-                : nivelAtual == "A2"
-                    ? "Converse com a recepcionista"
-                    : "Peça orientações detalhadas ao recepcionista e esclareça dúvidas sobre a localização do escritório";
-            MissionManager.AdicionarMissaoNPC(idMissaoInicial, textoMissaoInicial, traducaoMissaoInicial);
-
-            if (nivelAtual == "A1")
-                await interacaoA1();
-            else if (nivelAtual == "A2")
-                await interacaoA2();
-            else
-                await interacaoB1();
-
-            if (nivelAtual == "A1")
-                MissionManager.ConcluirMissaoNPC(idMissaoInicial);
+            await interacaoA1();
         }
-        finally
+        else if (nivelAtual == "A2")
         {
-            GameProgress.EstaEmDialogo = false;
-            if (modalLegendaComum != null)
-                modalLegendaComum.SetActive(false);
-            if (textoPularDialogoComum != null)
-                textoPularDialogoComum.gameObject.SetActive(false);
-            LiberarControlePlayer();
+            await interacaoA2();
         }
-    }
+        else
+        {
+            await interacaoB1();
+        }
 
+        // Desativa o estado quando a conversa acabar completamente!
+        GameProgress.EstaEmDialogo = false;
+        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
 
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
 
-    private List<ExercicioBase> ObterFilaExercicios()
-    {
-        List<ExercicioBase> fila = new List<ExercicioBase>();
-        fila.AddRange(exerciciosSpeaking);
-        fila.AddRange(exerciciosAlternativas);
-        fila.AddRange(exerciciosCompletarFrase);
-        fila.AddRange(exerciciosCriarFrases);
-        fila.AddRange(exerciciosWriting);
-        fila.AddRange(exerciciosAssociacao);
-        return fila;
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+
+        GameProgress.EstaEmDialogo = false;
+
+        LiberarControlePlayer();
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -304,29 +279,74 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
+    private async Task interacaoA1()
     {
-        Debug.Log("Abrindo exerc\u00edcio: " + tipo);
-        bool orientacaoA2 = nivelAtual == "A2"
-            && exercicio.enunciado.Contains("Eu gostaria de encontrar o escritório da secretária");
-        bool esclarecimentoB1 = nivelAtual == "B1"
-            && exercicio.enunciado.Contains("Ask the receptionist for clarification");
+        int i=0;
 
-        if (orientacaoA2)
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+        
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+    }
+
+    private async Task interacaoA2()
+    {
+        int i=0;
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+
+        await PlayAudioETexto(i);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+    }
+
+    private async Task interacaoB1()
+    {
+        int i=0;
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
+
+        await PlayAudioETexto(i++);
+    }
+
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    {
+        //Debug.Log("Abrindo exercício: " + tipo);
+
+        ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+        if (modalLegenda != null)
         {
-            MissionManager.ConcluirMissaoNPC("college_a2_01");
-            MissionManager.AdicionarMissaoNPC(
-                "college_a2_02",
-                "Find the secretary's office",
-                "Encontre o escritório da secretaria"
-            );
-        }
-
-        ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
-
-        if (modalLegendaComum != null)
-        {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await EntrarModoExercicio();
@@ -334,28 +354,26 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        modalExercicioComum.Abrir(tipo, exercicio, this);
+        modalExercicio.Abrir(tipo, ex, this);
 
-        if (legenda != null)
+        if (legenda != null) 
         {
-            legenda.AjustarPosicaoPeloEstadoDoJogo();
+            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
         }
 
-        while (!modalExercicioComum.exercicioFinalizado)
+        while (!modalExercicio.exercicioFinalizado)
         {
             await Task.Yield();
         }
 
-        if (esclarecimentoB1)
-            MissionManager.ConcluirMissaoNPC("college_b1_01");
-
-        if (modalLegendaComum != null)
+        if (modalLegenda != null)
         {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await SairModoExercicio();
 
+        // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -440,72 +458,6 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             if (mostrarLegenda)
             {
                 modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
-        }
-    }
-
-    private async Task interacaoA1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoA2()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoB1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
             }
         }
     }

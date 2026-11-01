@@ -33,12 +33,12 @@ public class BakeryNPC : InteracaoNPC
     public List<Transform> pontosBakeryA2;
     public List<Transform> pontosBakeryB1;
     private MissionManager missaoManager;
-    public List<ExercicioBase> exerciciosSpeaking;
 
     public TextMeshProUGUI textoPularDialogo;
-    public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
 
-    public List<ExercicioBase> exerciciosBlocos;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosBlocos;
     private ExercicioBase exAtual;
     private BackendManager backendManager;
 

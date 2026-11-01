@@ -25,9 +25,9 @@ public class CashierNPC : InteracaoNPC
     public ModalExercicio modalExercicio;
     private BackendManager backendManager;
 
-    public List<ExercicioBase> exerciciosBlocos;
-    public List<ExercicioBase> exerciciosSpeaking;
-    public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosBlocos;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
 
     public List<Transform> pontosProdutosBalcao;
     public GameObject sacolaFinal;

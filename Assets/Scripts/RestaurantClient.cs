@@ -12,6 +12,7 @@ public class RestaurantClient : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    [SerializeField] private RestaurantWaiterNPC garcom; //ARRASTAR NO INSPECTOR O GARÇOM DPS
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -42,7 +43,6 @@ public class RestaurantClient : InteracaoNPC
                 "Hi. Is this your first time here?",
                 "Have you tried the food here before?",
                 "I come here almost every week. I really like the burgers, and the portions are generous, too.",
-                "If you like burgers, I'd recommend the house special.",
                 "Yes, it’s delicious. The fries are great, too."
             };
 
@@ -77,7 +77,7 @@ public class RestaurantClient : InteracaoNPC
         exerciciosCriarFrases.Add(
                 new ExercicioBlocos()
                 {
-                    enunciado= "Arrange the words to form the correct sentence in english: Não, obrigado. Isso é tudo o que vou pedir por enquanto.",
+                    enunciado= "Arrange the words to form the correct sentence in english: Não, obrigado. Você diria que vale a pena experimentar o hambúrguer?",
                     blocosPalavras = new List<string>
                     {
                         "trying",
@@ -101,68 +101,6 @@ public class RestaurantClient : InteracaoNPC
             );
     }
 
-    protected override async Task IniciarInteracao()
-    {
-        GameProgress.EstaEmDialogo = true;
-        try
-        {
-            nivelAtual = DadosJogador.nivelUsuario;
-            InicializarConteudosPorNivel();
-
-            if (dialogoAtual == null || dialogoAtual.Count == 0)
-                throw new InvalidOperationException("O diálogo do NPC não foi inicializado para o nível atual.");
-
-            if (nivelAtual == "B1")
-            {
-                MissionManager.AdicionarMissaoNPC(
-                    "restaurant_b1_04",
-                    "Talk to the other customer",
-                    "Converse com o outro cliente"
-                );
-            }
-
-            if (nivelAtual == "A1")
-                await interacaoA1();
-            else if (nivelAtual == "A2")
-                await interacaoA2();
-            else
-                await interacaoB1();
-
-            if (nivelAtual == "B1")
-            {
-                MissionManager.ConcluirMissaoNPC("restaurant_b1_04");
-                MissionManager.AdicionarMissaoNPC(
-                    "restaurant_b1_05",
-                    "Eat your food",
-                    "Coma sua comida"
-                );
-            }
-        }
-        finally
-        {
-            GameProgress.EstaEmDialogo = false;
-            if (modalLegendaComum != null)
-                modalLegendaComum.SetActive(false);
-            if (textoPularDialogoComum != null)
-                textoPularDialogoComum.gameObject.SetActive(false);
-            LiberarControlePlayer();
-        }
-    }
-
-
-
-    private List<ExercicioBase> ObterFilaExercicios()
-    {
-        List<ExercicioBase> fila = new List<ExercicioBase>();
-        fila.AddRange(exerciciosSpeaking);
-        fila.AddRange(exerciciosAlternativas);
-        fila.AddRange(exerciciosCompletarFrase);
-        fila.AddRange(exerciciosCriarFrases);
-        fila.AddRange(exerciciosWriting);
-        fila.AddRange(exerciciosAssociacao);
-        return fila;
-    }
-
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
     {
         if (exercicio is ExercicioSpeaking)
@@ -181,15 +119,62 @@ public class RestaurantClient : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase exercicio)
+    protected override async Task IniciarInteracao()
     {
-        Debug.Log("Abrindo exerc\u00edcio: " + tipo);
+        GameProgress.EstaEmDialogo = true;
+        nivelAtual = DadosJogador.nivelUsuario;
+        InicializarConteudosPorNivel();
 
-        ModalLegenda legenda = modalLegendaComum.GetComponent<ModalLegenda>();
+        await interacaoUnica();
 
-        if (modalLegendaComum != null)
+        // Desativa o estado quando a conversa acabar completamente!
+        garcom.FinalizarConversaComCliente();
+        GameProgress.EstaEmDialogo = false;
+
+        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
+
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
+
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+
+        GameProgress.EstaEmDialogo = false;
+
+        LiberarControlePlayer();
+    }
+
+    private async Task interacaoUnica()
+    {
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);//
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+        await PlayAudioETexto(i++);
+    }
+
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    {
+        //Debug.Log("Abrindo exercício: " + tipo);
+
+        ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+        if (modalLegenda != null)
         {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await EntrarModoExercicio();
@@ -197,25 +182,26 @@ public class RestaurantClient : InteracaoNPC
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        modalExercicioComum.Abrir(tipo, exercicio, this);
+        modalExercicio.Abrir(tipo, ex, this);
 
-        if (legenda != null)
+        if (legenda != null) 
         {
-            legenda.AjustarPosicaoPeloEstadoDoJogo();
+            legenda.AjustarPosicaoPeloEstadoDoJogo(); 
         }
 
-        while (!modalExercicioComum.exercicioFinalizado)
+        while (!modalExercicio.exercicioFinalizado)
         {
             await Task.Yield();
         }
 
-        if (modalLegendaComum != null)
+        if (modalLegenda != null)
         {
-            modalLegendaComum.SetActive(false);
+            modalLegenda.SetActive(false);
         }
 
         await SairModoExercicio();
 
+        // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -225,148 +211,80 @@ public class RestaurantClient : InteracaoNPC
         }
     }
 
-    private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
+    private async Task PlayAudioETexto(int i)
     {
-        ultimaFraseDita = dialogoAtual[indiceDialogo];
-        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
-
+        ultimaFraseDita = dialogoAtual[i];
+        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
+        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        
         if (audioBytes != null && audioBytes.Length > 0)
         {
-            Debug.Log($"\u00c1udio recebido! Tamanho: {audioBytes.Length} bytes");
+            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
             File.WriteAllBytes(caminho, audioBytes);
-
+            
             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
             var operation = www.SendWebRequest();
-
+            
             while (!operation.isDone)
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
+            audioSource.clip = clip;
 
-            if (mostrarLegenda)
-            {
-                textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
 
-            audioSourceComum.Play();
-            while (audioSourceComum.isPlaying)
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+            audioSource.Play();
+            while (audioSource.isPlaying)
             {
                 await Task.Yield();
             }
 
-            if (textoPularDialogoComum != null)
+            if (textoPularDialogo != null)
             {
-                textoPularDialogoComum.gameObject.SetActive(true);
+                textoPularDialogo.gameObject.SetActive(true);
+
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
 
-            await Task.Delay(150);
-
-            while (Input.GetMouseButton(0))
-            {
-                await Task.Yield();
-            }
+            await Task.Yield();
 
             bool clicou = false;
             while (!clicou)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0)) 
                 {
-                    clicou = true;
+                    clicou = true; 
                 }
                 else
                 {
-                    await Task.Yield();
+                    await Task.Yield(); 
                 }
             }
 
-            if (textoPularDialogoComum != null)
+
+            if (textoPularDialogo != null)
             {
-                textoPularDialogoComum.gameObject.SetActive(false);
+                textoPularDialogo.gameObject.SetActive(false);
             }
 
-            if (modalLegendaComum != null)
+            if (modalLegenda != null)
             {
-                modalLegendaComum.SetActive(false);
+                modalLegenda.SetActive(false);
+            }
+            
+            while (Input.GetMouseButton(0))
+            {
+                await Task.Yield();
             }
         }
         else
         {
             Debug.LogError("O servidor retornou um array de bytes vazio.");
-            if (mostrarLegenda)
-            {
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
-        }
-    }
-
-    private async Task interacaoA1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoA2()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
-        }
-    }
-
-    private async Task interacaoB1()
-    {
-        List<ExercicioBase> filaExercicios = ObterFilaExercicios();
-        int indiceExercicio = 0;
-
-        for (int i = 0; i < dialogoAtual.Count; i++)
-        {
-            await PlayAudioETexto(i);
-
-            int dialogosRestantes = dialogoAtual.Count - i;
-            int exerciciosRestantes = filaExercicios.Count - indiceExercicio;
-            int exerciciosNesteTrecho =
-                (exerciciosRestantes + dialogosRestantes - 1) / dialogosRestantes;
-
-            for (int j = 0; j < exerciciosNesteTrecho; j++)
-            {
-                ExercicioBase exercicio = filaExercicios[indiceExercicio++];
-                await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
-            }
+            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
         }
     }
 
@@ -374,32 +292,42 @@ public class RestaurantClient : InteracaoNPC
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
-
+        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        
         if (audioBytes != null && audioBytes.Length > 0)
         {
             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
             File.WriteAllBytes(caminho, audioBytes);
-
+            
             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
             var operation = www.SendWebRequest();
-
+            
             while (!operation.isDone)
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
-            if (modalLegendaComum != null && modalLegendaComum.activeSelf)
+            audioSource.clip = clip;
+            if (modalLegenda != null)
             {
-                if (textoPularDialogoComum != null) textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+                modalLegenda.SetActive(true);
+
+                if (textoPularDialogo != null)
+                    textoPularDialogo.gameObject.SetActive(false);
+
+                modalLegenda.GetComponent<ModalLegenda>()
+                    .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
-
-            audioSourceComum.Play();
-
-            while (audioSourceComum.isPlaying)
+            
+            audioSource.Play();
+            
+            while (audioSource.isPlaying)
             {
                 await Task.Yield();
+            }
+
+            if (modalLegenda != null)
+            {
+                modalLegenda.SetActive(false);
             }
         }
     }
