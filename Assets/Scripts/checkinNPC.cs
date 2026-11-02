@@ -50,6 +50,13 @@ public class checkinNPC : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -181,7 +188,7 @@ public class checkinNPC : InteracaoNPC
                             "I left my booking confirmation at the hotel\n",
                             "I showed my passport to the hotel receptionist last week\n"
                         },
-                        respostaCorreta = 1
+                        respostaCorreta = 0
                     }
             );
 
@@ -205,9 +212,9 @@ public class checkinNPC : InteracaoNPC
                         enunciado = "What time does your boarding start?",
                         alternativas = new List<string>() { 
                         "Two p.m.\r\n", 
-                        "Two thirdy p.m.\r\n", 
-                        "Three thirdy p.m.\r\n", 
-                        "Eleven thirdy p.m.\r\n" },
+                        "Two thirty p.m.\r\n", 
+                        "Three thirty p.m.\r\n", 
+                        "Eleven thirty p.m.\r\n" },
                         alternativaCorreta = 1
                     }
             );     
@@ -415,6 +422,16 @@ public class checkinNPC : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
+    private void ConcluirMissao(string id)
+    {
+        MissionManager.ConcluirMissaoNPC(id);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
@@ -453,76 +470,126 @@ public class checkinNPC : InteracaoNPC
     {
         int i = 0;
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("aeroporto_a1_3", "Dirija-se ao balcão de check-in e apresente seu passaporte", "Go to the check-in desk and present your passport");
+
+        await PlayAudioETexto(i++); // Where are you going?
+        await PlayAudioETexto(i++); // Can I see your passport, please?
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_a1_3");
+        IniciarMissao("aeroporto_a1_4", "Consulte seu cartão de embarque", "Check your boarding pass");
+
+        await PlayAudioETexto(i++); // Boarding pass and gate number
 
         exAtual = exerciciosCompletarFrase[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_a1_4");
+        IniciarMissao("aeroporto_a1_5", "Encontre o portão 12", "Find gate 12");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+
+        // A conclusão de "Encontre o portão 12" depende da chegada física ao portão.
+        // O script atual do check-in não possui um evento de detecção dessa chegada.
     }
 
     private async Task interacaoA2()
     {
         int i = 0;
 
-        await PlayAudioETexto(i++);
-        
+        IniciarMissao("aeroporto_a2_2", "Informe seu destino ao funcionário", "Tell the airport employee your destination");
+
+        await PlayAudioETexto(i++); // Where are you flying today?
+
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
-        
+        ConcluirMissao("aeroporto_a2_2");
+        IniciarMissao("aeroporto_a2_3", "Apresente seu passaporte e confirmação da reserva", "Present your passport and booking confirmation");
+
+        await PlayAudioETexto(i++); // Passport and booking confirmation
+
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_a2_3");
+        IniciarMissao("aeroporto_a2_4", "Informe sua bagagem para despacho", "Tell the employee about the luggage you need to check in");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await PlayAudioETexto(i++); // Bags to check in
 
-        await PlayAudioETexto(i++);
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        ConcluirMissao("aeroporto_a2_4");
+        IniciarMissao("aeroporto_a2_5", "Descubra o horário de embarque", "Find out the boarding time");
+
+        await PlayAudioETexto(i++); // Gate and boarding time
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        ConcluirMissao("aeroporto_a2_5");
+
         exAtual = exerciciosCompletarFrase[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        IniciarMissao("aeroporto_a2_6", "Encontre o portão 18", "Find gate 18");
+
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+
+        // A conclusão de "Encontre o portão 18" depende da chegada física ao portão.
+        // O script atual do check-in não possui um evento de detecção dessa chegada.
     }
 
     private async Task interacaoB1()
     {
         int i = 0;
-        
-        await PlayAudioETexto(i++);
+
+        IniciarMissao("aeroporto_b1_3", "Dirija-se ao balcão de check-in", "Go to the check-in desk");
+
+        await PlayAudioETexto(i++); // Destination and connecting flight
+
+        ConcluirMissao("aeroporto_b1_3");
+        IniciarMissao("aeroporto_b1_4", "Informe seu destino e os detalhes do voo de conexão", "Provide your destination and connecting-flight details");
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_b1_4");
+        IniciarMissao("aeroporto_b1_5", "Apresente seus documentos de viagem", "Present your travel documents");
+
+        await PlayAudioETexto(i++); // Passport and booking confirmation
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_b1_5");
+        IniciarMissao("aeroporto_b1_6", "Confirme as informações sobre a bagagem despachada", "Confirm the checked-baggage information");
+
+        await PlayAudioETexto(i++); // Are you checking any bags?
+
+        // O funcionário informa a transferência automática da bagagem nesta fala.
+        await PlayAudioETexto(i++); // Checked bag transfer and gate 24
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);//
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_b1_6");
+        IniciarMissao("aeroporto_b1_7", "Consulte os painéis de partida", "Check the departure screens");
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Check departure screens
 
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        ConcluirMissao("aeroporto_b1_7");
+        IniciarMissao("aeroporto_b1_8", "Encontre o portão 24 para seu voo", "Find gate 24 for your flight");
+
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+
+        // A conclusão de "Encontre o portão 24" depende da chegada física ao portão.
+        // O script atual do check-in não possui um evento de detecção dessa chegada.
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

@@ -6,7 +6,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class RestaurantWaiterNPC : InteracaoNPC
+public class ClothingSellerNPC : InteracaoNPC
 {
     string nivelAtual;
     string cumprimento;
@@ -26,7 +26,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
     {
         base.Start();
         nivelAtual = DadosJogador.nivelUsuario;
-        nomeExibicaoLegenda = "Restaurant Waiter";
+        nomeExibicaoLegenda = "Clothing Seller";
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
         exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
         exerciciosSpeaking = GarantirListaExercicios(exerciciosSpeaking);
@@ -209,16 +209,14 @@ public class RestaurantWaiterNPC : InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                cumprimento+"Welcome to our store. Are you looking for something specific?",
+                cumprimento+" Welcome to our store. Are you looking for something specific?",
                 "Sure! What kind of style do you prefer?",
                 "How about this shirt? It's one of our most popular models",
                 "Yes! We have it in black and white. What size do you usually wear?",
                 "Great! Let me check. We have a medium in black. It's thirty-five dollars.",
                 "Of course! You can try it on.",
                 "How does it fit?",
-                "Of course! I have a large one. Would you like to try it?",
-                "Of course! Would you like a bag?",
-                "Does this one fit better?",
+                "Of course! I have a large one.",
                 "Would you like to buy it?",
                 "Great! That will be thirty-five dollars. How would you like to pay?",
                 "Perfect! Thank you for shopping with us. Have a great day!"
@@ -342,19 +340,6 @@ public class RestaurantWaiterNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "The salesperson gives you a larger size to try. Answer if the shirt fits better now.",
-                    opcoesFala = new List<string>() {
-                        "Yes, it fits many better\r\n",
-                        "No, I would like to find the cashier\r\n",
-                        "Yes, it fits much better\r\n"
-                    },
-                    respostaCorreta = 2
-                }
-            );
-
-            exerciciosSpeaking.Add(
-                new ExercicioSpeaking()
-                {
                     enunciado = "You have decided to buy the shirt. Tell the salesperson you would like to purchase it.",
                     opcoesFala = new List<string>() {
                         "I would like to try the restaurant\r\n",
@@ -424,7 +409,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
         {
             dialogoAtual = new List<string>()
             {
-                cumprimento+"Welcome to our store. How can I assist you today?",
+                cumprimento+" Welcome to our store. How can I assist you today?",
                 "Certainly! Do you have any particular preferences regarding style or color?",
                 "I think this blazer could be a good option. It has a smart-casual design and can be combined with different types of trousers.",
                 "Yes, we have it in navy. It's made from a cotton blend, and we recommend dry cleaning to keep the fabric in good condition.",
@@ -582,12 +567,26 @@ public class RestaurantWaiterNPC : InteracaoNPC
                 }
             );
 
+            exerciciosAlternativas.Add(
+                new ExercicioAlternativas()
+                {
+                    enunciado = "You have chosen a shirt and are ready to pay. How would you politely inform the salesperson that you prefer to use your credit card instead of cash?",
+                    alternativas = new List<string>() {
+                        "Would you mind giving me a discount?",
+                        "I'd prefer to pay by credit card, if that's possible.",
+                        "Could you exchange this shirt for a larger one?",
+                        "I'd rather take another look at the other options."
+                    },
+                    alternativaCorreta = 1
+                }
+            );
+
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
                     enunciado = "The salesperson tells you the total price of both items. Say how much they cost together.",
                     opcoesFala = new List<string>() {
-                        "One hundred and sixty-four dollars\r\n",
+                        "Two hundred and sixty-four dollars\r\n",
                         "One hundred and six dollars\r\n",
                         "One hundred and sixty-four dollars\r\n"
                     },
@@ -656,10 +655,16 @@ public class RestaurantWaiterNPC : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
+
         InicializarConteudosPorNivel();
 
         if (nivelAtual == "A1")
@@ -675,17 +680,13 @@ public class RestaurantWaiterNPC : InteracaoNPC
             await interacaoB1();
         }
 
-        // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
-        MissionManager.Instance.ConcluirMissao("finalizar_compra");
 
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
 
         if (textoPularDialogo != null)
             textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
 
         LiberarControlePlayer();
     }
@@ -694,11 +695,26 @@ public class RestaurantWaiterNPC : InteracaoNPC
     {
         int i = 0;
 
+        // Missão 1: aparece quando a conversa com o vendedor começa.
+        IniciarMissao(
+            "roupas_a1_1",
+            "Talk to the salesperson in the clothing store",
+            "Converse com o vendedor na loja de roupas"
+        );
+
+        // Missão 1: conversar com o vendedor e explicar o que procura.
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_a1_1");
 
+        // Missão 2: informar tamanho e cor e escolher a camiseta.
+        IniciarMissao(
+            "roupas_a1_2",
+            "Choose a T-shirt and tell the salesperson your size and preferred color",
+            "Escolha uma camiseta e informe o tamanho e a cor desejados"
+        );
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
@@ -710,31 +726,47 @@ public class RestaurantWaiterNPC : InteracaoNPC
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PegarRoupa(blue_tshirt);
+        await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("roupas_a1_2");
 
+        // O vendedor apresenta a camiseta e pergunta se o usuário deseja experimentá-la.
         await PlayAudioETexto(i++);
 
+        // Missão 3: aparece quando o usuário já pode começar a experimentar a camiseta.
+        IniciarMissao(
+            "roupas_a1_3",
+            "Try on the T-shirt and explain how it fits",
+            "Experimente a camiseta e explique como ela serviu"
+        );
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
-
-        await PlayAudioETexto(i++);
-
-        await PegarRoupa(blue_tshirt_large);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[3];
+        exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_a1_3");
+
+        // O vendedor avisa que vai buscar uma camiseta maior.
+        await PlayAudioETexto(i++);
+
+        // Missão 4: aparece quando a camiseta maior é apresentada para a compra.
+        IniciarMissao(
+            "roupas_a1_4",
+            "Choose the T-shirt and complete the purchase",
+            "Escolha a camiseta e finalize a compra"
+        );
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("roupas_a1_4");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
@@ -742,20 +774,36 @@ public class RestaurantWaiterNPC : InteracaoNPC
     private async Task interacaoA2()
     {
         int i = 0;
-        
+
+        // Missão 1: aparece quando a conversa com o vendedor começa.
+        IniciarMissao(
+            "roupas_a2_1",
+            "Talk to the salesperson and explain what you are looking for",
+            "Converse com o vendedor e explique o que está procurando"
+        );
+
+        // Missão 1: explicar o que está procurando.
         await PlayAudioETexto(i++);
-        
+
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_a2_1");
 
+        // Missão 2: conhecer as opções, pedir outra cor e verificar tamanho/preço.
+        IniciarMissao(
+            "roupas_a2_2",
+            "Explore the available options and ask for recommendations",
+            "Conheça as opções disponíveis e peça recomendações"
+        );
         await PlayAudioETexto(i++);
-        
+
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
@@ -766,26 +814,42 @@ public class RestaurantWaiterNPC : InteracaoNPC
 
         exAtual = exerciciosAlternativas[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_a2_2");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+        // Missão 3: começa quando o usuário decide experimentar a camisa.
+        IniciarMissao(
+            "roupas_a2_3",
+            "Try on the shirt and explain if you need a different size",
+            "Experimente a camisa e informe se precisa de outro tamanho"
+        );
+
+        // O usuário pede para experimentar a camisa antes da resposta do vendedor.
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
+        // Missão 3: experimentar, explicar o problema e solicitar outro tamanho.
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+        MissionManager.ConcluirMissaoNPC("roupas_a2_3");
 
+        // Missão 4: começa quando o vendedor pergunta se o usuário deseja comprar.
+        IniciarMissao(
+            "roupas_a2_4",
+            "Choose the shirt and complete the purchase",
+            "Escolha a roupa desejada e finalize a compra"
+        );
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[4]), exerciciosSpeaking[4]);
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
@@ -793,65 +857,117 @@ public class RestaurantWaiterNPC : InteracaoNPC
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
- 
+        MissionManager.ConcluirMissaoNPC("roupas_a2_4");
+
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
     {
         int i = 0;
-        
+
+        // Missão 1: aparece quando a conversa com o vendedor começa.
+        IniciarMissao(
+            "roupas_b1_1",
+            "Explain what kind of outfit you need and for what occasion",
+            "Explique que tipo de roupa você precisa e para qual ocasião"
+        );
+
+        // Missão 1: explicar a ocasião e o tipo de roupa desejado.
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_b1_1");
 
+        // Missão 2: começa quando o vendedor pergunta sobre preferências.
+        IniciarMissao(
+            "roupas_b1_2",
+            "Explore the options and ask about the characteristics of the clothing",
+            "Conheça as opções disponíveis e pergunte sobre as características das peças"
+        );
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_b1_2");
 
+        // Missão 3: começa quando o vendedor oferece calças para combinar com o blazer.
+        IniciarMissao(
+            "roupas_b1_3",
+            "Compare the options and ask about price and fabric care",
+            "Compare as opções e esclareça suas dúvidas sobre preço e conservação"
+        );
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_b1_3");
+
+        // Missão 4: começa quando o vendedor pergunta se o usuário quer experimentar as peças.
+        IniciarMissao(
+            "roupas_b1_4",
+            "Try on the outfit, explain what needs adjusting, and ask for another size",
+            "Experimente a roupa, explique o que precisa ser ajustado e solicite outro tamanho"
+        );
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
+        exAtual = exerciciosSpeaking[4];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[4]), exerciciosSpeaking[4]);
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCompletarFrase[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        MissionManager.ConcluirMissaoNPC("roupas_b1_4");
+
+        // Missão 5: começa quando o vendedor pergunta se o usuário deseja comprar as peças.
+        IniciarMissao(
+            "roupas_b1_5",
+            "Choose the outfit that best meets your needs and complete the purchase",
+            "Escolha a roupa que melhor atende às suas necessidades e finalize a compra"
+        );
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[5];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+        // Primeiro, o usuário informa o valor total; depois, escolhe a forma de pagamento.
+        exAtual = exerciciosSpeaking[6];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        exAtual = exerciciosAlternativas[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[5]), exerciciosSpeaking[5]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[6]), exerciciosSpeaking[6]);
-
-        await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("roupas_b1_5");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }

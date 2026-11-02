@@ -52,6 +52,13 @@ public class RestaurantWaiterNPC : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -595,6 +602,16 @@ public class RestaurantWaiterNPC : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
+    private void ConcluirMissao(string id)
+    {
+        MissionManager.ConcluirMissaoNPC(id);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
@@ -633,51 +650,50 @@ public class RestaurantWaiterNPC : InteracaoNPC
     {
         int i = 0;
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a1_entrar", "Entre no restaurante e sente-se em uma mesa", "Enter the restaurant and sit at a table");
+        await PlayAudioETexto(i++); // Welcome!
+        await PlayAudioETexto(i++); // Here is the menu.
+        ConcluirMissao("rest_a1_entrar");
 
-        await PlayAudioETexto(i++);
-
-        //ele saiu por um tempo, e 
-        
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a1_pedido", "Olhe o menu e faça seu pedido", "Look at the menu and place your order");
+        await PlayAudioETexto(i++); // Are you ready to order?
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Anything to drink?
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Your order will be ready...
+        ConcluirMissao("rest_a1_pedido");
 
-        //vai sair, voltar com o pedido e sair novamente
-        //usuário deve comer a comida
-        //adicionar missão aqui
+        IniciarMissao("rest_a1_comer", "Coma a comida", "Eat your meal");
+        // O avanço para a próxima fala representa o retorno do usuário após a refeição.
+        await PlayAudioETexto(i++); // How can I help you?
+        ConcluirMissao("rest_a1_comer");
 
-        //npc vai voltar depois que usuário termianr de comer
-
-        await PlayAudioETexto(i++);
-
+        IniciarMissao("rest_a1_viagem", "Solicite a refeição para viagem", "Ask to have your meal packed to go");
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Of course.
+        await PlayAudioETexto(i++); // Here it is.
+        ConcluirMissao("rest_a1_viagem");
 
-        //sai um tmepo, e volta com uma embalagem
-
-        await PlayAudioETexto(i++);
-
+        IniciarMissao("rest_a1_pagamento", "Realize o pagamento", "Pay the bill");
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++); 
+        await PlayAudioETexto(i++); // Bill amount and payment question.
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[1]), exerciciosAlternativas[1]); //
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[1]), exerciciosAlternativas[1]);
 
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        ConcluirMissao("rest_a1_pagamento");
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 
@@ -685,36 +701,42 @@ public class RestaurantWaiterNPC : InteracaoNPC
     {
         int i = 0;
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a2_entrar", "Entre no restaurante e sente-se em uma mesa", "Enter the restaurant and sit at a table");
+        await PlayAudioETexto(i++); // Welcome.
+        await PlayAudioETexto(i++); // Menu.
+        ConcluirMissao("rest_a2_entrar");
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a2_pedido", "Faça seu pedido ao garçom", "Place your order with the waiter");
+        await PlayAudioETexto(i++); // Are you ready to order?
 
-        await PlayAudioETexto(i++);
-        
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
-        
+        await PlayAudioETexto(i++); // Order ready in 15 minutes.
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        ConcluirMissao("rest_a2_pedido");
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a2_comer", "Coma a comida", "Eat your meal");
+        await PlayAudioETexto(i++); // Food is served.
+        await PlayAudioETexto(i++); // Is everything okay?
+        ConcluirMissao("rest_a2_comer");
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a2_embalagem", "Peça uma embalagem para levar o resto para viagem", "Ask for a container to take the leftovers away");
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]); //
+        await PlayAudioETexto(i++); // Of course. I'll bring it right away.
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[1]), exerciciosCompletarFrase[1]);
+        ConcluirMissao("rest_a2_embalagem");
 
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[1]), exerciciosCompletarFrase[1]); //
-
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_a2_pagamento", "Pague sua conta", "Pay your bill");
+        await PlayAudioETexto(i++); // Bill amount and payment question.
 
         exAtual = exerciciosAlternativas[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Thank you.
+        ConcluirMissao("rest_a2_pagamento");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
@@ -722,55 +744,65 @@ public class RestaurantWaiterNPC : InteracaoNPC
     private async Task interacaoB1()
     {
         int i = 0;
-        
-        await PlayAudioETexto(i++);
 
+        IniciarMissao("rest_b1_entrar", "Entre no restaurante e sente-se em uma mesa", "Enter the restaurant and sit at a table");
+        await PlayAudioETexto(i++); // Welcome, menu and invitation to order.
+        ConcluirMissao("rest_b1_entrar");
+
+        IniciarMissao("rest_b1_perguntar_pratos", "Pergunte sobre os pratos disponíveis", "Ask about the dishes on the menu");
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Ingredients.
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]); //
+        await PlayAudioETexto(i++); // Recommendation.
+        ConcluirMissao("rest_b1_perguntar_pratos");
 
-        await PlayAudioETexto(i++);
-
+        IniciarMissao("rest_b1_pedido", "Faça seu pedido", "Place your order");
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i);
-
+        await PlayAudioETexto(i++); // Anything else?
         exAtual = exerciciosCriarFrases[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Order will be ready.
+        ConcluirMissao("rest_b1_pedido");
 
+        IniciarMissao("rest_b1_cliente", "Converse com o outro cliente", "Talk to the other customer");
         await AguardarConversaComCliente();
+        // A conversa com o cliente conclui esta missão no RestaurantClient.
 
-        exAtual = exerciciosCompletarFrase[0]; 
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        IniciarMissao("rest_b1_comer", "Coma sua comida", "Eat your meal");
+        await PlayAudioETexto(i++); // How was everything?
+        ConcluirMissao("rest_b1_comer");
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_b1_viagem", "Solicite para levar o restante da refeição para viagem", "Ask to have the rest of your meal packed to go");
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        exAtual = exerciciosWriting[0]; 
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        exAtual = exerciciosSpeaking[1]; 
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await PlayAudioETexto(i++); // Certainly. I'll be right back.
+        await PlayAudioETexto(i++); // Here is the bag.
+        ConcluirMissao("rest_b1_viagem");
 
-        await PlayAudioETexto(i++);
+        IniciarMissao("rest_b1_pagamento", "Pague a conta", "Pay the bill");
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Bill amount and payment question.
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]); //
+        exAtual = exerciciosSpeaking[4];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]); //
-
-        await PlayAudioETexto(i++);
-
+        await PlayAudioETexto(i++); // Thank you. Would you like a receipt?
         await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
 
+        ConcluirMissao("rest_b1_pagamento");
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 

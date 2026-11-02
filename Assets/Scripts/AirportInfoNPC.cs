@@ -35,9 +35,12 @@ public class AirportInfoNPC : InteracaoNPC
         if (exerciciosCompletarFrase == null)
             exerciciosCompletarFrase = new List<ExercicioCompletarFrase>();
 
-        exerciciosBlocos = new List<ExercicioBase>();
-        exerciciosSpeaking = new List<ExercicioBase>();
-        exerciciosAlternativas = new List<ExercicioBase>();
+        exerciciosCompletarFrase = exerciciosCompletarFrase ?? new List<ExercicioCompletarFrase>();
+        exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
+        exerciciosSpeaking = GarantirListaExercicios(exerciciosSpeaking);
+        exerciciosAlternativas = GarantirListaExercicios(exerciciosAlternativas);
+        exerciciosWriting = GarantirListaExercicios(exerciciosWriting);
+        exerciciosAssociacao = GarantirListaExercicios(exerciciosAssociacao);
 
         if (horaAtual < 12)
         {
@@ -55,6 +58,13 @@ public class AirportInfoNPC : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -226,6 +236,16 @@ public class AirportInfoNPC : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
+    private void ConcluirMissao(string id)
+    {
+        MissionManager.ConcluirMissaoNPC(id);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
@@ -264,46 +284,60 @@ public class AirportInfoNPC : InteracaoNPC
     {
         int i = 0;
 
+        IniciarMissao("aeroporto_a1_1", "Chegue ao aeroporto e procure o balcão de informações", "Arrive at the airport and find the information desk");
+
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        ConcluirMissao("aeroporto_a1_1");
+        IniciarMissao("aeroporto_a1_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
+
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        ConcluirMissao("aeroporto_a1_2");
     }
 
     private async Task interacaoA2()
     {
         int i = 0;
 
+        IniciarMissao("aeroporto_a2_1", "Chegue ao aeroporto e procure o balcão de check-in", "Arrive at the airport and find the check-in desk");
+
         await PlayAudioETexto(i++);
-        
+
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-        
+
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-        await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
 
         await PlayAudioETexto(i++);
+
+        ConcluirMissao("aeroporto_a2_1");
     }
 
     private async Task interacaoB1()
     {
         int i = 0;
-        
+
+        IniciarMissao("aeroporto_b1_1", "Chegue ao aeroporto e dirija-se ao balcão de informações", "Arrive at the airport and go to the information desk");
+
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        ConcluirMissao("aeroporto_b1_1");
+        IniciarMissao("aeroporto_b1_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
 
         await PlayAudioETexto(i++);
 
@@ -314,12 +348,14 @@ public class AirportInfoNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i);
+        await PlayAudioETexto(i++);
+
+        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        ConcluirMissao("aeroporto_b1_2");
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

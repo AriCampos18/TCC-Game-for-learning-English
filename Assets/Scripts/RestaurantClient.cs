@@ -38,6 +38,13 @@ public class RestaurantClient : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
             dialogoAtual = new List<string>()
             {
                 "Hi. Is this your first time here?",
@@ -126,6 +133,9 @@ public class RestaurantClient : InteracaoNPC
         InicializarConteudosPorNivel();
 
         await interacaoUnica();
+
+        // A missão é criada pelo garçom antes de aguardar esta conversa.
+        MissionManager.ConcluirMissaoNPC("rest_b1_cliente");
 
         // Desativa o estado quando a conversa acabar completamente!
         garcom.FinalizarConversaComCliente();

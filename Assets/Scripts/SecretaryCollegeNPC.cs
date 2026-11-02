@@ -526,6 +526,11 @@ public class SecretaryCollegeNPC: InteracaoNPC
         }
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
@@ -534,14 +539,24 @@ public class SecretaryCollegeNPC: InteracaoNPC
 
         if (nivelAtual == "A1")
         {
+            IniciarMissao("universidade_a1_matricula",
+                "Realize sua matrícula",
+                "Complete your enrollment");
             await interacaoA1();
         }
         else if (nivelAtual == "A2")
         {
+            MissionManager.ConcluirMissaoNPC("universidade_a2_encontrar_secretaria");
+            IniciarMissao("universidade_a2_matricula",
+                "Faça sua matrícula",
+                "Complete your enrollment");
             await interacaoA2();
         }
         else
         {
+            IniciarMissao("universidade_b1_matricula",
+                "Informe seus dados, confirme as informações do curso e conclua o processo de matrícula",
+                "Provide your details, confirm the course information, and complete your enrollment");
             await interacaoB1();
         }
 
@@ -599,6 +614,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[2]), exerciciosWriting[2]);
 
         await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("universidade_a1_matricula");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
 
@@ -618,75 +634,80 @@ public class SecretaryCollegeNPC: InteracaoNPC
     private async Task interacaoA2()
     {
         int i = 0;
-        
-        await PlayAudioETexto(i++);
 
+        await PlayAudioETexto(i++);
         await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
 
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
-        
-        await PlayAudioETexto(i++);
 
+        await PlayAudioETexto(i++);
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
 
+        // Confirmação de matrícula.
         await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("universidade_a2_matricula");
 
+        IniciarMissao("universidade_a2_cronograma",
+            "Consulte seu cronograma",
+            "Check your class schedule");
+
+        // Pergunta sobre a mensalidade e recebe a resposta.
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[2]), exerciciosWriting[2]);
-
         await PlayAudioETexto(i++);
 
+        // Pergunta quando as aulas começam e confere a data.
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
-
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
 
+        // Pergunta onde fica a sala e confere o número no cronograma.
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
-
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[1]), exerciciosAlternativas[1]);
-        
+
+        MissionManager.ConcluirMissaoNPC("universidade_a2_cronograma");
+
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
     {
         int i = 0;
-        
-        await PlayAudioETexto(i++);
 
+        await PlayAudioETexto(i++);
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
 
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
 
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
 
+        // Confirmação de matrícula concluída.
         await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("universidade_b1_matricula");
+
+        IniciarMissao("universidade_b1_cronograma",
+            "Consulte o cronograma, identifique a sala da primeira aula e pergunte como chegar até ela",
+            "Check your schedule, identify the room for your first class, and ask how to get there");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
 
         await PlayAudioETexto(i++);
-
         await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[2]), exerciciosWriting[2]);
 
         await PlayAudioETexto(i++);
+
+        MissionManager.ConcluirMissaoNPC("universidade_b1_cronograma");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }

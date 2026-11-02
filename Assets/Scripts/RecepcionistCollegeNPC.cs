@@ -196,7 +196,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
                         enunciado = "This is your first visit to the university. Answer her question.",
                         opcoesFala = new List<string>()
                         {
-                            "No, this is my first time here. \n",
+                            "Yes, this is my first time here. \n",
                             "I need to enroll in Computer Science.\n",
                             "The library closes at six o’clock.\n"
                         },
@@ -227,6 +227,11 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         }
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
@@ -235,15 +240,31 @@ public class RecepcionistCollegeNPC: InteracaoNPC
 
         if (nivelAtual == "A1")
         {
+            IniciarMissao("universidade_a1_recepcao",
+                "Converse com o recepcionista e descubra como chegar ao escritório da secretaria",
+                "Talk to the receptionist and find out how to get to the secretary's office");
             await interacaoA1();
+            MissionManager.ConcluirMissaoNPC("universidade_a1_recepcao");
         }
         else if (nivelAtual == "A2")
         {
+            IniciarMissao("universidade_a2_recepcao",
+                "Converse com a recepcionista",
+                "Talk to the receptionist");
             await interacaoA2();
+            MissionManager.ConcluirMissaoNPC("universidade_a2_recepcao");
+
+            IniciarMissao("universidade_a2_encontrar_secretaria",
+                "Encontre o escritório da secretaria",
+                "Find the secretary's office");
         }
         else
         {
+            IniciarMissao("universidade_b1_orientacoes",
+                "Peça orientações detalhadas ao recepcionista e esclareça dúvidas sobre a localização do escritório",
+                "Ask the receptionist for detailed directions and clarify the location of the office");
             await interacaoB1();
+            MissionManager.ConcluirMissaoNPC("universidade_b1_orientacoes");
         }
 
         // Desativa o estado quando a conversa acabar completamente!
@@ -298,17 +319,18 @@ public class RecepcionistCollegeNPC: InteracaoNPC
 
     private async Task interacaoA2()
     {
-        int i=0;
+        int i = 0;
 
         await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
 
-        await PlayAudioETexto(i);
+        await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
 
-        await PlayAudioETexto(i++);
+        // A recepcionista repete as direções após o pedido do usuário.
+        await PlayAudioETexto(1);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
 
@@ -317,7 +339,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
 
     private async Task interacaoB1()
     {
-        int i=0;
+        int i = 0;
 
         await PlayAudioETexto(i++);
 
@@ -327,15 +349,16 @@ public class RecepcionistCollegeNPC: InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
 
-        await PlayAudioETexto(i);
+        await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+
+        // A recepcionista confirma a informação repetindo as direções detalhadas.
+        await PlayAudioETexto(2);
 
         await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

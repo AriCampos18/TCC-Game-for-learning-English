@@ -542,9 +542,27 @@ public class VisitorCenterNPC: InteracaoNPC
         LiberarControlePlayer();
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
+    private void IniciarMissaoChegadaCityPark(string id, string texto, string traducao)
+    {
+        IniciarMissao(id, texto, traducao);
+
+        idMissaoChegadaCityPark = id;
+        aguardandoChegadaCityPark = true;
+
+        if (pontoChegadaCityPark == null)
+            Debug.LogWarning("VisitorCenterNPC: atribua o ponto de chegada do City Park no Inspector.");
+    }
+
     private async Task interacaoA1()
     {
         int i = 0;
+
+        IniciarMissao("visitor_center_a1_conversa", "Start a conversation with the employee", "Inicie uma conversa com a funcionária");
 
         await PlayAudioETexto(i++);
 
@@ -556,6 +574,10 @@ public class VisitorCenterNPC: InteracaoNPC
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        MissionManager.ConcluirMissaoNPC("visitor_center_a1_conversa");
+
+        IniciarMissao("visitor_center_a1_atracoes", "Learn about the city's tourist attractions", "Conheça os pontos turísticos da cidade");
+
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
@@ -564,7 +586,15 @@ public class VisitorCenterNPC: InteracaoNPC
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++); //FALA QUE TEM QUE MUDAR DA DIREÇÃO
+        MissionManager.ConcluirMissaoNPC("visitor_center_a1_atracoes");
+
+        IniciarMissaoChegadaCityPark(
+            "visitor_center_a1_city_park",
+            "Find the City Park",
+            "Encontre o City Park"
+        );
+
+        await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
@@ -572,6 +602,8 @@ public class VisitorCenterNPC: InteracaoNPC
     private async Task interacaoA2()
     {
         int i = 0;
+
+        IniciarMissao("visitor_center_a2_conversa", "Talk to the employee", "Converse com a funcionária");
 
         await PlayAudioETexto(i++);
         
@@ -583,28 +615,32 @@ public class VisitorCenterNPC: InteracaoNPC
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        MissionManager.ConcluirMissaoNPC("visitor_center_a2_conversa");
+
+        IniciarMissao("visitor_center_a2_atracoes", "Explore the attractions in the brochure", "Conheça as atrações disponíveis no panfleto");
+
         await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+
+        MissionManager.ConcluirMissaoNPC("visitor_center_a2_atracoes");
 
         await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
 
-        await PlayAudioETexto(i++); //FALA QUE TEM QUE MUDAR DA DIREÇÃO
+        IniciarMissaoChegadaCityPark(
+            "visitor_center_a2_destino",
+            "Follow the directions to the destination",
+            "Siga as instruções até o destino"
+        );
+
+        await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
 
         exAtual = exerciciosAlternativas[0]; //EXERCICIO QUE TEM QUE MUDAR DE ACORDO COM A DIREÇÃO CORRETA DO PARQUE
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
 
         await PlayAudioETexto(i++);
 
@@ -616,7 +652,9 @@ public class VisitorCenterNPC: InteracaoNPC
     private async Task interacaoB1()
     {
         int i = 0;
-        
+
+        IniciarMissao("visitor_center_b1_conversa", "Talk to the visitor center employee", "Converse com a funcionária do visitor center");
+
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
@@ -626,12 +664,24 @@ public class VisitorCenterNPC: InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
 
+        MissionManager.ConcluirMissaoNPC("visitor_center_b1_conversa");
+
+        IniciarMissao("visitor_center_b1_escolher_city_park", "Choose the City Park as your destination", "Escolha o City Park como destino");
+
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i);
+        MissionManager.ConcluirMissaoNPC("visitor_center_b1_escolher_city_park");
+
+        IniciarMissaoChegadaCityPark(
+            "visitor_center_b1_percorrer_trajeto",
+            "Understand the detailed directions and follow the route to the City Park",
+            "Interprete as instruções detalhadas e percorra o trajeto até chegar ao City Park"
+        );
+
+        await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
 
         exAtual = exerciciosWriting[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
@@ -641,9 +691,9 @@ public class VisitorCenterNPC: InteracaoNPC
         exAtual = exerciciosAlternativas[0]; //EXERCICIO QUE TEM QUE MUDAR DE ACORDO COM A DIREÇÃO CORRETA DO PARQUE
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Informações adicionais sobre transporte e visita.
 
-        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++); // Recomendação sobre o melhor horário para visitar.
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }

@@ -59,6 +59,14 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        // Evita duplicar exercícios caso o jogador interaja com o NPC novamente.
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         string dataCheckout = ObterDataCheckout();
         if (nivelAtual == "A1")
         {
@@ -403,7 +411,7 @@ public class RecepcionistHotelNPC: InteracaoNPC
                 "I found it. You booked a double room for seven nights, with breakfast included. Is that right?",
                 "Perfect. Would you like to pay now by card or cash, or when you check out?",
                 "Your room is 308, on the third floor. Here is your key card. The Wi-Fi is free, and the password is on the card.",
-                "The elevators is just around the corner, next to the restaurant.",
+                "The elevator is just around the corner, next to the restaurant.",
                 "Breakfast is served from 6:30 a.m. to 10:00 a.m. If you prefer, we can also bring it to your room.",
                 "Is there anything else you'd like to know about your stay?",
                 "Checkout is at 12:00 p.m. on " + dataCheckout + ". If you need a late checkout, please let us know in advance.",
@@ -673,6 +681,11 @@ public class RecepcionistHotelNPC: InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    private void IniciarMissao(string id, string texto, string traducao)
+    {
+        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
@@ -681,20 +694,36 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
         if (nivelAtual == "A1")
         {
+            IniciarMissao(
+                "hotel_a1_conversar",
+                "Fale com o recepcionista do hotel",
+                "Talk to the hotel receptionist"
+            );
+
             await interacaoA1();
         }
         else if (nivelAtual == "A2")
         {
+            IniciarMissao(
+                "hotel_a2_checkin",
+                "Fale com o recepcionista do hotel e realize seu check-in",
+                "Talk to the hotel receptionist and check in"
+            );
+
             await interacaoA2();
         }
         else
         {
+            IniciarMissao(
+                "hotel_b1_checkin",
+                "Informe seus dados e confirme as informações da reserva",
+                "Provide your details and confirm your reservation information"
+            );
+
             await interacaoB1();
         }
 
-        // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
 
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
@@ -703,7 +732,6 @@ public class RecepcionistHotelNPC: InteracaoNPC
             textoPularDialogo.gameObject.SetActive(false);
 
         GameProgress.EstaEmDialogo = false;
-
         LiberarControlePlayer();
     }
 
@@ -711,156 +739,213 @@ public class RecepcionistHotelNPC: InteracaoNPC
     {
         int i = 0;
 
+        // Conversa inicial e identificação do hóspede.
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosWriting[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        // Pagamento: finaliza a missão de conversar com a recepção.
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        MissionManager.ConcluirMissaoNPC("hotel_a1_conversar");
+
+        IniciarMissao(
+            "hotel_a1_servicos",
+            "Conheça os serviços do hotel durante a conversa",
+            "Learn about the hotel's services during the conversation"
+        );
+
+        // Informações do quarto, café da manhã e checkout.
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosCriarFrases[0]),
+            exerciciosCriarFrases[0]
+        );
 
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosAlternativas[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        // A recepcionista encerra oferecendo ajuda; o usuário agradece em seguida.
+        await PlayAudioETexto(i++);
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("hotel_a1_servicos");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosAssociacao[0]),
+            exerciciosAssociacao[0]
+        );
     }
 
     private async Task interacaoA2()
     {
         int i = 0;
-        
-        // cumprimento+". Welcome to the hotel. Do you have a reservation?",
+
         await PlayAudioETexto(i++);
-        
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        //"Great. Could I have your name, please?",
         await PlayAudioETexto(i++);
-        
         exAtual = exerciciosWriting[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        // "Thank you. How many nights are you staying with us?"
         await PlayAudioETexto(i++);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosSpeaking[0]),
+            exerciciosSpeaking[0]
+        );
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
-
-        //"Would you like to pay by card or cash?",
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        // "Your room is 205, on the second floor. Here is your key card.",
-        await PlayAudioETexto(i++);
+        // Check-in concluído após a escolha da forma de pagamento.
+        MissionManager.ConcluirMissaoNPC("hotel_a2_checkin");
 
+        IniciarMissao(
+            "hotel_a2_cartao_quarto",
+            "Pegue o cartão do quarto",
+            "Collect your room card"
+        );
+
+        await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("hotel_a2_cartao_quarto");
+
+        // Informações sobre café da manhã e checkout.
         exAtual = exerciciosWriting[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        //Breakfast is from 7:00 a.m. to 10:00 a.m. in the restaurant. It's on the first floor
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[1]), exerciciosAlternativas[1]);
-
-        //Is there anything else you would like to know?
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
-
-        //Checkout is at 12:00 p.m. on
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosAlternativas[1]),
+            exerciciosAlternativas[1]
+        );
 
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosSpeaking[1]),
+            exerciciosSpeaking[1]
+        );
 
         await PlayAudioETexto(i++);
- 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosCompletarFrase[0]),
+            exerciciosCompletarFrase[0]
+        );
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosSpeaking[2]),
+            exerciciosSpeaking[2]
+        );
+
+        await PlayAudioETexto(i++);
+
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosAssociacao[0]),
+            exerciciosAssociacao[0]
+        );
     }
 
     private async Task interacaoB1()
     {
         int i = 0;
-        
-        await PlayAudioETexto(i++);
 
+        // Reserva, identificação e confirmação dos dados.
+        await PlayAudioETexto(i++);
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosWriting[0]),
+            exerciciosWriting[0]
+        );
 
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PlayAudioETexto(i++);
+        MissionManager.ConcluirMissaoNPC("hotel_b1_checkin");
 
+        IniciarMissao(
+            "hotel_b1_servicos",
+            "Conheça os serviços do hotel e obtenha informações sobre o quarto e o café da manhã",
+            "Learn about the hotel services and get information about your room and breakfast"
+        );
+
+        // Cartão do quarto, elevador e café da manhã.
+        await PlayAudioETexto(i++);
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosSpeaking[2]),
+            exerciciosSpeaking[2]
+        );
 
         await PlayAudioETexto(i++);
-
         exAtual = exerciciosAlternativas[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
+        MissionManager.ConcluirMissaoNPC("hotel_b1_servicos");
+
+        IniciarMissao(
+            "hotel_b1_late_checkout",
+            "Consulte o horário do checkout e solicite um checkout tardio, se necessário",
+            "Check the checkout time and request a late checkout if needed"
+        );
+
+        // Checkout: primeiro pergunta o horário; depois solicita a saída tardia.
+        await PlayAudioETexto(i++);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosWriting[1]),
+            exerciciosWriting[1]
+        );
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosSpeaking[3]),
+            exerciciosSpeaking[3]
+        );
+
+        // O pedido livre vem antes da resposta da recepcionista sobre disponibilidade.
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosSpeaking[4]),
+            exerciciosSpeaking[4]
+        );
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosCompletarFrase[0]),
+            exerciciosCompletarFrase[0]
+        );
+
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
+        MissionManager.ConcluirMissaoNPC("hotel_b1_late_checkout");
 
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[4]), exerciciosSpeaking[4]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicio(
+            ObterTipoExercicio(exerciciosAssociacao[0]),
+            exerciciosAssociacao[0]
+        );
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
