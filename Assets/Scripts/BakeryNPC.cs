@@ -35,10 +35,12 @@ public class BakeryNPC : InteracaoNPC
     private MissionManager missaoManager;
 
     public TextMeshProUGUI textoPularDialogo;
-    [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
     [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
-
-    [System.NonSerialized] public List<ExercicioBase> exerciciosBlocos;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosWriting;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
     private ExercicioBase exAtual;
     private BackendManager backendManager;
 
@@ -89,14 +91,14 @@ public class BakeryNPC : InteracaoNPC
             );
 
             exerciciosSpeaking.Add(
-                new ExercicioSpeaking()
+                new ExercicioAlternativas()
                 {
                     enunciado = "Say the right sentence:",
                     opcoesFala = new List<string>()
                     {
                         "I'm at the bakery.\n",
                         "There are three chairs.\n",
-                        "Yes, I want some juice.\n"
+                        "Yes, I want some juice.\n",
                     },
                     respostaCorreta = 2,
                 });
@@ -114,8 +116,8 @@ public class BakeryNPC : InteracaoNPC
                     respostaCorreta = 1,
                 });
             
-            exerciciosBlocos.Add(
-                new ExercicioBlocos() 
+            exerciciosCriarFrases.Add(
+                new ExercicioCriarFrases()
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Você pode me ajudar?",
                     blocosPalavras = new List<string>() { 
@@ -129,12 +131,7 @@ public class BakeryNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Say the phrase to express gratitude:",
-                    opcoesFala = new List<string>()
-                    {
-                        "Thank you.\n"
-                    },
-                    respostaCorreta = 0,
+                    enunciado = "Say a phrase to express gratitude."
                 });
 
             exerciciosAlternativas.Add(
@@ -191,17 +188,12 @@ public class BakeryNPC : InteracaoNPC
              exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Say the phrase to express gratitude:",
-                    opcoesFala = new List<string>()
-                    {
-                        "Thanks a lot for your assistance."
-                    },
-                    respostaCorreta = 0
+                    enunciado = "Say a phrase to express gratitude."
                 }
             );
 
-            exerciciosBlocos.Add(
-                new ExercicioBlocos() 
+            exerciciosCriarFrases.Add(
+                new ExercicioCriarFrases() 
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Não, isso é tudo que eu precisava, obrigado/a.",
                     blocosPalavras = new List<string>() { 
@@ -212,17 +204,20 @@ public class BakeryNPC : InteracaoNPC
                 }
             );
 
-            exerciciosBlocos.Add(
-                new ExercicioBlocos() 
-                { 
-                    enunciado = "Arrange the words to form the correct sentence in english: Estou procurando algo doce para o café da manhã.",
-                    blocosPalavras = new List<string>() { 
-                        "sweet", "thank", "you", "that", "something", "was", "for",
-                        "same", "for", "hello", "thank", "I'm", "maybe", "ok", "looking", "breakfast"
-                    },
-                    respostaCorreta = "I'm looking for something sweet for breakfast.",
-                }
-            );
+            // exerciciosCompletarFrase.Add(
+            //     new ExercicioCompletarFrase() 
+            //     { 
+            //         enunciado = "Complete the sentence with the correct word:",
+            //         fraseAntes =  "I'm looking for something sweet for ",
+            //         fraseDepois = ".",
+            //         respostaCorreta = "breakfast",
+            //         blocosPalavras = new List<string>() { 
+            //             "sweet", "thank", "you", "that", "something", "was", "for",
+            //             "same", "for", "hello", "thank", "I'm", "maybe", "ok", "looking", "breakfast"
+            //         },
+            //         respostaCorreta = "I'm looking for something sweet for breakfast.",
+            //     }
+            // );
         }
         else
         {
@@ -247,19 +242,15 @@ public class BakeryNPC : InteracaoNPC
                 }
             );
 
-            exerciciosSpeaking.Add(
-                new ExercicioSpeaking()
+            exerciciosWriting.Add(
+                new ExercicioWriting()
                 {
-                    enunciado = "Say the phrase to express gratitude:",
-                    opcoesFala = new List<string>() {
-                        "You've been very helpful today. I really appreciate it.\r\n"
-                    },
-                    respostaCorreta = 0
+                    enunciado = "Express your gratitude in a sentence.",
                 }
             );
 
-            exerciciosBlocos.Add(
-                new ExercicioBlocos() 
+            exerciciosCriarFrases.Add(
+                new ExercicioCriarFrases() 
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Ótimo, parece incrível. Eu vou querer o croissant e o sanduíche.",
                     blocosPalavras = new List<string>() { 
@@ -285,6 +276,24 @@ public class BakeryNPC : InteracaoNPC
                     alternativaCorreta = 3
                 });
         }
+    }
+
+    private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
+    {
+        if (exercicio is ExercicioSpeaking)
+            return TipoExercicio.Speaking;
+        if (exercicio is ExercicioAlternativas)
+            return TipoExercicio.Alternativas;
+        if (exercicio is ExercicioBlocos)
+            return TipoExercicio.Blocos;
+        if (exercicio is ExercicioCompletarFrase)
+            return TipoExercicio.CompletarFrase;
+        if (exercicio is ExercicioWriting)
+            return TipoExercicio.Writing;
+        if (exercicio is ExercicioAssociacao)
+            return TipoExercicio.Associacao;
+
+        throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
     protected override async Task IniciarInteracao()
@@ -344,21 +353,21 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PegarProduto(breadLoaf);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[0]), exerciciosBlocos[0]); //
 
         await PlayAudioETexto(i++);
 
@@ -366,12 +375,12 @@ public class BakeryNPC : InteracaoNPC
         await PegarProduto(sandwich, falar: false);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
     }
@@ -380,32 +389,29 @@ public class BakeryNPC : InteracaoNPC
     {
         int i = 0;
         
+        //Hello! What are you looking for in the bakery section?
         await PlayAudioETexto(i++);
         
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]);
+        //Yes, we do. Which sandwich would you like, and would you like some juice too?
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++);
-        
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[0]), exerciciosBlocos[0]); //
 
         await PegarProduto(sandwich, falar: true);
         await PegarProduto(sourdough, falar: false);
 
         await PlayAudioETexto(i++);
-
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
-
-        await PlayAudioETexto(i++);
-
+        
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
-
-        await PlayAudioETexto(i++);
- 
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
     }
 
     private async Task interacaoB1()
@@ -415,23 +421,23 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosBlocos[0];
-        await AbrirExercicio(TipoExercicio.Blocos, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PegarProduto(sandwich, falar: true);
         await PegarProduto(sourdough, falar: false);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
     }

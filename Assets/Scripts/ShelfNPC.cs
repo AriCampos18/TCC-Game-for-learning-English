@@ -36,9 +36,12 @@ public class ShelfNPC : InteracaoNPC
     private BackendManager backendManager;
     private MissionManager missaoManager; 
 
-    [System.NonSerialized] public List<ExercicioBase> exerciciosBlocos;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
     [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
     [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosWriting;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
     public ExercicioBase exAtual;
 
     public GameObject modalLegenda, modalMissoes;
@@ -52,7 +55,8 @@ public class ShelfNPC : InteracaoNPC
         audioSource = GetComponent<AudioSource>();
         animator = GetComponent<Animator>();
         
-        exerciciosBlocos = new List<ExercicioBase>();
+        exerciciosCompletarFrase = new List<ExercicioBase>();
+        exerciciosCriarFrases = new List<ExercicioBase>();
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
 
@@ -124,7 +128,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Hi. Are you looking for anything today?"
 
         exAtual = exerciciosBlocos[0];
-        await AbrirExercicio(TipoExercicio.Blocos, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++); // "Follow me."
 
@@ -135,17 +139,17 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "The milk is here. Do you need anything else?"
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++); // "Ok, I will show you"
         crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); // ✨ Volta a mostrar a mira após o "siga-me"
         await PlayAudioETexto(i++); // "The fruits are here. Can I do anything else for you?"
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
 
         await PlayAudioETexto(i++); // "Yes, we have apples too."
-        await AbrirExercicio(TipoExercicio.Alternativas, exerciciosAlternativas[0]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
@@ -162,7 +166,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Hi! What are you looking for..."
 
         exAtual = exerciciosBlocos[0];
-        await AbrirExercicio(TipoExercicio.Blocos, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++); // "Sure. Follow me, please."
 
@@ -173,18 +177,18 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "The milk is on this shelf..."
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[1]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[1]), exerciciosBlocos[1]); //
 
         await PlayAudioETexto(i++); // "Do you often buy snacks from this aisle..."
-        await AbrirExercicio(TipoExercicio.Speaking, exerciciosSpeaking[1]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
 
         crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); 
         await PlayAudioETexto(i++); // "I see. Is there anything else you need?"
-        await AbrirExercicio(TipoExercicio.Alternativas, exerciciosAlternativas[0]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
@@ -201,10 +205,12 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Hi! What are you searching for..."
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++); // "Yes, there are still some discounts..."
-        await AbrirExercicio(TipoExercicio.Speaking, exerciciosSpeaking[1]);
+        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]); //
+
+        await PlayAudioETexto(i++);
 
         crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
@@ -213,7 +219,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "The soda is on this shelf..."
 
         exAtual = exerciciosBlocos[0]; 
-        await AbrirExercicio(TipoExercicio.Blocos, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
         await PlayAudioETexto(i++); // "Enjoy the discounts. Happy shopping!"
 
         missaoManager.AdicionarMissao(
@@ -394,25 +400,23 @@ public class ShelfNPC : InteracaoNPC
                 "Yes, we have apples too."
             };
 
-            exerciciosBlocos.Add(new ExercicioBlocos() 
+            exerciciosCriarFrases.Add(new ExercicioCriarFrases() 
             { 
-                enunciado = "Arrange the words to form the sentence in english: Onde está o leite?",
+                enunciado = "Complete the sentence with the correct word: Onde está o leite?",
                 blocosPalavras = new List<string>() { "Where", "milk", "thank", "you", "that", "is", "all", "hello", "bread", "the" },
                 respostaCorreta = "Where is the milk?",
             });
 
-            exerciciosBlocos.Add(new ExercicioBlocos() 
-            { 
-                enunciado = "Arrange the words to form the sentence in english: Há maçãs hoje?",
-                blocosPalavras = new List<string>() { "Where", "Are", "thank", "apples", "that", "is", "any", "hello", "bread", "there", "today" },
-                respostaCorreta = "Are there any apples today?",
-            });
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Ask the supermarket employee if there are any apples available today."
+                }
+            );
 
-            exerciciosSpeaking.Add(new ExercicioSpeaking()
+            exerciciosWriting.Add(new ExercicioWriting()
             {
-                enunciado = "Say the right sentence:",
-                opcoesFala = new List<string>() { "Yes, I need some fruits.\n", "I am cleaning the house.\n", "There are some books.\r\n" },
-                respostaCorreta = 0
+                enunciado = "Write a sentence saying you need vegetables"
             });
 
             exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -454,6 +458,13 @@ public class ShelfNPC : InteracaoNPC
                 respostaCorreta = "Are there any special discounts today?"
             });
 
+            exerciciosSpeaking.Add(
+                new ExercicioSpeaking()
+                {
+                    enunciado = "Tell the employee whether you usually buy snacks from this aisle or prefer the one near the bakery."
+                }
+            );
+
             exerciciosAlternativas.Add(new ExercicioAlternativas()
             {
                 enunciado = "Answer choosing the right sentence:",
@@ -493,6 +504,24 @@ public class ShelfNPC : InteracaoNPC
                 respostaCorreta = "That was all I needed. If I need anything else, I'll let you know. Thank you.",
             });
         }
+    }
+
+    private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
+    {
+        if (exercicio is ExercicioSpeaking)
+            return TipoExercicio.Speaking;
+        if (exercicio is ExercicioAlternativas)
+            return TipoExercicio.Alternativas;
+        if (exercicio is ExercicioBlocos)
+            return TipoExercicio.Blocos;
+        if (exercicio is ExercicioCompletarFrase)
+            return TipoExercicio.CompletarFrase;
+        if (exercicio is ExercicioWriting)
+            return TipoExercicio.Writing;
+        if (exercicio is ExercicioAssociacao)
+            return TipoExercicio.Associacao;
+
+        throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
     private async Task PlayAudioETexto(int i, bool mostrarLegenda = true)

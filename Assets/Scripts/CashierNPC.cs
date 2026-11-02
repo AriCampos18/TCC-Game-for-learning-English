@@ -25,9 +25,12 @@ public class CashierNPC : InteracaoNPC
     public ModalExercicio modalExercicio;
     private BackendManager backendManager;
 
-    [System.NonSerialized] public List<ExercicioBase> exerciciosBlocos;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
     [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
     [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosWriting;
+    [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
 
     public List<Transform> pontosProdutosBalcao;
     public GameObject sacolaFinal;
@@ -52,7 +55,8 @@ public class CashierNPC : InteracaoNPC
         nomeExibicaoLegenda = "Cashier Attendant";
         backendManager = new BackendManager();
         audioSource = GetComponent<AudioSource>();
-        exerciciosBlocos = new List<ExercicioBase>();
+        exerciciosCompletarFrase = new List<ExercicioBase>();
+        exerciciosCriarFrases = new List<ExercicioBase>();
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
         nivelAtual = DadosJogador.nivelUsuario;
@@ -88,14 +92,12 @@ public class CashierNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
-                    enunciado = "Say hello like the cashier:",
-                    opcoesFala = new List<string>() { cumprimento+"\n" },
-                    respostaCorreta = 0
+                    enunciado = "Return the greeting from the cashier:"
                 }
             );
 
-            exerciciosBlocos.Add(
-                new ExercicioBlocos() 
+            exerciciosCriarFrases.Add(
+                new ExercicioCriarFrases() 
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Sim, eu quero algum chocolate.",
                     blocosPalavras = new List<string>() { "No", "Yes", "thank", "you", "that", "chocolate", "was", "want", "all", "hello", "thank", "I", "maybe", "some" },
@@ -111,12 +113,50 @@ public class CashierNPC : InteracaoNPC
                     alternativaCorreta = 2
                 });
 
-            exerciciosSpeaking.Add(
-                new ExercicioSpeaking()
+            exerciciosWriting.Add(
+                new ExercicioWriting()
                 {
-                    enunciado = "Say the right sentence:",
-                    opcoesFala = new List<string>() { "I'm paying with my card, please.\n", "There is a chair near the door.\n", "He plays soccer every week.\n" },
-                    respostaCorreta = 0
+                    enunciado = "Write a short sentence saying how you would like to pay for your order."
+                }
+            );
+
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the English words with their Portuguese translations:",
+                    opcoesPort = new List<string>()
+                    {
+                        "Chocolate",
+                        "Leite",
+                        "Pão",
+                        "Maçã",
+                        "Sacola",
+                        "Dinheiro",
+                        "Fruta",
+                        "Suco"
+                    },
+                    opcoesIngles = new List<string>()
+                    {
+                        "Money",
+                        "Apple",
+                        "Juice",
+                        "Bag",
+                        "Bread",
+                        "Chocolate",
+                        "Fruit",
+                        "Milk"
+                    },
+                    associacaoCorreta = new List<ParAssociacao>()
+                    {
+                        new ParAssociacao() { palavraPortugues = "Chocolate", palavraIngles = "Chocolate" },
+                        new ParAssociacao() { palavraPortugues = "Leite", palavraIngles = "Milk" },
+                        new ParAssociacao() { palavraPortugues = "Pão", palavraIngles = "Bread" },
+                        new ParAssociacao() { palavraPortugues = "Maçã", palavraIngles = "Apple" },
+                        new ParAssociacao() { palavraPortugues = "Sacola", palavraIngles = "Bag" },
+                        new ParAssociacao() { palavraPortugues = "Dinheiro", palavraIngles = "Money" },
+                        new ParAssociacao() { palavraPortugues = "Fruta", palavraIngles = "Fruit" },
+                        new ParAssociacao() { palavraPortugues = "Suco", palavraIngles = "Juice" }
+                    }
                 }
             );
         }
@@ -159,12 +199,17 @@ public class CashierNPC : InteracaoNPC
                 }
             );
 
-            exerciciosSpeaking.Add(
-                new ExercicioSpeaking()
+            exerciciosCriarFrases.Add(
+                new ExercicioCriarFrase()
                 {
-                    enunciado = "Say the right sentence to respond to the cashier:",
-                    opcoesFala = new List<string>() { "I am waiting for my friend near the entrance.\n", "There are some magazines under the counter.\n", "I usually bring my own bags, but I need one today.\n" },
-                    respostaCorreta = 2
+                    enunciado = "Arrange the words to form the correct sentence in english: Eu geralmente trago minhas próprias sacolas, mas hoje preciso de uma.",
+                    palavrasDisponiveis = new List<string>()
+                    {
+                        "today", "bags", "he", "usually", "my", "need",
+                        "bring", "but", "own", "one", "always", "I",
+                        "don't", "need", "yesterday", "your"
+                    },
+                    respostaCorreta = "I usually bring my own bags, but I need one today."
                 }
             );
 
@@ -184,6 +229,52 @@ public class CashierNPC : InteracaoNPC
                     alternativas = new List<string>() { "We are watching a movie tonight.\r\n", "He doesn’t drink coffee either.\r\n", "I’m paying with my debit card.\r\n", "There is a long line at the bakery.\r\n" },
                     alternativaCorreta = 2
                 });
+                      
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the English words with their Portuguese translations:",
+                    opcoesPort = new List<string>()
+                    {
+                        "Cartão de débito",
+                        "Cartão de crédito",
+                        "Recibo",
+                        "Sacola reutilizável",
+                        "Desconto",
+                        "Prateleira",
+                        "Cereal",
+                        "Lanche",
+                        "Corredor",
+                        "Total"
+                    },
+                    opcoesIngles = new List<string>()
+                    {
+                        "Receipt",
+                        "Snack",
+                        "Discount",
+                        "Shelf",
+                        "Debit card",
+                        "Total",
+                        "Aisle",
+                        "Reusable bag",
+                        "Cereal",
+                        "Credit card"
+                    },
+                    associacaoCorreta = new List<ParAssociacao>()
+                    {
+                        new ParAssociacao() { palavraPortugues = "Cartão de débito", palavraIngles = "Debit card" },
+                        new ParAssociacao() { palavraPortugues = "Cartão de crédito", palavraIngles = "Credit card" },
+                        new ParAssociacao() { palavraPortugues = "Recibo", palavraIngles = "Receipt" },
+                        new ParAssociacao() { palavraPortugues = "Sacola reutilizável", palavraIngles = "Reusable bag" },
+                        new ParAssociacao() { palavraPortugues = "Desconto", palavraIngles = "Discount" },
+                        new ParAssociacao() { palavraPortugues = "Prateleira", palavraIngles = "Shelf" },
+                        new ParAssociacao() { palavraPortugues = "Cereal", palavraIngles = "Cereal" },
+                        new ParAssociacao() { palavraPortugues = "Lanche", palavraIngles = "Snack" },
+                        new ParAssociacao() { palavraPortugues = "Corredor", palavraIngles = "Aisle" },
+                        new ParAssociacao() { palavraPortugues = "Total", palavraIngles = "Total" }
+                    }
+                }
+            );
         }
         else
         {
@@ -232,15 +323,99 @@ public class CashierNPC : InteracaoNPC
                 }
             );
 
-            exerciciosSpeaking.Add(
-                new ExercicioSpeaking()
+            exerciciosCompletarFrase.Add(
+                new ExercicioCompletarFrase()
                 {
-                    enunciado = "Say the right sentence to respond the cashier:",
-                    opcoesFala = new List<string>() { "I’m paying with my credit card, and I’d like the receipt too.\n", "He doesn’t enjoy crowded supermarkets either.\n", "There is a long line near the bakery section.\n" },
-                    respostaCorreta = 0
+                    enunciado = "Complete the sentence with the correct words:",
+                    partesFrase = new List<string>
+                    {
+                        "I would like to pay with my ",
+                        " ",
+                        " card, and I would also like a printed",
+                        " ",
+                        "."
+                    }, 
+                    respostaCorreta = "debit, receipt",                   
+                    blocosPalavras = new List<string>()
+                    {
+                        "receipt", "debit", "cash", "my",
+                        "card", "with", "I'd", "too", "paying",
+                        "gift", "the", "I'm", "like", "money",
+                        "coins", "check", "want", "your", "buy"
+                    }
+                }
+            );
+ 
+            exerciciosAssociacao.Add(
+                new ExercicioAssociacao()
+                {
+                    enunciado = "Match the English words with their Portuguese translations:",
+                    opcoesPort = new List<string>()
+                    {
+                        "Recém-assado",
+                        "Esgotado",
+                        "Método de pagamento",
+                        "Recibo impresso",
+                        "Caixa registradora",
+                        "Estacionamento",
+                        "Produtos congelados",
+                        "Prateleira",
+                        "Desconto especial",
+                        "Alimentos saudáveis",
+                        "Fazer um pedido",
+                        "Sacola de papel"
+                    },
+                    opcoesIngles = new List<string>()
+                    {
+                        "Frozen food",
+                        "Payment method",
+                        "Paper bag",
+                        "Freshly baked",
+                        "To place an order",
+                        "Parking lot",
+                        "Sold out",
+                        "Printed receipt",
+                        "Healthy food",
+                        "Cash register",
+                        "Special discount",
+                        "Shelf"
+                    },
+                    associacaoCorreta = new List<ParAssociacao>()
+                    {
+                        new ParAssociacao() { palavraPortugues = "Recém-assado", palavraIngles = "Freshly baked" },
+                        new ParAssociacao() { palavraPortugues = "Esgotado", palavraIngles = "Sold out" },
+                        new ParAssociacao() { palavraPortugues = "Método de pagamento", palavraIngles = "Payment method" },
+                        new ParAssociacao() { palavraPortugues = "Recibo impresso", palavraIngles = "Printed receipt" },
+                        new ParAssociacao() { palavraPortugues = "Caixa registradora", palavraIngles = "Cash register" },
+                        new ParAssociacao() { palavraPortugues = "Estacionamento", palavraIngles = "Parking lot" },
+                        new ParAssociacao() { palavraPortugues = "Produtos congelados", palavraIngles = "Frozen food" },
+                        new ParAssociacao() { palavraPortugues = "Prateleira", palavraIngles = "Shelf" },
+                        new ParAssociacao() { palavraPortugues = "Desconto especial", palavraIngles = "Special discount" },
+                        new ParAssociacao() { palavraPortugues = "Alimentos saudáveis", palavraIngles = "Healthy food" },
+                        new ParAssociacao() { palavraPortugues = "Fazer um pedido", palavraIngles = "To place an order" },
+                        new ParAssociacao() { palavraPortugues = "Sacola de papel", palavraIngles = "Paper bag" }
+                    }
                 }
             );
         }
+    }
+
+    private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
+    {
+        if (exercicio is ExercicioSpeaking)
+            return TipoExercicio.Speaking;
+        if (exercicio is ExercicioAlternativas)
+            return TipoExercicio.Alternativas;
+        if (exercicio is ExercicioBlocos)
+            return TipoExercicio.Blocos;
+        if (exercicio is ExercicioCompletarFrase)
+            return TipoExercicio.CompletarFrase;
+        if (exercicio is ExercicioWriting)
+            return TipoExercicio.Writing;
+        if (exercicio is ExercicioAssociacao)
+            return TipoExercicio.Associacao;
+
+        throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
     protected override async Task IniciarInteracao()
@@ -305,25 +480,27 @@ public class CashierNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: false); 
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);  
         
         // Abre o exercício de blocos ("Yes, I want some chocolate")
-        await AbrirExercicio(TipoExercicio.Blocos, exerciciosBlocos[0]); 
+        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[0]), exerciciosBlocos[0]);  //
 
         await PegarChocolate();
 
         await PlayAudioETexto(i++);  
         
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA2() 
@@ -334,30 +511,34 @@ public class CashierNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: false); 
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+        await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
         exAtual = exerciciosAlternativas[1];
-        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -367,29 +548,29 @@ public class CashierNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(TipoExercicio.Alternativas, exAtual);
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(TipoExercicio.Speaking, exAtual);
+        exAtual = exerciciosCompletarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
+
+        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
 
     private async Task PegarChocolate()
