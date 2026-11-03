@@ -1,0 +1,216 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+
+newmtl Metal_Silver
+Ka 0.000000 0.000000 0.000000
+Kd 0.917647 0.913725 0.933333
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Metal_Silver.jpg
+
+newmtl _51
+Ka 0.000000 0.000000 0.000000
+Kd 0.298039 0.298039 0.298039
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_51.jpg
+
+newmtl _
+Ka 0.000000 0.000000 0.000000
+Kd 0.784314 0.784314 0.796078
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_.jpg
+
+newmtl Dark_Steel
+Ka 0.000000 0.000000 0.000000
+Kd 0.337255 0.337255 0.337255
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Dark_Steel.jpg
+
+newmtl Glass
+Ka 0.000000 0.000000 0.000000
+Kd 0.266667 0.266667 0.266667
+Ks 0.330000 0.330000 0.330000
+d 0.950000
+map_Kd Melodia City Hotel/Glass.jpg
+
+newmtl FrontColor
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.330000 0.330000 0.330000
+
+newmtl Color_M00
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.330000 0.330000 0.330000
+
+newmtl _54
+Ka 0.000000 0.000000 0.000000
+Kd 0.337255 0.243137 0.113725
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_54.jpg
+
+newmtl BackColor
+Ka 0.000000 0.000000 0.000000
+Kd 0.643137 0.698039 0.733333
+Ks 0.330000 0.330000 0.330000
+
+newmtl Metal_Steel_Textured_White
+Ka 0.000000 0.000000 0.000000
+Kd 0.749020 0.749020 0.749020
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Metal_Steel_Textured_White.jpg
+
+newmtl _Blinds_Wood_White_2
+Ka 0.000000 0.000000 0.000000
+Kd 0.541176 0.537255 0.545098
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_Blinds_Wood_White_2.jpg
+
+newmtl _34
+Ka 0.000000 0.000000 0.000000
+Kd 0.827451 0.745098 0.619608
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_34.jpg
+
+newmtl Blacktop_Old_02
+Ka 0.000000 0.000000 0.000000
+Kd 0.560784 0.568627 0.568627
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Blacktop_Old_02.jpg
+
+newmtl Metal_Rough
+Ka 0.000000 0.000000 0.000000
+Kd 0.600000 0.615686 0.627451
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Metal_Rough.jpg
+
+newmtl palm_014
+Ka 0.000000 0.000000 0.000000
+Kd 0.686275 0.709804 0.639216
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/palm_014.png
+
+newmtl Slate_Light_Tile
+Ka 0.000000 0.000000 0.000000
+Kd 0.211765 0.211765 0.211765
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Slate_Light_Tile.jpg
+
+newmtl Vegetation_Grass
+Ka 0.000000 0.000000 0.000000
+Kd 0.564706 0.627451 0.356863
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Vegetation_Grass.jpg
+
+newmtl wanddeko_palmen_1168
+Ka 0.000000 0.000000 0.000000
+Kd 0.752941 0.784314 0.694118
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/wanddeko_palmen_1168.jpg
+
+newmtl palm_08
+Ka 0.000000 0.000000 0.000000
+Kd 0.796078 0.796078 0.721569
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/palm_08.png
+
+newmtl Metal_Aluminum_Anodized
+Ka 0.000000 0.000000 0.000000
+Kd 0.792157 0.819608 0.858824
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Metal_Aluminum_Anodized.jpg
+
+newmtl _LightGray_
+Ka 0.000000 0.000000 0.000000
+Kd 0.662745 0.662745 0.662745
+Ks 0.330000 0.330000 0.330000
+
+newmtl Wood_Wicker
+Ka 0.000000 0.000000 0.000000
+Kd 0.545098 0.427451 0.294118
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Wood_Wicker.jpg
+
+newmtl Color_M01
+Ka 0.000000 0.000000 0.000000
+Kd 0.886275 0.886275 0.886275
+Ks 0.330000 0.330000 0.330000
+
+newmtl _30
+Ka 0.000000 0.000000 0.000000
+Kd 0.607843 0.352941 0.188235
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_30.jpg
+
+newmtl Cut_out_pot_plant_3__8_
+Ka 0.000000 0.000000 0.000000
+Kd 0.470588 0.501961 0.415686
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Cut_out_pot_plant_3__8_.png
+
+newmtl Groundcover_Wood_Mix
+Ka 0.000000 0.000000 0.000000
+Kd 0.521569 0.474510 0.450980
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/Groundcover_Wood_Mix.jpg
+
+newmtl _32
+Ka 0.000000 0.000000 0.000000
+Kd 0.780392 0.584314 0.388235
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_32.jpg
+
+newmtl _38
+Ka 0.000000 0.000000 0.000000
+Kd 0.984314 0.984314 0.984314
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_38.jpg
+
+newmtl _43
+Ka 0.000000 0.000000 0.000000
+Kd 0.490196 0.439216 0.419608
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_43.jpg
+
+newmtl _Water_Pool_Light_1
+Ka 0.000000 0.000000 0.000000
+Kd 0.243137 0.584314 0.650980
+Ks 0.330000 0.330000 0.330000
+d 0.600000
+map_Kd Melodia City Hotel/_Water_Pool_Light_1.jpg
+
+newmtl _159
+Ka 0.000000 0.000000 0.000000
+Kd 0.501961 0.501961 0.501961
+Ks 0.330000 0.330000 0.330000
+d 0.700000
+
+newmtl _31
+Ka 0.000000 0.000000 0.000000
+Kd 0.858824 0.788235 0.686275
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_31.jpg
+
+newmtl _41
+Ka 0.000000 0.000000 0.000000
+Kd 0.400000 0.400000 0.400000
+Ks 0.330000 0.330000 0.330000
+d 0.600000
+
+newmtl _57
+Ka 0.000000 0.000000 0.000000
+Kd 0.898039 0.854902 0.764706
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_57.jpg
+
+newmtl _Metal_Aluminum_Anodized_1
+Ka 0.000000 0.000000 0.000000
+Kd 0.784314 0.819608 0.854902
+Ks 0.330000 0.330000 0.330000
+map_Kd Melodia City Hotel/_Metal_Aluminum_Anodized_1.jpg
+
+newmtl CoolGray8
+Ka 0.000000 0.000000 0.000000
+Kd 0.298039 0.313725 0.364706
+Ks 0.330000 0.330000 0.330000
+

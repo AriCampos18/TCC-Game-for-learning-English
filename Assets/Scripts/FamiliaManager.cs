@@ -16,6 +16,7 @@ public class FamiliaManager : MonoBehaviour
             return;
 
         visitaEmAndamento = true;
+        bool fluxoConcluido = false;
 
         try
         {
@@ -34,13 +35,27 @@ public class FamiliaManager : MonoBehaviour
                 await InteracaoA2();
             else
                 await InteracaoB1();
+
+            fluxoConcluido = true;
         }
         finally
         {
             GameProgress.EstaEmDialogo = false;
             mae.FinalizarInteracaoFamilia();
-            visitaEmAndamento = false;
+
+            if (!fluxoConcluido)
+                visitaEmAndamento = false;
         }
+
+        if (fluxoConcluido)
+        {
+            if (RevisaoManager.Instance != null)
+                await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(mae);
+            else
+                Debug.LogError("RevisaoManager não está disponível para finalizar Home.");
+        }
+
+        visitaEmAndamento = false;
     }
 
     private void IniciarMissao(string id, string texto, string traducao)

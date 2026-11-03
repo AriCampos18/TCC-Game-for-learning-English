@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using System;
 using System.Net.Http;
 using UnityEngine.Networking;
 using System.IO;
@@ -127,7 +128,7 @@ public class ShelfNPC : InteracaoNPC
         int i = 0;
         await PlayAudioETexto(i++); // "Hi. Are you looking for anything today?"
 
-        exAtual = exerciciosBlocos[0];
+        exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++); // "Follow me."
@@ -165,7 +166,7 @@ public class ShelfNPC : InteracaoNPC
         int i = 0;
         await PlayAudioETexto(i++); // "Hi! What are you looking for..."
 
-        exAtual = exerciciosBlocos[0];
+        exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++); // "Sure. Follow me, please."
@@ -179,7 +180,7 @@ public class ShelfNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[1]), exerciciosBlocos[1]); //
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[1]), exerciciosCriarFrases[1]); //
 
         await PlayAudioETexto(i++); // "Do you often buy snacks from this aisle..."
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
@@ -218,7 +219,7 @@ public class ShelfNPC : InteracaoNPC
 
         await PlayAudioETexto(i++); // "The soda is on this shelf..."
 
-        exAtual = exerciciosBlocos[0]; 
+        exAtual = exerciciosCriarFrases[0]; 
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
         await PlayAudioETexto(i++); // "Enjoy the discounts. Happy shopping!"
 
@@ -384,7 +385,7 @@ public class ShelfNPC : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
-        exerciciosBlocos.Clear();
+        exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
         exerciciosAlternativas.Clear();
 
@@ -400,7 +401,7 @@ public class ShelfNPC : InteracaoNPC
                 "Yes, we have apples too."
             };
 
-            exerciciosCriarFrases.Add(new ExercicioCriarFrases() 
+            exerciciosCriarFrases.Add(new ExercicioBlocos() 
             { 
                 enunciado = "Complete the sentence with the correct word: Onde está o leite?",
                 blocosPalavras = new List<string>() { "Where", "milk", "thank", "you", "that", "is", "all", "hello", "bread", "the" },
@@ -437,7 +438,7 @@ public class ShelfNPC : InteracaoNPC
                 "The snacks are here. Can I help you find anything else, or do you already have everything?"
            };
 
-            exerciciosBlocos.Add(new ExercicioBlocos()
+            exerciciosCriarFrases.Add(new ExercicioBlocos()
             {
                 enunciado = "Ask where you can find the products 'Milk' and 'Cereal' with the words bellow:",
                 blocosPalavras = new List<string>() { "Where", "milk", "thank", "you", "that", "can", "all", "hello", "bread", "the", "cereal", "ok", "and", "I", "find" },
@@ -451,7 +452,7 @@ public class ShelfNPC : InteracaoNPC
                 respostaCorreta = 0
             });
 
-            exerciciosBlocos.Add(new ExercicioBlocos()
+            exerciciosCriarFrases.Add(new ExercicioBlocos()
             {
                 enunciado = "Arrange the words to form the sentence in english: Há descontos especiais hoje?",
                 blocosPalavras = new List<string>() { "Where", "thank", "you", "there", "Are", "all", "hello", "special", "the", "cereal", "any", "and", "discounts", "bread", "today" },
@@ -497,7 +498,7 @@ public class ShelfNPC : InteracaoNPC
                 respostaCorreta = 0
             });
 
-            exerciciosBlocos.Add(new ExercicioBlocos() 
+            exerciciosCriarFrases.Add(new ExercicioBlocos() 
             { 
                 enunciado = "Arrange the words to form the sentence in english: Isso era tudo que eu precisava. Se eu precisar de qualquer coisa eu aviso. Obrigado/a.",
                 blocosPalavras = new List<string>() { "No", "milk", "I", "That", "else", "you", "you", "know", "needed", "was", "same", "all", "hello", "need", "Thank", "If", "I'll", "maybe", "ok", "perfect", "so", "I", "let", "anything" },

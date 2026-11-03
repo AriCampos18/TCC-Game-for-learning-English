@@ -59,6 +59,8 @@ public class CashierNPC : InteracaoNPC
         exerciciosCriarFrases = new List<ExercicioBase>();
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
+        exerciciosWriting = new List<ExercicioBase>();
+        exerciciosAssociacao = new List<ExercicioBase>();
         nivelAtual = DadosJogador.nivelUsuario;
 
         if (horaAtual < 12)
@@ -97,7 +99,7 @@ public class CashierNPC : InteracaoNPC
             );
 
             exerciciosCriarFrases.Add(
-                new ExercicioCriarFrases() 
+                new ExercicioBlocos()
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Sim, eu quero algum chocolate.",
                     blocosPalavras = new List<string>() { "No", "Yes", "thank", "you", "that", "chocolate", "was", "want", "all", "hello", "thank", "I", "maybe", "some" },
@@ -200,10 +202,10 @@ public class CashierNPC : InteracaoNPC
             );
 
             exerciciosCriarFrases.Add(
-                new ExercicioCriarFrase()
+                new ExercicioBlocos()
                 {
                     enunciado = "Arrange the words to form the correct sentence in english: Eu geralmente trago minhas próprias sacolas, mas hoje preciso de uma.",
-                    palavrasDisponiveis = new List<string>()
+                    blocosPalavras = new List<string>()
                     {
                         "today", "bags", "he", "usually", "my", "need",
                         "bring", "but", "own", "one", "always", "I",
@@ -336,7 +338,7 @@ public class CashierNPC : InteracaoNPC
                         "."
                     }, 
                     respostaCorreta = "debit, receipt",                   
-                    blocosPalavras = new List<string>()
+                    opcoes = new List<string>()
                     {
                         "receipt", "debit", "cash", "my",
                         "card", "with", "I'd", "too", "paying",
@@ -438,7 +440,12 @@ public class CashierNPC : InteracaoNPC
 
             MissionManager.Instance.ConcluirMissao("falar_caixa");
 
-            await FazerRevisao();
+            if (!await FazerRevisao())
+            {
+                GameProgress.EstaEmDialogo = false;
+                LiberarControlePlayer();
+                return;
+            }
 
             MissionManager.Instance.AdicionarMissao(
                 "pegar_sacola",
@@ -485,7 +492,7 @@ public class CashierNPC : InteracaoNPC
         await PlayAudioETexto(i++, mostrarLegenda: true);  
         
         // Abre o exercício de blocos ("Yes, I want some chocolate")
-        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[0]), exerciciosBlocos[0]);  //
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);  //
 
         await PegarChocolate();
 
@@ -565,7 +572,7 @@ public class CashierNPC : InteracaoNPC
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        exAtual = exerciciosCompletarFrases[0];
+        exAtual = exerciciosCompletarFrase[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
@@ -626,89 +633,20 @@ public class CashierNPC : InteracaoNPC
         if (legenda != null)
             legenda.AjustarPosicaoPeloEstadoDoJogo();
     }
-    private async Task FazerRevisao()
+    private Task<bool> FazerRevisao()
     {
-        if (RevisaoManager.Instance != null)
+        if (RevisaoManager.Instance == null)
         {
-            List<ExercicioRevisao> associacoes = RevisaoManager.Instance.GetAssociacoesPendentes();
-            foreach (ExercicioRevisao item in associacoes)
-            {
-                await AbrirExercicioRevisao(
-                    TipoExercicio.Associacao,
-                    item.exercicio,
-                    false,
-                    true);
-            }
-
-            if (RevisaoManager.Instance.TemRevisao())
-            {
-                if (modalAvisoRevisao != null)
-                {
-                    modalAvisoRevisao.SetActive(true);
-
-                    while (modalAvisoRevisao.activeSelf)
-                    {
-                        await Task.Yield();
-                    }
-                }
-
-                List<ExercicioRevisao> revisoes = RevisaoManager.Instance.GetExerciciosErrados();
-
-                foreach (ExercicioRevisao item in revisoes)
-                {
-                    string enunciadoOriginal = item.exercicio.enunciado;
-
-                    if (item.tipo == TipoExercicio.Speaking || item.tipo == TipoExercicio.Alternativas)
-                    {
-                        item.exercicio.enunciado =
-                            "Context: " + item.contextoNpc + "\n\n" + enunciadoOriginal;
-                    }
-
-                    await AbrirExercicioRevisao(item.tipo, item.exercicio);
-
-                    item.exercicio.enunciado = enunciadoOriginal;
-                }
-
-                RevisaoManager.Instance.Limpar();
-            }
-        }
-    }
-
-    private async Task AbrirExercicioRevisao(
-        TipoExercicio tipo,
-        ExercicioBase ex,
-        bool revisao = true,
-        bool faseAssociacao = false)
-    {
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (modalExercicio == null || modalExercicio.panel == null)
-        {
-            Debug.LogError("ModalExercicio ou painel não está configurado no CashierNPC.");
-            return;
+            Debug.LogError("RevisaoManager não está disponível para revisar o Market.");
+            return Task.FromResult(false);
         }
 
-        RectTransform rect = modalExercicio.panel.GetComponent<RectTransform>();
-
-        if (rect != null)
-        {
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = Vector2.zero;
-        }
-
-        modalExercicio.Abrir(tipo, ex, this, revisao, faseAssociacao);
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        while (!modalExercicio.exercicioFinalizado)
-            await Task.Yield();
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        return RevisaoManager.Instance.FazerRevisao(
+            this,
+            modalExercicio,
+            modalAvisoRevisao,
+            modalLegenda
+        );
     }
 
     private async Task MostrarProdutosNoBalcao()

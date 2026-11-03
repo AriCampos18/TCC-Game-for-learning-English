@@ -12,6 +12,12 @@ public class motherNPC : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private AudioSource audioSource;
+    private BackendManager backendManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public TextMeshProUGUI textoPularDialogo;
+    public ExercicioBase exAtual;
 
     public string idNpcParaVoz = "mom";
 

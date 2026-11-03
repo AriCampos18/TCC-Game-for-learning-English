@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.IO;
 using TMPro;
+using System;
 
 public enum TipoExercicio
 {
@@ -59,7 +60,7 @@ public class BakeryNPC : InteracaoNPC
 
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
-        exerciciosBlocos = new List<ExercicioBase>();
+        exerciciosCriarFrases = new List<ExercicioBase>();
         nivelAtual = DadosJogador.nivelUsuario;
     }
 
@@ -91,7 +92,7 @@ public class BakeryNPC : InteracaoNPC
             );
 
             exerciciosSpeaking.Add(
-                new ExercicioAlternativas()
+                new ExercicioSpeaking()
                 {
                     enunciado = "Say the right sentence:",
                     opcoesFala = new List<string>()
@@ -117,7 +118,7 @@ public class BakeryNPC : InteracaoNPC
                 });
             
             exerciciosCriarFrases.Add(
-                new ExercicioCriarFrases()
+                new ExercicioBlocos()
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Você pode me ajudar?",
                     blocosPalavras = new List<string>() { 
@@ -193,7 +194,7 @@ public class BakeryNPC : InteracaoNPC
             );
 
             exerciciosCriarFrases.Add(
-                new ExercicioCriarFrases() 
+                new ExercicioBlocos() 
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Não, isso é tudo que eu precisava, obrigado/a.",
                     blocosPalavras = new List<string>() { 
@@ -250,7 +251,7 @@ public class BakeryNPC : InteracaoNPC
             );
 
             exerciciosCriarFrases.Add(
-                new ExercicioCriarFrases() 
+                new ExercicioBlocos() 
                 { 
                     enunciado = "Arrange the words to form the correct sentence in english: Ótimo, parece incrível. Eu vou querer o croissant e o sanduíche.",
                     blocosPalavras = new List<string>() { 
@@ -367,7 +368,7 @@ public class BakeryNPC : InteracaoNPC
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[0]), exerciciosBlocos[0]); //
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]); //
 
         await PlayAudioETexto(i++);
 
@@ -403,7 +404,7 @@ public class BakeryNPC : InteracaoNPC
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosBlocos[0]), exerciciosBlocos[0]); //
+        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]); //
 
         await PegarProduto(sandwich, falar: true);
         await PegarProduto(sourdough, falar: false);
@@ -425,7 +426,7 @@ public class BakeryNPC : InteracaoNPC
 
         await PlayAudioETexto(i++);
 
-        exAtual = exerciciosBlocos[0];
+        exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
 
         await PegarProduto(sandwich, falar: true);

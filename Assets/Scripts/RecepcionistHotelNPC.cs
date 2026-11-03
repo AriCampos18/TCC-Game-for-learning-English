@@ -13,6 +13,12 @@ public class RecepcionistHotelNPC: InteracaoNPC
     string cumprimento, periodo, periodoIng;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private AudioSource audioSource;
+    private BackendManager backendManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public TextMeshProUGUI textoPularDialogo;
+    public ExercicioBase exAtual;
 
     public string idNpcParaVoz = "recepcionistHotel";
 
@@ -733,6 +739,11 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
         GameProgress.EstaEmDialogo = false;
         LiberarControlePlayer();
+
+        if (RevisaoManager.Instance != null)
+            await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        else
+            Debug.LogError("RevisaoManager não está disponível para finalizar Hotel.");
     }
 
     private async Task interacaoA1()

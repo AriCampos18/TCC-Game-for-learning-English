@@ -10,15 +10,30 @@ public class VisitorCenterNPC: InteracaoNPC
 {
     string nivelAtual;
     string cumprimento;
+    public ExercicioBase exAtual;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
 
+    private AudioSource audioSource;
+    private BackendManager backendManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public TextMeshProUGUI textoPularDialogo;
+
     public string idNpcParaVoz = "tourGuide";
     public Transform pontoChegadaCityPark;
+    public GameObject marcadorCityPark;
 
     private bool aguardandoChegadaCityPark;
+    private bool finalizacaoIniciada;
     private string idMissaoChegadaCityPark;
+
+    private float tempoParadoCityPark;
+    private Vector3 ultimaPosicaoPlayer;
+
     private const float DistanciaChegadaCityPark = 2f;
+    private const float TempoNecessarioCityPark = 3f;
+    private const float VelocidadeMaximaParado = 0.15f;
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -30,8 +45,12 @@ public class VisitorCenterNPC: InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        if (marcadorCityPark != null)
+            marcadorCityPark.SetActive(false);
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Tour Guide";
+        backendManager = new BackendManager();
+        audioSource = GetComponent<AudioSource>();
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
         exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
         exerciciosSpeaking = GarantirListaExercicios(exerciciosSpeaking);
@@ -61,13 +80,91 @@ public class VisitorCenterNPC: InteracaoNPC
         if (pontoChegadaCityPark == null || movimentoPlayer == null)
             return;
 
-        Vector3 deslocamento = movimentoPlayer.transform.position - pontoChegadaCityPark.position;
+        Vector3 posicaoAtual = movimentoPlayer.transform.position;
+
+        // Verifica a distância até o marcador, ignorando a altura.
+        Vector3 deslocamento = posicaoAtual - pontoChegadaCityPark.position;
         deslocamento.y = 0f;
 
-        if (deslocamento.sqrMagnitude <= DistanciaChegadaCityPark * DistanciaChegadaCityPark)
+        bool dentroDaArea =
+            deslocamento.sqrMagnitude <=
+            DistanciaChegadaCityPark * DistanciaChegadaCityPark;
+
+        if (dentroDaArea)
         {
-            MissionManager.ConcluirMissaoNPC(idMissaoChegadaCityPark);
-            aguardandoChegadaCityPark = false;
+            // Calcula quanto o jogador se movimentou.
+            Vector3 movimento = posicaoAtual - ultimaPosicaoPlayer;
+            movimento.y = 0f;
+
+            float velocidade = movimento.magnitude /
+                Mathf.Max(Time.deltaTime, 0.0001f);
+
+            // Verifica se está parado.
+            if (velocidade <= VelocidadeMaximaParado)
+            {
+                tempoParadoCityPark += Time.deltaTime;
+            }
+            else
+            {
+                tempoParadoCityPark = 0f;
+            }
+
+            // Conclui a missão após 3 segundos parado.
+            if (tempoParadoCityPark >= TempoNecessarioCityPark)
+            {
+                MissionManager.ConcluirMissaoNPC(idMissaoChegadaCityPark);
+
+                if (MissionManager.Instance == null
+                    || !MissionManager.Instance.MissaoConcluida(idMissaoChegadaCityPark))
+                {
+                    Debug.LogError(
+                        "VisitorCenterNPC: a missão de chegada não foi concluída no MissionManager."
+                    );
+                    tempoParadoCityPark = 0f;
+                    return;
+                }
+
+                aguardandoChegadaCityPark = false;
+
+                if (marcadorCityPark != null)
+                    marcadorCityPark.SetActive(false);
+
+                Debug.Log("City Park encontrado! Missão concluída.");
+
+                if (!finalizacaoIniciada)
+                {
+                    finalizacaoIniciada = true;
+                    FinalizarCenarioAposChegada();
+                }
+            }
+        }
+        else
+        {
+            // Saiu da área: zera o contador.
+            tempoParadoCityPark = 0f;
+        }
+
+        ultimaPosicaoPlayer = posicaoAtual;
+    }
+
+    private async void FinalizarCenarioAposChegada()
+    {
+        bool finalizacaoConcluida = false;
+
+        if (RevisaoManager.Instance != null)
+            finalizacaoConcluida =
+                await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        else
+            Debug.LogError("RevisaoManager não está disponível para finalizar Tourist Information Center.");
+
+        if (!finalizacaoConcluida)
+        {
+            finalizacaoIniciada = false;
+            aguardandoChegadaCityPark = true;
+            tempoParadoCityPark = 0f;
+
+            if (marcadorCityPark != null)
+                marcadorCityPark.SetActive(true);
         }
     }
 
@@ -553,6 +650,19 @@ public class VisitorCenterNPC: InteracaoNPC
 
         idMissaoChegadaCityPark = id;
         aguardandoChegadaCityPark = true;
+
+        // Reinicia o contador de permanência
+        tempoParadoCityPark = 0f;
+
+        // Registra a posição inicial do jogador
+        if (movimentoPlayer != null)
+            ultimaPosicaoPlayer = movimentoPlayer.transform.position;
+
+        // Exibe o marcador
+        if (marcadorCityPark != null)
+            marcadorCityPark.SetActive(true);
+        else
+            Debug.LogWarning("VisitorCenterNPC: atribua o marcador do City Park no Inspector.");
 
         if (pontoChegadaCityPark == null)
             Debug.LogWarning("VisitorCenterNPC: atribua o ponto de chegada do City Park no Inspector.");

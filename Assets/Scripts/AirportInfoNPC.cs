@@ -13,6 +13,15 @@ public class AirportInfoNPC : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private AudioSource audioSource;
+    private Animator animator;
+
+    private BackendManager backendManager;
+    private MissionManager missaoManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public ExercicioBase exAtual;
+    public TextMeshProUGUI textoPularDialogo;
 
     public List<ExercicioCompletarFrase> exerciciosCompletarFrase = new List<ExercicioCompletarFrase>();
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;

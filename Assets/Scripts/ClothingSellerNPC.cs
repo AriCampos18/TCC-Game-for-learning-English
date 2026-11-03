@@ -12,6 +12,14 @@ public class ClothingSellerNPC : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private AudioSource audioSource;
+    private BackendManager backendManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public TextMeshProUGUI textoPularDialogo;
+    public ExercicioBase exAtual;
+
+    public FirstPlayerController playerController;
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -725,7 +733,7 @@ public class ClothingSellerNPC : InteracaoNPC
         exAtual = exerciciosWriting[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        await PegarRoupa(blue_tshirt);
+        await AndarAteRoupa("blue_tshirt");
         await PlayAudioETexto(i++);
         MissionManager.ConcluirMissaoNPC("roupas_a1_2");
 
@@ -1015,6 +1023,15 @@ public class ClothingSellerNPC : InteracaoNPC
         {
             legenda.AjustarPosicaoPeloEstadoDoJogo();
         }
+    }
+
+    //MODIFICAR PARA FICAR DO JEITO CORRETO
+    private async Task<string> AndarAteRoupa(string nomeRoupa)
+    {
+       return await Task.Run(() =>
+        {
+            return "Roupa não encontrada: " + nomeRoupa;
+        });
     }
 
     private async Task PlayAudioETexto(int i)

@@ -12,6 +12,12 @@ public class checkinNPC : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private AudioSource audioSource;
+    private BackendManager backendManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public TextMeshProUGUI textoPularDialogo;
+    public ExercicioBase exAtual;
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -21,10 +27,30 @@ public class checkinNPC : InteracaoNPC
     [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
 
     public string idNpcParaVoz = "airportInfo";
+    public Transform pontoChegadaPortao12;
+    public Transform pontoChegadaPortao18;
+    public Transform pontoChegadaPortao24;
+    public GameObject marcadorPortao12;
+    public GameObject marcadorPortao18;
+    public GameObject marcadorPortao24;
+
+    private bool aguardandoChegadaPortao;
+    private bool fluxoCheckinConcluido;
+    private bool finalizacaoIniciada;
+    private string idMissaoChegadaPortao;
+    private Transform pontoChegadaPortaoAtual;
+    private GameObject marcadorPortaoAtual;
+    private float tempoParadoPortao;
+    private Vector3 ultimaPosicaoPlayer;
+
+    private const float DistanciaChegadaPortao = 2f;
+    private const float TempoNecessarioPortao = 3f;
+    private const float VelocidadeMaximaParado = 0.15f;
 
     protected override void Start()
     {
         base.Start();
+        DesativarMarcadoresPortoes();
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Airport Employee";
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
@@ -45,6 +71,129 @@ public class checkinNPC : InteracaoNPC
         else
         {
             cumprimento = "Good evening!";
+        }
+    }
+
+    private void Update()
+    {
+        if (!aguardandoChegadaPortao || !fluxoCheckinConcluido)
+            return;
+
+        if (pontoChegadaPortaoAtual == null || movimentoPlayer == null)
+            return;
+
+        Vector3 posicaoAtual = movimentoPlayer.transform.position;
+        Vector3 deslocamento = posicaoAtual - pontoChegadaPortaoAtual.position;
+        deslocamento.y = 0f;
+
+        bool dentroDaArea =
+            deslocamento.sqrMagnitude
+            <= DistanciaChegadaPortao * DistanciaChegadaPortao;
+
+        if (dentroDaArea)
+        {
+            Vector3 movimento = posicaoAtual - ultimaPosicaoPlayer;
+            movimento.y = 0f;
+
+            float velocidade = movimento.magnitude
+                / Mathf.Max(Time.deltaTime, 0.0001f);
+
+            if (velocidade <= VelocidadeMaximaParado)
+                tempoParadoPortao += Time.deltaTime;
+            else
+                tempoParadoPortao = 0f;
+
+            if (tempoParadoPortao >= TempoNecessarioPortao)
+                ConcluirChegadaAoPortao();
+        }
+        else
+        {
+            tempoParadoPortao = 0f;
+        }
+
+        ultimaPosicaoPlayer = posicaoAtual;
+    }
+
+    private void DesativarMarcadoresPortoes()
+    {
+        if (marcadorPortao12 != null)
+            marcadorPortao12.SetActive(false);
+        if (marcadorPortao18 != null)
+            marcadorPortao18.SetActive(false);
+        if (marcadorPortao24 != null)
+            marcadorPortao24.SetActive(false);
+    }
+
+    private void IniciarMissaoChegadaPortao(
+        string id,
+        string texto,
+        string traducao,
+        Transform pontoChegada,
+        GameObject marcador)
+    {
+        IniciarMissao(id, texto, traducao);
+
+        idMissaoChegadaPortao = id;
+        pontoChegadaPortaoAtual = pontoChegada;
+        marcadorPortaoAtual = marcador;
+        aguardandoChegadaPortao = true;
+        tempoParadoPortao = 0f;
+
+        if (movimentoPlayer != null)
+            ultimaPosicaoPlayer = movimentoPlayer.transform.position;
+
+        if (marcadorPortaoAtual != null)
+            marcadorPortaoAtual.SetActive(true);
+        else
+            Debug.LogWarning("checkinNPC: atribua o marcador do portão no Inspector.");
+
+        if (pontoChegadaPortaoAtual == null)
+            Debug.LogWarning("checkinNPC: atribua o ponto de chegada do portão no Inspector.");
+    }
+
+    private void ConcluirChegadaAoPortao()
+    {
+        MissionManager.ConcluirMissaoNPC(idMissaoChegadaPortao);
+
+        if (MissionManager.Instance == null
+            || !MissionManager.Instance.MissaoConcluida(idMissaoChegadaPortao))
+        {
+            Debug.LogError(
+                "checkinNPC: a missão do portão não foi concluída no MissionManager."
+            );
+            tempoParadoPortao = 0f;
+            return;
+        }
+
+        aguardandoChegadaPortao = false;
+        if (marcadorPortaoAtual != null)
+            marcadorPortaoAtual.SetActive(false);
+
+        if (!finalizacaoIniciada)
+        {
+            finalizacaoIniciada = true;
+            FinalizarCenarioAposChegadaPortao();
+        }
+    }
+
+    private async void FinalizarCenarioAposChegadaPortao()
+    {
+        bool finalizacaoConcluida = false;
+
+        if (RevisaoManager.Instance != null)
+            finalizacaoConcluida =
+                await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        else
+            Debug.LogError("RevisaoManager não está disponível para finalizar Airport.");
+
+        if (!finalizacaoConcluida)
+        {
+            finalizacaoIniciada = false;
+            aguardandoChegadaPortao = true;
+            tempoParadoPortao = 0f;
+
+            if (marcadorPortaoAtual != null)
+                marcadorPortaoAtual.SetActive(true);
         }
     }
 
@@ -464,6 +613,7 @@ public class checkinNPC : InteracaoNPC
         GameProgress.EstaEmDialogo = false;
 
         LiberarControlePlayer();
+        fluxoCheckinConcluido = true;
     }
 
     private async Task interacaoA1()
@@ -487,12 +637,15 @@ public class checkinNPC : InteracaoNPC
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         ConcluirMissao("aeroporto_a1_4");
-        IniciarMissao("aeroporto_a1_5", "Encontre o portão 12", "Find gate 12");
+        IniciarMissaoChegadaPortao(
+            "aeroporto_a1_5",
+            "Encontre o portão 12",
+            "Find gate 12",
+            pontoChegadaPortao12,
+            marcadorPortao12
+        );
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
-
-        // A conclusão de "Encontre o portão 12" depende da chegada física ao portão.
-        // O script atual do check-in não possui um evento de detecção dessa chegada.
     }
 
     private async Task interacaoA2()
@@ -535,12 +688,15 @@ public class checkinNPC : InteracaoNPC
         exAtual = exerciciosCompletarFrase[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-        IniciarMissao("aeroporto_a2_6", "Encontre o portão 18", "Find gate 18");
+        IniciarMissaoChegadaPortao(
+            "aeroporto_a2_6",
+            "Encontre o portão 18",
+            "Find gate 18",
+            pontoChegadaPortao18,
+            marcadorPortao18
+        );
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
-
-        // A conclusão de "Encontre o portão 18" depende da chegada física ao portão.
-        // O script atual do check-in não possui um evento de detecção dessa chegada.
     }
 
     private async Task interacaoB1()
@@ -584,12 +740,15 @@ public class checkinNPC : InteracaoNPC
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         ConcluirMissao("aeroporto_b1_7");
-        IniciarMissao("aeroporto_b1_8", "Encontre o portão 24 para seu voo", "Find gate 24 for your flight");
+        IniciarMissaoChegadaPortao(
+            "aeroporto_b1_8",
+            "Encontre o portão 24 para seu voo",
+            "Find gate 24 for your flight",
+            pontoChegadaPortao24,
+            marcadorPortao24
+        );
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
-
-        // A conclusão de "Encontre o portão 24" depende da chegada física ao portão.
-        // O script atual do check-in não possui um evento de detecção dessa chegada.
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

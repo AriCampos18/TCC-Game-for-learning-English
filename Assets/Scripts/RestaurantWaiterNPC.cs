@@ -12,6 +12,12 @@ public class RestaurantWaiterNPC : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private AudioSource audioSource;
+    private BackendManager backendManager;
+    public ModalExercicio modalExercicio;
+    public GameObject modalLegenda;
+    public TextMeshProUGUI textoPularDialogo;
+    public ExercicioBase exAtual;
 
     private bool conversaClienteConcluida;
 
@@ -644,6 +650,11 @@ public class RestaurantWaiterNPC : InteracaoNPC
         GameProgress.EstaEmDialogo = false;
 
         LiberarControlePlayer();
+
+        if (RevisaoManager.Instance != null)
+            await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        else
+            Debug.LogError("RevisaoManager não está disponível para finalizar Restaurant.");
     }
 
     private async Task interacaoA1()

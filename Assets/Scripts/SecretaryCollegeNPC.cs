@@ -11,9 +11,14 @@ public class SecretaryCollegeNPC: InteracaoNPC
     string nivelAtual;
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
+    public TextMeshProUGUI textoPularDialogo;
+    public ModalExercicio modalExercicio;
+    private BackendManager backendManager;
+    private AudioSource audioSource;
     List<string> dialogoAtual;
 
     public string idNpcParaVoz = "secretaryCollege";
+    public GameObject modalLegenda;
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -573,6 +578,11 @@ public class SecretaryCollegeNPC: InteracaoNPC
         GameProgress.EstaEmDialogo = false;
 
         LiberarControlePlayer();
+
+        if (RevisaoManager.Instance != null)
+            await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        else
+            Debug.LogError("RevisaoManager não está disponível para finalizar College.");
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

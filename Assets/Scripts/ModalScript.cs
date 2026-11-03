@@ -66,9 +66,13 @@ public class ModalExercicio : MonoBehaviour
             if (associacaoUI == null || !associacaoUI.PodeContinuar)
                 return;
 
-            if (!associacaoUI.TodasAssociacoesConcluidas)
+            if (!associacaoUI.TodasAssociacoesConcluidas
+                && associacaoUI.TentativasEsgotadas)
+            {
                 RegistrarErroParaRevisao();
-            else if (ProgressoNivelManager.Instance != null)
+            }
+            else if (associacaoUI.TodasAssociacoesConcluidas
+                && ProgressoNivelManager.Instance != null)
                 ProgressoNivelManager.Instance.RegistrarAcerto(exercicioAtual);
 
             if (RevisaoManager.Instance != null)
@@ -481,9 +485,16 @@ public class ModalExercicio : MonoBehaviour
                     RevisaoManager.Instance.RegistrarErro(
                         tipoAtual,
                         exercicioAtual,
-                        contexto
+                        contexto,
+                        npcAtual
                     );
                 }
+            }
+            else
+            {
+                Debug.LogError(
+                    "RevisaoManager não está disponível para registrar o exercício incorreto."
+                );
             }
         }
     }
@@ -500,16 +511,18 @@ public class ModalExercicio : MonoBehaviour
         npcAtual = npc;
         modoRevisao = revisao;
 
-        if (tipo == TipoExercicio.Associacao && !revisao && !faseAssociacao)
+        if (tipo == TipoExercicio.Associacao
+            && !revisao
+            && !faseAssociacao
+            && RevisaoManager.Instance != null
+            && RevisaoManager.Instance.DeveAdiarAssociacoes)
         {
-            if (RevisaoManager.Instance != null)
-            {
-                RevisaoManager.Instance.RegistrarAssociacao(ex as ExercicioAssociacao);
-                exercicioFinalizado = true;
-                return;
-            }
-
-            Debug.LogError("RevisaoManager não está disponível para adiar o exercício de associação.");
+            RevisaoManager.Instance.RegistrarAssociacao(
+                ex as ExercicioAssociacao,
+                npc
+            );
+            exercicioFinalizado = true;
+            return;
         }
 
         if (tipo == TipoExercicio.Associacao)

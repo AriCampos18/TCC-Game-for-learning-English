@@ -20,7 +20,7 @@ public class ModalFinalManager : MonoBehaviour
     private string cenarioAtual;
 
     [Header("Modo de teste")]
-    public bool modoTesteSemExercicios = true;
+    public bool modoTesteSemExercicios = false;
 
     private void Awake()
     {
@@ -214,6 +214,12 @@ public class ModalFinalManager : MonoBehaviour
         }
 
         textoBotao.text = "Choose Scenario";
+        FirstPlayerController player = FindObjectOfType<FirstPlayerController>();
+        if (player != null)
+            player.DesativarControle();
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         Abrir();
     }
 
@@ -243,6 +249,13 @@ public class ModalFinalManager : MonoBehaviour
 
                 return;
             }
+
+            if (RevisaoManager.Instance != null)
+                RevisaoManager.Instance.IniciarCenario(cenarioAtual);
+            else
+                Debug.LogError(
+                    "RevisaoManager não está disponível para iniciar o cenário."
+                );
 
             // Inicia o cenário do mercado.
             GerenciadorProgressao gerenciador =
