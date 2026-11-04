@@ -1154,7 +1154,7 @@ public class VisitorCenterNPC: InteracaoNPC
                 "Hello. Can I help you?",
                 "Is this your first time here?",
                 "Do you want to know how to get there?",
-                "EXPLICA A DIREÇÃO DE FORMA SIMPLES"
+                "Turn right. Go straight. Turn left. At the end of the block, turn right."
             };
 
             exerciciosSpeaking.Add(
@@ -1260,7 +1260,7 @@ public class VisitorCenterNPC: InteracaoNPC
                 "Have you visited our city before?",
                 "Here are some tourist attractions. The city garden is very popular.",
                 "Would you like to know how to get there?",
-                "DIREÇÕES UM POUCO MAIS COMPLEXAS QUE NO A1.",
+                "Turn right and go straight. Then, turn right. At the end of the block, turn left",
                 "No, it isn't far. It's about a ten-minute walk."
             };
 
@@ -1336,7 +1336,7 @@ public class VisitorCenterNPC: InteracaoNPC
             exerciciosAlternativas.Add(
                 new ExercicioAlternativas()
                 {
-                    enunciado = "What should you do after walking two blocks?", //ou a direção correta dada no cenário real
+                    enunciado = "What should you do go straight?", //ou a direção correta dada no cenário real
                     alternativas = new List<string>() { 
                         "Go back\r\n", 
                         "Turn right\r\n", 
@@ -1433,7 +1433,7 @@ public class VisitorCenterNPC: InteracaoNPC
                 cumprimento+". Welcome to the tourist information center. How can I help you today?",
                 "Have you been here before?",
                 "If it's your first visit, I'd recommend starting with the city park. It's one of the most famous places in the city.",
-                "DIREÇÕES MAIS COMPLEXAS QUE NO A2",
+                "Take the first turn on your right and continue straight ahead. When you reach the end of the block, turn left. Then, take a right turn. It's next to the hotel.",
                 "If you don't feel like walking, you can also take bus 42. It stops right in front of the park.",
                 "I'd go early, though, because it gets crowded in the afternoon."
             };
@@ -1508,7 +1508,7 @@ public class VisitorCenterNPC: InteracaoNPC
                         "Behind the bank\r\n", 
                         "Next to the hotel\r\n", 
                         "Across from the museum\r\n", 
-                        "Inside the museum\r\n" },
+                        "Inside the hotel\r\n" },
                     alternativaCorreta = 2
                 }
             );
