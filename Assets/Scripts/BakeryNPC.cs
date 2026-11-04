@@ -1,3 +1,630 @@
+// using System.Collections.Generic;
+// using System.Threading.Tasks;
+// using UnityEngine;
+// using UnityEngine.Networking;
+// using System.IO;
+// using TMPro;
+// using System;
+
+// public enum TipoExercicio
+// {
+//     Speaking,
+//     Alternativas,
+//     Blocos,
+//     Writing,
+//     Associacao,
+//     CompletarFrase
+// }
+
+// public class BakeryNPC : InteracaoNPC
+// {
+//     List<string> dialogoAtual;
+
+//     public GameObject breadLoaf;
+//     public GameObject cake;
+//     public GameObject sandwich;
+//     public GameObject sourdough;
+
+//     string nivelAtual;
+//     private AudioSource audioSource;
+//     public ModalExercicio modalExercicio;
+//     public string idNpcParaVoz = "bakery"; // Altere no Inspector para "homem_caixa" ou "mulher_padaria"
+
+//     public List<Transform> pontosBakeryA1;
+//     public List<Transform> pontosBakeryA2;
+//     public List<Transform> pontosBakeryB1;
+//     private MissionManager missaoManager;
+
+//     public TextMeshProUGUI textoPularDialogo;
+//     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
+//     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
+//     [System.NonSerialized] public List<ExercicioBase> exerciciosSpeaking;
+//     [System.NonSerialized] public List<ExercicioBase> exerciciosAlternativas;
+//     [System.NonSerialized] public List<ExercicioBase> exerciciosWriting;
+//     [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
+//     private ExercicioBase exAtual;
+//     private BackendManager backendManager;
+
+//     public GameObject modalLegenda;
+
+//     protected override void Start()
+//     {
+//         base.Start();
+
+//         nomeExibicaoLegenda = "Bakery Attendant";
+
+//         backendManager = new BackendManager();
+//         missaoManager = MissionManager.Instance;
+
+//         audioSource = GetComponent<AudioSource>();
+
+//         exerciciosSpeaking = new List<ExercicioBase>();
+//         exerciciosAlternativas = new List<ExercicioBase>();
+//         exerciciosCriarFrases = new List<ExercicioBase>();
+//         nivelAtual = DadosJogador.nivelUsuario;
+//     }
+
+//     private void InicializarConteudosPorNivel()
+//     {
+//         if (nivelAtual == "A1")
+//         {
+//             dialogoAtual = new List<string>()
+//             {
+//                 "Hello. What are you looking for?",
+//                 "Do you want anything to drink?",
+//                 "Do you want anything else?",
+//                 "We have chicken sandwiches and chocolate cake.",
+//                 "Here is your order",
+//                 "You're welcome"
+//             };
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say the right sentence:",
+//                     opcoesFala = new List<string>() {
+//                         "There is a table.\n",
+//                         "I'm looking for some bread.\n",
+//                         "He goes to school.\r\n"
+//                     },
+//                     respostaCorreta = 1,
+//                 } 
+//             );
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say the right sentence:",
+//                     opcoesFala = new List<string>()
+//                     {
+//                         "I'm at the bakery.\n",
+//                         "There are three chairs.\n",
+//                         "Yes, I want some juice.\n",
+//                     },
+//                     respostaCorreta = 2,
+//                 });
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say the right sentence:",
+//                     opcoesFala = new List<string>()
+//                     {
+//                         "She has a small dog.\n",
+//                         "Yes, I want a cake and a sandwich.\n",
+//                         "My favorite color is blue.\n"
+//                     },
+//                     respostaCorreta = 1,
+//                 });
+            
+//             exerciciosCriarFrases.Add(
+//                 new ExercicioBlocos()
+//                 { 
+//                     enunciado = "Arrange the words to form the correct sentence in english: Você pode me ajudar?",
+//                     blocosPalavras = new List<string>() { 
+//                         "No", "me", "thank", "you", "that", "Can", "was",
+//                         "help", "all", "hello", "thank", "I", "maybe"
+//                     },
+//                     respostaCorreta = "Can you help me?",
+//                 }
+//             );
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say a phrase to express gratitude."
+//                 });
+
+//             exerciciosAlternativas.Add(
+//                 new ExercicioAlternativas()
+//                 {
+//                     enunciado = "What kinds of sandwich and cake do they have?",
+//                     alternativas = new List<string>()
+//                     {
+//                         "Apple pie and orange juice\r\n",
+//                         "Chicken sandwich and chocolate cake\r\n",
+//                         "Cheese sandwich and strawberry cake\r\n",
+//                         "Cheese pizza and ice cream\r\n"
+//                     },
+//                     alternativaCorreta = 1
+//                 });
+//         }
+//         else if (nivelAtual == "A2")
+//         {
+//             dialogoAtual = new List<string>()
+//             {
+//                 "Hello! What are you looking for in the bakery section?",
+//                 "Yes, we do. Which sandwich would you like, and would you like some juice too?",
+//                 "Can I help you with anything else, or do you already have everything you need?",
+//                 "Here is your order. You are welcome."
+//             };
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say the right sentence from the list:",
+//                     opcoesFala = new List<string>() {
+//                         "She can play the guitar.\r\n",
+//                         "Are there any fresh croissants and sandwiches today?\r\n",
+//                         "I usually wake up at 7 a.m.\r\n",
+//                     },
+//                     respostaCorreta = 1,
+//                 }
+//             );
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say the right sentence from the list:",
+//                     opcoesFala = new List<string>()
+//                     {
+//                         "He watches TV every night.",
+//                         "I'd like the chicken sandwich and some orange juice.",
+//                         "There is a woman near the window."
+//                     },
+//                     respostaCorreta = 1
+//                 }
+//             );
+
+//              exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "Say a phrase to express gratitude."
+//                 }
+//             );
+
+//             exerciciosCriarFrases.Add(
+//                 new ExercicioBlocos() 
+//                 { 
+//                     enunciado = "Arrange the words to form the correct sentence in english: Não, isso é tudo que eu precisava, obrigado/a.",
+//                     blocosPalavras = new List<string>() { 
+//                         "No", "milk", "thank", "you", "that", "needed", "was",
+//                         "same", "all", "hello", "thank", "I", "maybe", "ok"
+//                     },
+//                     respostaCorreta = "No, that was all I needed, thank you.",
+//                 }
+//             );
+
+//             // exerciciosCompletarFrase.Add(
+//             //     new ExercicioCompletarFrase() 
+//             //     { 
+//             //         enunciado = "Complete the sentence with the correct word:",
+//             //         fraseAntes =  "I'm looking for something sweet for ",
+//             //         fraseDepois = ".",
+//             //         respostaCorreta = "breakfast",
+//             //         blocosPalavras = new List<string>() { 
+//             //             "sweet", "thank", "you", "that", "something", "was", "for",
+//             //             "same", "for", "hello", "thank", "I'm", "maybe", "ok", "looking", "breakfast"
+//             //         },
+//             //         respostaCorreta = "I'm looking for something sweet for breakfast.",
+//             //     }
+//             // );
+//         }
+//         else
+//         {
+//             dialogoAtual = new List<string>()
+//             {
+//                 "Hello! What are you looking for today, and would you like me to recommend something popular as well?",
+//                 "Yes, there are still a few chocolate croissants and some cheese sandwiches available.",
+//                 "Here is your order. Enjoy your food.",
+//                 "You are welcome. Have a nice day."
+//             };
+
+//             exerciciosSpeaking.Add(
+//                 new ExercicioSpeaking()
+//                 {
+//                     enunciado = "How would you respond? Say the right answer.",
+//                     opcoesFala = new List<string>() {
+//                         "There is a supermarket across the street from my house. \r\n \r\n",
+//                         "Are there any freshly baked pastries left on the shelf near the window, or have they all been sold already? \r\n",
+//                         "He doesn’t enjoy crowded places either.\r\n"
+//                     },
+//                     respostaCorreta = 1
+//                 }
+//             );
+
+//             exerciciosWriting.Add(
+//                 new ExercicioWriting()
+//                 {
+//                     enunciado = "Express your gratitude in a sentence.",
+//                 }
+//             );
+
+//             exerciciosCriarFrases.Add(
+//                 new ExercicioBlocos() 
+//                 { 
+//                     enunciado = "Arrange the words to form the correct sentence in english: Ótimo, parece incrível. Eu vou querer o croissant e o sanduíche.",
+//                     blocosPalavras = new List<string>() { 
+//                         "No", "milk", "Great", "the", "you", "sandwich", "the",
+//                         "needed", "is", "nice", "amazing", "same", "I'll", "hello",
+//                         "have", "bread", "I", "that", "croissant", "ok", "looks", "and"
+//                     },
+//                     respostaCorreta = "Great, that looks amazing. I'll have the croissant and the sandwich.",
+//                 }
+//             );
+
+//             exerciciosAlternativas.Add(
+//                 new ExercicioAlternativas()
+//                 {
+//                     enunciado = "Which details are correct about today’s bakery products?",
+//                     alternativas = new List<string>()
+//                     {
+//                         "The sandwiches are made with chicken.\r\n",
+//                         "The bakery only has apple pies today.\r\n",
+//                         "The bread was sold out this morning.\r\n",
+//                         "The chocolate croissants are still available.\r\n"
+//                     },
+//                     alternativaCorreta = 3
+//                 });
+//         }
+//     }
+
+//     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
+//     {
+//         if (exercicio is ExercicioSpeaking)
+//             return TipoExercicio.Speaking;
+//         if (exercicio is ExercicioAlternativas)
+//             return TipoExercicio.Alternativas;
+//         if (exercicio is ExercicioBlocos)
+//             return TipoExercicio.Blocos;
+//         if (exercicio is ExercicioCompletarFrase)
+//             return TipoExercicio.CompletarFrase;
+//         if (exercicio is ExercicioWriting)
+//             return TipoExercicio.Writing;
+//         if (exercicio is ExercicioAssociacao)
+//             return TipoExercicio.Associacao;
+
+//         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
+//     }
+
+//     protected override async Task IniciarInteracao()
+//     {
+//         // Ativa o estado de diálogo logo no começo
+//         GameProgress.EstaEmDialogo = true;
+//         nivelAtual = DadosJogador.nivelUsuario;
+//         InicializarConteudosPorNivel();
+
+//         if (nivelAtual == "A1")
+//         {
+//             await interacaoA1();
+//         }
+//         else if (nivelAtual == "A2")
+//         {
+//             await interacaoA2();
+//         }
+//         else
+//         {
+//             await interacaoB1();
+//         }
+//         GameProgress.Instance.falouPadaria = true;
+
+//         // Desativa o estado quando a conversa acabar completamente!
+//         GameProgress.EstaEmDialogo = false;
+//         MissionManager.Instance.ConcluirMissao("falar_padaria");
+//         bool podeLiberarCaixa =
+//             MissionManager.Instance.MissaoConcluida("falar_atendente")
+//             && ProdutoManager.Instance != null
+//             && ProdutoManager.Instance.ProdutosObrigatoriosPegos();
+
+//         if (podeLiberarCaixa)
+//         {
+//             MissionManager.Instance.AdicionarMissao(
+//                 "falar_caixa",
+//                 "Put the products on the counter to start the conversation with the cashier",
+//                 "Coloque os produtos no caixa para iniciar a conversa com o caixa"
+//             );
+//         }
+
+//         if (modalLegenda != null)
+//             modalLegenda.SetActive(false);
+
+//         if (textoPularDialogo != null)
+//             textoPularDialogo.gameObject.SetActive(false);
+
+//         GameProgress.EstaEmDialogo = false;
+
+//         LiberarControlePlayer();
+//     }
+
+//     private async Task interacaoA1()
+//     {
+//         int i = 0;
+
+//         // Toca áudio e mostra a legenda ao mesmo tempo de forma síncrona
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[0];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[1];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PegarProduto(breadLoaf);
+
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[2];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]); //
+
+//         await PlayAudioETexto(i++);
+
+//         await PegarProduto(cake, falar: true);
+//         await PegarProduto(sandwich, falar: false);
+
+//         exAtual = exerciciosAlternativas[0];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[3];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+//         await PlayAudioETexto(i++);
+//     }
+
+//     private async Task interacaoA2()
+//     {
+//         int i = 0;
+        
+//         //Hello! What are you looking for in the bakery section?
+//         await PlayAudioETexto(i++);
+        
+//         exAtual = exerciciosSpeaking[0];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         //Yes, we do. Which sandwich would you like, and would you like some juice too?
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[1];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PlayAudioETexto(i++);
+
+//         await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]); //
+
+//         await PegarProduto(sandwich, falar: true);
+//         await PegarProduto(sourdough, falar: false);
+
+//         await PlayAudioETexto(i++);
+        
+//         exAtual = exerciciosSpeaking[2];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+//     }
+
+//     private async Task interacaoB1()
+//     {
+//         int i = 0;
+
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[0];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosCriarFrases[0];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PegarProduto(sandwich, falar: true);
+//         await PegarProduto(sourdough, falar: false);
+
+//         exAtual = exerciciosAlternativas[0];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+//         await PlayAudioETexto(i++);
+
+//         exAtual = exerciciosSpeaking[1];
+//         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+//         await PlayAudioETexto(i++);
+//     }
+
+//    private async Task PegarProduto(GameObject produto, bool falar = true)
+//     {
+//         if (produto != null)
+//         {
+//             if (falar)
+//             {
+//                 await FalarFraseCustomizada("Let me get that for you.");
+//             }
+
+//             await Task.Delay(1500);
+//             produto.SetActive(false);
+//         }
+//     }
+
+//     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+//     {
+//         Debug.Log("Abrindo exercício: " + tipo);
+
+//         ModalLegenda legenda = modalLegenda.GetComponent<ModalLegenda>();
+
+//         if (modalLegenda != null)
+//         {
+//             modalLegenda.SetActive(false);
+//         }
+
+//         await EntrarModoExercicio();
+
+//         Cursor.lockState = CursorLockMode.None;
+//         Cursor.visible = true;
+
+//         modalExercicio.Abrir(tipo, ex, this);
+
+//         if (legenda != null) 
+//         {
+//             legenda.AjustarPosicaoPeloEstadoDoJogo(); 
+//         }
+
+//         while (!modalExercicio.exercicioFinalizado)
+//         {
+//             await Task.Yield();
+//         }
+
+//         if (modalLegenda != null)
+//         {
+//             modalLegenda.SetActive(false);
+//         }
+
+//         await SairModoExercicio();
+
+//         // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
+//         Cursor.lockState = CursorLockMode.Locked;
+//         Cursor.visible = false;
+
+//         if (legenda != null)
+//         {
+//             legenda.AjustarPosicaoPeloEstadoDoJogo();
+//         }
+//     }
+
+//     private async Task PlayAudioETexto(int i)
+//     {
+//         ultimaFraseDita = dialogoAtual[i];
+//         // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
+//         byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        
+//         if (audioBytes != null && audioBytes.Length > 0)
+//         {
+//             Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
+//             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
+//             File.WriteAllBytes(caminho, audioBytes);
+            
+//             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+//             var operation = www.SendWebRequest();
+            
+//             while (!operation.isDone)
+//                 await Task.Yield();
+
+//             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+//             audioSource.clip = clip;
+
+//             if (textoPularDialogo != null)
+//                 textoPularDialogo.gameObject.SetActive(false);
+
+//             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+//             audioSource.Play();
+//             while (audioSource.isPlaying)
+//             {
+//                 await Task.Yield();
+//             }
+
+//             if (textoPularDialogo != null)
+//             {
+//                 textoPularDialogo.gameObject.SetActive(true);
+
+//                 Cursor.lockState = CursorLockMode.None;
+//                 Cursor.visible = true;
+//             }
+
+//             await Task.Yield();
+
+//             bool clicou = false;
+//             while (!clicou)
+//             {
+//                 if (Input.GetMouseButtonDown(0)) 
+//                 {
+//                     clicou = true; 
+//                     Debug.Log("Clique detectado!");
+//                 }
+//                 else
+//                 {
+//                     await Task.Yield(); 
+//                 }
+//             }
+
+
+//             if (textoPularDialogo != null)
+//             {
+//                 textoPularDialogo.gameObject.SetActive(false);
+//             }
+
+//             if (modalLegenda != null)
+//             {
+//                 modalLegenda.SetActive(false);
+//             }
+            
+//             while (Input.GetMouseButton(0))
+//             {
+//                 await Task.Yield();
+//             }
+//         }
+//         else
+//         {
+//             Debug.LogError("O servidor retornou um array de bytes vazio.");
+//             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+//         }
+//     }
+
+//     public override async Task FalarFraseCustomizada(string textoParaFalar)
+//     {
+//         if (string.IsNullOrEmpty(textoParaFalar)) return;
+
+//         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        
+//         if (audioBytes != null && audioBytes.Length > 0)
+//         {
+//             string caminho = Path.Combine(Application.persistentDataPath, "audio_temp_custom.wav");
+//             File.WriteAllBytes(caminho, audioBytes);
+            
+//             UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
+//             var operation = www.SendWebRequest();
+            
+//             while (!operation.isDone)
+//                 await Task.Yield();
+
+//             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+//             audioSource.clip = clip;
+//             if (modalLegenda != null)
+//             {
+//                 modalLegenda.SetActive(true);
+
+//                 if (textoPularDialogo != null)
+//                     textoPularDialogo.gameObject.SetActive(false);
+
+//                 modalLegenda.GetComponent<ModalLegenda>()
+//                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
+//             }
+            
+//             audioSource.Play();
+            
+//             while (audioSource.isPlaying)
+//             {
+//                 await Task.Yield();
+//             }
+
+//             if (modalLegenda != null)
+//             {
+//                 modalLegenda.SetActive(false);
+//             }
+//         }
+//     }
+// }
+
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -470,8 +1097,7 @@ public class BakeryNPC : InteracaoNPC
 
         await EntrarModoExercicio();
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        DefinirCursorDesktop(true);
 
         modalExercicio.Abrir(tipo, ex, this);
 
@@ -493,8 +1119,7 @@ public class BakeryNPC : InteracaoNPC
         await SairModoExercicio();
 
         // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        DefinirCursorDesktop(false);
 
         if (legenda != null)
         {
@@ -537,25 +1162,12 @@ public class BakeryNPC : InteracaoNPC
             {
                 textoPularDialogo.gameObject.SetActive(true);
 
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
+                DefinirCursorDesktop(true);
             }
 
             await Task.Yield();
 
-            bool clicou = false;
-            while (!clicou)
-            {
-                if (Input.GetMouseButtonDown(0)) 
-                {
-                    clicou = true; 
-                    Debug.Log("Clique detectado!");
-                }
-                else
-                {
-                    await Task.Yield(); 
-                }
-            }
+            await AguardarAvancoDialogo();
 
 
             if (textoPularDialogo != null)
@@ -568,10 +1180,6 @@ public class BakeryNPC : InteracaoNPC
                 modalLegenda.SetActive(false);
             }
             
-            while (Input.GetMouseButton(0))
-            {
-                await Task.Yield();
-            }
         }
         else
         {
