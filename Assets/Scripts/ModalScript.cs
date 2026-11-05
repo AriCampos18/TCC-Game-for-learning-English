@@ -977,31 +977,47 @@ public class ModalExercicio : MonoBehaviour
                     return;
                 }
 
-                if (completarFraseUI.ObterTentativasRestantes() <= 0)
+                // Primeiro verificamos se todas as lacunas foram preenchidas.
+                if (!completarFraseUI.Respondeu())
                 {
                     completarFraseUI.MostrarFeedback(
-                        "You have used all your chances. You can try again later in the revision section.",
-                        Color.red);
-                    completarFraseUI.BloquearOpcoes();
-                    RegistrarErroParaRevisao();
-                }
-                else if (!completarFraseUI.Respondeu())
-                {
-                    completarFraseUI.MostrarFeedback("Complete every blank before confirming.", Color.yellow);
+                        "Complete every blank before confirming.",
+                        Color.yellow);
                     confirmarResposta.interactable = true;
                     return;
                 }
-                else if (completarFraseUI.EstaCorreto())
+
+                // Resposta correta: bloqueia a interface e registra o acerto
+                // no fluxo geral do ModalExercicio.
+                if (completarFraseUI.EstaCorreto())
                 {
-                    completarFraseUI.MostrarFeedback("Good job! You got the answer right.", new Color32(46, 125, 50, 255));
+                    completarFraseUI.MostrarFeedback(
+                        "Good job! You got the answer right.",
+                        new Color32(46, 125, 50, 255));
                     completarFraseUI.BloquearOpcoes();
                     acertouExercicio = true;
                 }
                 else
                 {
-                    Debug.LogError("O CompletarFraseUI reportou uma resposta selecionada incorreta.");
-                    confirmarResposta.interactable = true;
-                    return;
+                    // Resposta incorreta: desconta uma tentativa.
+                    completarFraseUI.ReduzirTentativa();
+                    int chances = completarFraseUI.ObterTentativasRestantes();
+
+                    if (chances > 0)
+                    {
+                        completarFraseUI.MostrarFeedback(
+                            $"Not quite. Try again! Attempts remaining: {chances}",
+                            new Color32(230, 150, 35, 255));
+                        confirmarResposta.interactable = true;
+                        return;
+                    }
+
+                    // Sem tentativas: bloqueia o exercício e envia para revisão.
+                    completarFraseUI.MostrarFeedback(
+                        "You have used all your chances. You can try again later in the revision section.",
+                        Color.red);
+                    completarFraseUI.BloquearOpcoes();
+                    RegistrarErroParaRevisao();
                 }
             }
             else if (exercicioWriting != null && exercicioWriting.activeSelf)

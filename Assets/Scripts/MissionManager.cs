@@ -10,18 +10,36 @@ public class MissionManager : MonoBehaviour
 
     private List<Missao> missoes = new List<Missao>();
 
-    void Start()
-    {
-        AdicionarMissao(
-            "pegar_cesta",
-            "Enter the market and get a shopping basket",
-            "Entre no mercado e pegue uma cesta de compras"
-        );
-    }
-
     void Awake()
     {
         Instance = this;
+    }
+
+    // Chamado quando o jogador seleciona um cenário.
+    public void ConfigurarCenario(string cenario)
+    {
+        LimparMissoes();
+
+        // A missão inicial da cesta existe somente no Market.
+        if (cenario == "Market")
+        {
+            AdicionarMissao(
+                "pegar_cesta",
+                "Enter the market and get a shopping basket",
+                "Entre no mercado e pegue uma cesta de compras"
+            );
+        }
+    }
+
+    private void LimparMissoes()
+    {
+        foreach (Missao missao in missoes)
+        {
+            if (missao.itemUI != null)
+                Destroy(missao.itemUI.gameObject);
+        }
+
+        missoes.Clear();
     }
 
     public void ResetarMissao(string id)
@@ -50,16 +68,14 @@ public class MissionManager : MonoBehaviour
             concluida = false
         };
 
-        GameObject obj =
-            Instantiate(
-                prefabMissao,
-                containerMissoes
-            );
-            
+        GameObject obj = Instantiate(
+            prefabMissao,
+            containerMissoes
+        );
+
         obj.SetActive(true);
 
-        MissaoItemUI item =
-            obj.GetComponent<MissaoItemUI>();
+        MissaoItemUI item = obj.GetComponent<MissaoItemUI>();
 
         item.Configurar(nova);
 
@@ -68,11 +84,17 @@ public class MissionManager : MonoBehaviour
         missoes.Add(nova);
     }
 
-    public static void AdicionarMissaoNPC(string id, string texto, string traducao)
+    public static void AdicionarMissaoNPC(
+        string id,
+        string texto,
+        string traducao
+    )
     {
         if (Instance == null)
         {
-            Debug.LogError("MissionManager não está disponível para adicionar uma missão de NPC.");
+            Debug.LogError(
+                "MissionManager não está disponível para adicionar uma missão de NPC."
+            );
             return;
         }
 
@@ -81,8 +103,7 @@ public class MissionManager : MonoBehaviour
 
     public void ConcluirMissao(string id)
     {
-        Missao m =
-            missoes.Find(x => x.id == id);
+        Missao m = missoes.Find(x => x.id == id);
 
         if (m != null)
         {
@@ -97,7 +118,9 @@ public class MissionManager : MonoBehaviour
     {
         if (Instance == null)
         {
-            Debug.LogError("MissionManager não está disponível para concluir uma missão de NPC.");
+            Debug.LogError(
+                "MissionManager não está disponível para concluir uma missão de NPC."
+            );
             return;
         }
 
@@ -106,8 +129,7 @@ public class MissionManager : MonoBehaviour
 
     public void RemoverMissao(string id)
     {
-        Missao m =
-            missoes.Find(x => x.id == id);
+        Missao m = missoes.Find(x => x.id == id);
 
         if (m != null)
         {

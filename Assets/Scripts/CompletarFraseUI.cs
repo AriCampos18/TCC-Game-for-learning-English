@@ -62,6 +62,12 @@ public class CompletarFraseUI : MonoBehaviour
         CriarFrase(exercicio);
         CriarOpcoes(exercicio);
 
+        if (botoesLacunas.Count == 0)
+            Debug.LogError("O exercício de Completar Frase precisa ter pelo menos uma lacuna.");
+
+        if (botoesOpcoes.Count == 0)
+            Debug.LogError("O exercício de Completar Frase precisa ter pelo menos uma opção.");
+
         MostrarFeedback(string.Empty, Color.white);
     }
 
