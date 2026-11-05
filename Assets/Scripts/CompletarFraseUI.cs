@@ -1,273 +1,270 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class CompletarFraseUI : MonoBehaviour
 {
-    public TextMeshProUGUI textoFeedback;
-    public Transform containerFrase;
-    public TextMeshProUGUI prefabTrechoFrase;
-    public GameObject prefabDropZone;
-    public Transform containerOpcoes;
-    public GameObject blocoPrefab;
+    [Header("Interface")]
+    [SerializeField] private TMP_Text textoEnunciado;
+    [SerializeField] private Transform areaFrase;
+    [SerializeField] private Transform containerOpcoes;
+    [SerializeField] private Button prefabBotaoPalavra;
+    [SerializeField] private TMP_Text textoFeedback;
 
-    private readonly List<PalavraArrastavel> blocos = new List<PalavraArrastavel>();
-    private readonly List<GameObject> elementosFrase = new List<GameObject>();
-    private readonly List<string> respostasCorretas = new List<string>();
-    private readonly List<PalavraArrastavel> respostasSelecionadas = new List<PalavraArrastavel>();
+    [Header("Configuração")]
+    [SerializeField] private int tentativasIniciais = 3;
+    [SerializeField] private string marcadorEspacoVazio = "________";
+    [SerializeField] private Color corSelecionado = new Color(1f, 0.85f, 0.35f);
+    [SerializeField] private Color corNormal = Color.white;
+
     private ExercicioCompletarFrase exercicioAtual;
+    private readonly List<Button> botoesOpcoes = new List<Button>();
+    private readonly List<Button> botoesLacunas = new List<Button>();
+    private readonly List<string> respostasSelecionadas = new List<string>();
+    private readonly List<string> respostasCorretas = new List<string>();
+
+    private string palavraSelecionada;
     private int tentativasRestantes;
-    private bool configuracaoValida;
+    private bool bloqueado;
 
     public void InicializarExercicio(ExercicioCompletarFrase exercicio)
     {
-        LimparOpcoes();
-        LimparFrase();
+        if (exercicio == null)
+        {
+            Debug.LogError("CompletarFraseUI recebeu um exercício nulo.");
+            return;
+        }
+
+        if (areaFrase == null || containerOpcoes == null || prefabBotaoPalavra == null)
+        {
+            Debug.LogError("Configure AreaFrase, ContainerOpcoes e PrefabBotaoPalavra no Inspector.");
+            return;
+        }
+
         exercicioAtual = exercicio;
-        respostasCorretas.Clear();
+        tentativasRestantes = Mathf.Max(1, tentativasIniciais);
+        palavraSelecionada = null;
+        bloqueado = false;
+
+        LimparFilhos(areaFrase);
+        LimparFilhos(containerOpcoes);
+        botoesOpcoes.Clear();
+        botoesLacunas.Clear();
         respostasSelecionadas.Clear();
-        tentativasRestantes = 3;
-        configuracaoValida = false;
+        respostasCorretas.Clear();
+
+        if (textoEnunciado != null)
+            textoEnunciado.text = exercicio.enunciado;
+
+        PrepararRespostasCorretas(exercicio);
+        CriarFrase(exercicio);
+        CriarOpcoes(exercicio);
 
         MostrarFeedback(string.Empty, Color.white);
-
-        if (exercicio == null || exercicio.opcoes == null || exercicio.opcoes.Count == 0 ||
-            string.IsNullOrWhiteSpace(exercicio.respostaCorreta))
-        {
-            Debug.LogError("O exercício de completar frase precisa de uma resposta correta e opções.");
-            return;
-        }
-
-        if (containerFrase == null || prefabTrechoFrase == null || prefabDropZone == null ||
-            containerOpcoes == null || blocoPrefab == null)
-        {
-            Debug.LogError("Configure as referências visuais do CompletarFraseUI no Inspector.");
-            return;
-        }
-
-        List<string> respostas = SepararRespostas(exercicio.respostaCorreta);
-        List<string> partes = ObterPartesFrase(exercicio, respostas.Count);
-        if (respostas.Count == 0 || partes == null || partes.Count != respostas.Count + 1)
-        {
-            Debug.LogError("Informe uma parte de frase antes, entre e depois de cada resposta.");
-            return;
-        }
-
-        if (prefabDropZone.GetComponent<Graphic>() == null ||
-            prefabDropZone.GetComponent<DropZoneCompletarFrase>() == null)
-        {
-            Debug.LogError("O prefab da DropZone precisa ter um Graphic e DropZoneCompletarFrase no objeto raiz.");
-            return;
-        }
-
-        Dictionary<string, int> opcoesDisponiveis =
-            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (string opcao in exercicio.opcoes)
-        {
-            if (string.IsNullOrWhiteSpace(opcao))
-            {
-                Debug.LogError("As opções do exercício de completar frase não podem estar vazias.");
-                return;
-            }
-
-            string opcaoLimpa = opcao.Trim();
-            if (!opcoesDisponiveis.ContainsKey(opcaoLimpa))
-                opcoesDisponiveis.Add(opcaoLimpa, 0);
-
-            opcoesDisponiveis[opcaoLimpa]++;
-        }
-
-        foreach (string resposta in respostas)
-        {
-            int quantidadeDisponivel;
-            if (!opcoesDisponiveis.TryGetValue(resposta, out quantidadeDisponivel) ||
-                quantidadeDisponivel == 0)
-            {
-                Debug.LogError("As opções precisam incluir cada resposta correta, incluindo repetições: " + resposta);
-                return;
-            }
-
-            opcoesDisponiveis[resposta] = quantidadeDisponivel - 1;
-        }
-
-        respostasCorretas.AddRange(respostas);
-        for (int i = 0; i < respostas.Count; i++)
-            respostasSelecionadas.Add(null);
-
-        for (int i = 0; i < partes.Count; i++)
-        {
-            CriarTrechoFrase(partes[i]);
-            if (i < respostas.Count)
-                CriarDropZone(i);
-        }
-
-        configuracaoValida = true;
-
-        foreach (string opcao in exercicio.opcoes)
-        {
-            GameObject novoBloco = Instantiate(blocoPrefab, containerOpcoes);
-            TextMeshProUGUI texto = novoBloco.GetComponentInChildren<TextMeshProUGUI>();
-            Graphic grafico = novoBloco.GetComponentInChildren<Graphic>();
-
-            if (texto == null || grafico == null)
-            {
-                Debug.LogError("O prefab de bloco precisa conter um Graphic raycastável e um TextMeshProUGUI.");
-                Destroy(novoBloco);
-                LimparOpcoes();
-                configuracaoValida = false;
-                return;
-            }
-
-            texto.text = opcao;
-            grafico.raycastTarget = true;
-            CanvasGroup canvasGroup = novoBloco.GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-                canvasGroup = novoBloco.AddComponent<CanvasGroup>();
-            canvasGroup.interactable = true;
-            canvasGroup.blocksRaycasts = true;
-
-            PalavraArrastavel palavra = novoBloco.GetComponent<PalavraArrastavel>();
-            if (palavra == null)
-                palavra = novoBloco.AddComponent<PalavraArrastavel>();
-
-            palavra.Configurar(containerOpcoes, this);
-            blocos.Add(palavra);
-        }
     }
 
-    public bool ProcessarSoltura(PalavraArrastavel palavra, DropZoneCompletarFrase zona)
+    private void PrepararRespostasCorretas(ExercicioCompletarFrase exercicio)
     {
-        int indice = zona != null ? zona.IndiceResposta : -1;
-        if (!configuracaoValida || palavra == null || indice < 0 ||
-            indice >= respostasCorretas.Count ||
-            tentativasRestantes <= 0 || respostasSelecionadas[indice] != null)
-            return false;
-
-        string palavraSolta = palavra.ObterPalavra();
-        if (string.Equals(palavraSolta.Trim(), respostasCorretas[indice], StringComparison.OrdinalIgnoreCase))
+        // Para uma lacuna, use respostaCorreta normalmente.
+        // Para várias lacunas, separe as respostas com | na mesma ordem das lacunas.
+        if (exercicio.partesFrase != null && exercicio.partesFrase.Count > 1)
         {
-            respostasSelecionadas[indice] = palavra;
-            MostrarFeedback(string.Empty, Color.white);
-            return true;
-        }
+            respostasCorretas.AddRange(
+                (exercicio.respostaCorreta ?? string.Empty)
+                .Split('|')
+                .Select(r => r.Trim())
+            );
 
-        tentativasRestantes--;
-        if (tentativasRestantes > 0)
-        {
-            MostrarFeedback("Incorrect answer. Try again.", Color.red);
+            int quantidadeLacunas = exercicio.partesFrase.Count - 1;
+
+            while (respostasCorretas.Count < quantidadeLacunas)
+                respostasCorretas.Add(string.Empty);
+
+            if (respostasCorretas.Count > quantidadeLacunas)
+                respostasCorretas.RemoveRange(quantidadeLacunas, respostasCorretas.Count - quantidadeLacunas);
         }
         else
         {
-            MostrarFeedback(
-                "You have used all your chances. You can try again later in the revision section.",
-                Color.red);
-            BloquearOpcoes();
+            respostasCorretas.Add((exercicio.respostaCorreta ?? string.Empty).Trim());
         }
 
-        return false;
+        for (int i = 0; i < respostasCorretas.Count; i++)
+            respostasSelecionadas.Add(string.Empty);
+    }
+
+    private void CriarFrase(ExercicioCompletarFrase exercicio)
+    {
+        // Com partesFrase, cada item representa um trecho fixo.
+        // Ex.: ["She ", " to work and ", " lunch."] cria duas lacunas.
+        if (exercicio.partesFrase != null && exercicio.partesFrase.Count > 1)
+        {
+            for (int i = 0; i < exercicio.partesFrase.Count; i++)
+            {
+                CriarTrechoTexto(exercicio.partesFrase[i]);
+
+                if (i < exercicio.partesFrase.Count - 1)
+                    CriarBotaoLacuna(i);
+            }
+        }
+        else
+        {
+            CriarTrechoTexto(exercicio.fraseAntes);
+            CriarBotaoLacuna(0);
+            CriarTrechoTexto(exercicio.fraseDepois);
+        }
+    }
+
+    private void CriarTrechoTexto(string trecho)
+    {
+        GameObject objetoTexto = new GameObject("TrechoFrase", typeof(RectTransform), typeof(TextMeshProUGUI));
+        objetoTexto.transform.SetParent(areaFrase, false);
+
+        TextMeshProUGUI texto = objetoTexto.GetComponent<TextMeshProUGUI>();
+        texto.text = trecho ?? string.Empty;
+        texto.fontSize = 28;
+        texto.color = Color.black;
+        texto.alignment = TextAlignmentOptions.Midline;
+        texto.textWrappingMode = TextWrappingModes.Normal;
+        texto.raycastTarget = false;
+
+        LayoutElement layout = objetoTexto.AddComponent<LayoutElement>();
+        layout.minWidth = 10;
+        layout.flexibleWidth = 0;
+    }
+
+    private void CriarBotaoLacuna(int indice)
+    {
+        Button botao = Instantiate(prefabBotaoPalavra, areaFrase);
+        botao.name = $"CampoResposta_{indice + 1}";
+        botao.gameObject.SetActive(true);
+
+        TMP_Text texto = botao.GetComponentInChildren<TMP_Text>();
+        if (texto != null)
+            texto.text = marcadorEspacoVazio;
+
+        int indiceCapturado = indice;
+        botao.onClick.RemoveAllListeners();
+        botao.onClick.AddListener(() => ClicarNaLacuna(indiceCapturado));
+
+        botoesLacunas.Add(botao);
+    }
+
+    private void CriarOpcoes(ExercicioCompletarFrase exercicio)
+    {
+        if (exercicio.opcoes == null)
+        {
+            Debug.LogWarning("O exercício não possui opções cadastradas.");
+            return;
+        }
+
+        foreach (string opcao in exercicio.opcoes)
+        {
+            Button botao = Instantiate(prefabBotaoPalavra, containerOpcoes);
+            botao.gameObject.SetActive(true);
+            botao.name = $"Opcao_{opcao}";
+
+            TMP_Text texto = botao.GetComponentInChildren<TMP_Text>();
+            if (texto != null)
+                texto.text = opcao;
+
+            string opcaoCapturada = opcao;
+            botao.onClick.RemoveAllListeners();
+            botao.onClick.AddListener(() => SelecionarPalavra(opcaoCapturada, botao));
+
+            botoesOpcoes.Add(botao);
+        }
+    }
+
+    private void SelecionarPalavra(string palavra, Button botao)
+    {
+        if (bloqueado)
+            return;
+
+        palavraSelecionada = palavra;
+
+        foreach (Button opcao in botoesOpcoes)
+        {
+            Image imagem = opcao.GetComponent<Image>();
+            if (imagem != null)
+                imagem.color = opcao == botao ? corSelecionado : corNormal;
+        }
+
+        MostrarFeedback($"Selected: {palavra}. Now choose a blank.", Color.white);
+    }
+
+    private void ClicarNaLacuna(int indice)
+    {
+        if (bloqueado)
+            return;
+
+        // Clicar em uma lacuna preenchida sem palavra selecionada limpa aquela resposta.
+        if (string.IsNullOrEmpty(palavraSelecionada))
+        {
+            if (!string.IsNullOrEmpty(respostasSelecionadas[indice]))
+            {
+                respostasSelecionadas[indice] = string.Empty;
+                AtualizarVisualLacuna(indice);
+            }
+            return;
+        }
+
+        respostasSelecionadas[indice] = palavraSelecionada;
+        AtualizarVisualLacuna(indice);
+        palavraSelecionada = null;
+
+        foreach (Button opcao in botoesOpcoes)
+        {
+            Image imagem = opcao.GetComponent<Image>();
+            if (imagem != null)
+                imagem.color = corNormal;
+        }
+
+        MostrarFeedback(string.Empty, Color.white);
+    }
+
+    private void AtualizarVisualLacuna(int indice)
+    {
+        TMP_Text texto = botoesLacunas[indice].GetComponentInChildren<TMP_Text>();
+        if (texto != null)
+            texto.text = string.IsNullOrEmpty(respostasSelecionadas[indice])
+                ? marcadorEspacoVazio
+                : respostasSelecionadas[indice];
     }
 
     public bool Respondeu()
     {
-        if (!configuracaoValida)
-            return false;
-
-        foreach (PalavraArrastavel resposta in respostasSelecionadas)
-        {
-            if (resposta == null)
-                return false;
-        }
-
-        return true;
+        return respostasSelecionadas.Count > 0 &&
+               respostasSelecionadas.All(r => !string.IsNullOrWhiteSpace(r));
     }
 
     public bool EstaCorreto()
     {
-        if (!Respondeu())
+        if (!Respondeu() || respostasCorretas.Count != respostasSelecionadas.Count)
             return false;
 
         for (int i = 0; i < respostasSelecionadas.Count; i++)
         {
             if (!string.Equals(
-                    respostasSelecionadas[i].ObterPalavra().Trim(),
-                    respostasCorretas[i],
-                    StringComparison.OrdinalIgnoreCase))
+                respostasSelecionadas[i].Trim(),
+                respostasCorretas[i].Trim(),
+                System.StringComparison.OrdinalIgnoreCase))
                 return false;
         }
 
         return true;
     }
 
+    public void ReduzirTentativa()
+    {
+        if (!bloqueado && tentativasRestantes > 0)
+            tentativasRestantes--;
+    }
+
     public int ObterTentativasRestantes()
     {
         return tentativasRestantes;
-    }
-
-    public void BloquearOpcoes()
-    {
-        foreach (PalavraArrastavel bloco in blocos)
-        {
-            if (bloco != null)
-                bloco.Bloquear();
-        }
-    }
-
-    private static List<string> SepararRespostas(string respostaCorreta)
-    {
-        List<string> respostas = new List<string>();
-        if (string.IsNullOrWhiteSpace(respostaCorreta))
-            return respostas;
-
-        string[] separadas = respostaCorreta.Split(',');
-        foreach (string resposta in separadas)
-        {
-            string respostaLimpa = resposta.Trim();
-            if (respostaLimpa.Length == 0)
-                return new List<string>();
-
-            respostas.Add(respostaLimpa);
-        }
-
-        return respostas;
-    }
-
-    private static List<string> ObterPartesFrase(ExercicioCompletarFrase exercicio, int quantidadeRespostas)
-    {
-        if (exercicio.partesFrase != null && exercicio.partesFrase.Count > 0)
-            return exercicio.partesFrase;
-
-        if (quantidadeRespostas == 1)
-        {
-            return new List<string>
-            {
-                exercicio.fraseAntes ?? string.Empty,
-                exercicio.fraseDepois ?? string.Empty
-            };
-        }
-
-        return null;
-    }
-
-    private void CriarTrechoFrase(string texto)
-    {
-        TextMeshProUGUI trecho = Instantiate(prefabTrechoFrase, containerFrase);
-        trecho.gameObject.SetActive(true);
-        trecho.text = texto;
-        elementosFrase.Add(trecho.gameObject);
-    }
-
-    private void CriarDropZone(int indice)
-    {
-        GameObject objeto = Instantiate(prefabDropZone, containerFrase);
-        objeto.SetActive(true);
-        Graphic grafico = objeto.GetComponent<Graphic>();
-        grafico.raycastTarget = true;
-
-        DropZoneCompletarFrase zona = objeto.GetComponent<DropZoneCompletarFrase>();
-        zona.Configurar(this, indice);
-        elementosFrase.Add(objeto);
     }
 
     public void MostrarFeedback(string mensagem, Color cor)
@@ -279,25 +276,20 @@ public class CompletarFraseUI : MonoBehaviour
         textoFeedback.color = cor;
     }
 
-    private void LimparOpcoes()
+    public void BloquearOpcoes()
     {
-        foreach (PalavraArrastavel bloco in blocos)
-        {
-            if (bloco != null)
-                Destroy(bloco.gameObject);
-        }
+        bloqueado = true;
 
-        blocos.Clear();
+        foreach (Button botao in botoesOpcoes)
+            botao.interactable = false;
+
+        foreach (Button botao in botoesLacunas)
+            botao.interactable = false;
     }
 
-    private void LimparFrase()
+    private void LimparFilhos(Transform pai)
     {
-        foreach (GameObject elemento in elementosFrase)
-        {
-            if (elemento != null)
-                Destroy(elemento);
-        }
-
-        elementosFrase.Clear();
+        for (int i = pai.childCount - 1; i >= 0; i--)
+            Destroy(pai.GetChild(i).gameObject);
     }
 }
