@@ -342,7 +342,7 @@ public class InteracaoNPC : MonoBehaviour
 
     public async Task Interagir()
     {
-        if (interagindo || interacaoConcluida)
+        if (interagindo || (interacaoConcluida && !PermitirReinteracaoAposConclusao))
             return;
 
         interagindo = true;
@@ -557,8 +557,10 @@ public class InteracaoNPC : MonoBehaviour
 
     public virtual bool PodeInteragir()
     {
-        return !interacaoConcluida && !interagindo;
+        return (!interacaoConcluida || PermitirReinteracaoAposConclusao) && !interagindo;
     }
+
+    protected virtual bool PermitirReinteracaoAposConclusao => false;
 
     public virtual async Task FalarFraseCustomizada(string textoParaFalar)
     {

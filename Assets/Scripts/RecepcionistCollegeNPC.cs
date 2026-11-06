@@ -540,6 +540,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
+    private bool instrucoesJaApresentadas;
     // private AudioSource audioSource;
     // private BackendManager backendManager;
     public ModalExercicio modalExercicio;
@@ -766,39 +767,51 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         MissionManager.AdicionarMissaoNPC(id, texto, traducao);
     }
 
+    protected override bool PermitirReinteracaoAposConclusao => true;
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
-        nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
 
-        if (nivelAtual == "A1")
+        if (instrucoesJaApresentadas)
         {
-            IniciarMissao("universidade_a1_recepcao",
-                "Converse com o recepcionista e descubra como chegar ao escritório da secretaria",
-                "Talk to the receptionist and find out how to get to the secretary's office");
-            await interacaoA1();
-            MissionManager.ConcluirMissaoNPC("universidade_a1_recepcao");
-        }
-        else if (nivelAtual == "A2")
-        {
-            IniciarMissao("universidade_a2_recepcao",
-                "Converse com a recepcionista",
-                "Talk to the receptionist");
-            await interacaoA2();
-            MissionManager.ConcluirMissaoNPC("universidade_a2_recepcao");
-
-            IniciarMissao("universidade_a2_encontrar_secretaria",
-                "Encontre o escritório da secretaria",
-                "Find the secretary's office");
+            await RepetirInstrucoesAsync();
         }
         else
         {
-            IniciarMissao("universidade_b1_orientacoes",
-                "Peça orientações detalhadas ao recepcionista e esclareça dúvidas sobre a localização do escritório",
-                "Ask the receptionist for detailed directions and clarify the location of the office");
-            await interacaoB1();
-            MissionManager.ConcluirMissaoNPC("universidade_b1_orientacoes");
+            nivelAtual = DadosJogador.nivelUsuario;
+            InicializarConteudosPorNivel();
+
+            if (nivelAtual == "A1")
+            {
+                IniciarMissao("universidade_a1_recepcao",
+                    "Converse com o recepcionista e descubra como chegar ao escritório da secretaria",
+                    "Talk to the receptionist and find out how to get to the secretary's office");
+                await interacaoA1();
+                MissionManager.ConcluirMissaoNPC("universidade_a1_recepcao");
+            }
+            else if (nivelAtual == "A2")
+            {
+                IniciarMissao("universidade_a2_recepcao",
+                    "Converse com a recepcionista",
+                    "Talk to the receptionist");
+                await interacaoA2();
+                MissionManager.ConcluirMissaoNPC("universidade_a2_recepcao");
+
+                IniciarMissao("universidade_a2_encontrar_secretaria",
+                    "Encontre o escritório da secretaria",
+                    "Find the secretary's office");
+            }
+            else
+            {
+                IniciarMissao("universidade_b1_orientacoes",
+                    "Peça orientações detalhadas ao recepcionista e esclareça dúvidas sobre a localização do escritório",
+                    "Ask the receptionist for detailed directions and clarify the location of the office");
+                await interacaoB1();
+                MissionManager.ConcluirMissaoNPC("universidade_b1_orientacoes");
+            }
+
+            instrucoesJaApresentadas = true;
         }
 
         // Desativa o estado quando a conversa acabar completamente!
@@ -1037,5 +1050,22 @@ public class RecepcionistCollegeNPC: InteracaoNPC
                 await Task.Yield();
             }
         }
+    }
+
+    private Task RepetirInstrucoesAsync()
+    {
+        if (nivelAtual == "A1" || nivelAtual == "B1")
+            return PlayAudioETexto(2);
+
+        if (nivelAtual == "A2")
+            return PlayAudioETexto(1);
+
+        return Task.CompletedTask;
+    }
+
+    public void RepetirInstrucoes()
+    {
+        //O '_' descarta o valor retornado prlo RepetirInstrucoesAsync, pois não será usado depois. Isso é útil quando queremos chamar um método assíncrono sem aguardar sua conclusão.
+        _ = RepetirInstrucoesAsync();
     }
 }

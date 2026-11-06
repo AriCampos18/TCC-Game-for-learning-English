@@ -552,6 +552,8 @@ public class AirportInfoNPC : InteracaoNPC
     private AudioSource audioSource;
     private Animator animator;
 
+    private bool instrucoesJaApresentadas;
+
     private BackendManager backendManager;
     private MissionManager missaoManager;
     public ModalExercicio modalExercicio;
@@ -794,29 +796,38 @@ public class AirportInfoNPC : InteracaoNPC
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
-        nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
 
-        if (nivelAtual == "A1")
+        if (instrucoesJaApresentadas)
         {
-            await interacaoA1();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
+            await RepetirInstrucoesAsync();
         }
         else
         {
-            await interacaoB1();
+            nivelAtual = DadosJogador.nivelUsuario;
+            InicializarConteudosPorNivel();
+
+            if (nivelAtual == "A1")
+            {
+                await interacaoA1();
+            }
+            else if (nivelAtual == "A2")
+            {
+                await interacaoA2();
+            }
+            else
+            {
+                await interacaoB1();
+            }
+
+            instrucoesJaApresentadas = true;
         }
 
         // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
+            //MissionManager.Instance.ConcluirMissao("finalizar_compra");
 
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
-
         if (textoPularDialogo != null)
             textoPularDialogo.gameObject.SetActive(false);
 
@@ -1049,5 +1060,23 @@ public class AirportInfoNPC : InteracaoNPC
                 modalLegenda.SetActive(false);
             }
         }
+    }
+
+    private Task RepetirInstrucoesAsync()
+    {
+        if(nivelAtual == "A1")
+        {
+            return PlayAudioETexto(1);
+        }
+        else if(nivelAtual == "A2" || nivelAtual == "B1")
+        {
+            return PlayAudioETexto(2);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task RepetriInstrucoes()
+    {
+        _ = RepetirInstrucoesAsync();
     }
 }
