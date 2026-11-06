@@ -7,7 +7,6 @@ public class ModalRespostaNivelamentoScript : MonoBehaviour
     public Button botaoPlay;
     private FirstPlayerController firstPlayerControllerScript;
     public GameObject modalRespostaNivelamentoScript;
-    public GameObject modalSelecaoAvatar;
     public GameObject modalInstrucoes, modalMissoes;
     public Button botaoAjuda;
 
@@ -28,8 +27,7 @@ public class ModalRespostaNivelamentoScript : MonoBehaviour
     void ComecarJogo()
     {
         modalRespostaNivelamentoScript.SetActive(false);
-        modalSelecaoAvatar.SetActive(true);
-        //aqui, passa o nivel recebido para o GameManager, para ele decidir quais exerccios mostrar
+        modalInstrucoes.SetActive(true);
     }
 
     public void MostrarResultado(string nivel,string feedback)
