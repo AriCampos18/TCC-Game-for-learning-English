@@ -1075,7 +1075,7 @@ public class AirportInfoNPC : InteracaoNPC
         return Task.CompletedTask;
     }
 
-    public Task RepetriInstrucoes()
+    public void RepetirInstrucoes()
     {
         _ = RepetirInstrucoesAsync();
     }
