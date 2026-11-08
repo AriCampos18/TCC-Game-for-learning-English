@@ -39,6 +39,7 @@ public class RaioCentralInteracao : MonoBehaviour
         if (ModoVR)
         {
             // No VR, o raio parte do controle direito.
+            //Aqui, a interação é bloqueada caso o raio do controle direito não esteja definido, e assim, evita erros de referência nula.
             if (vrRayOrigin == null)
             {
                 if (modalAvisoMouse != null)
@@ -61,20 +62,21 @@ public class RaioCentralInteracao : MonoBehaviour
             );
         }
 
-        RaycastHit hit;
+        RaycastHit hit; //armazena a colisão
         bool hitSomething = Physics.Raycast(
             ray,
             out hit,
             distance,
             interactLayer
-        );
+        ); //guarda um bool que indica se houve colisão com algum objeto na layer de interação
 
         DestacarObjeto h = null;
-        InteracaoNPC npc = null;
-        GameObject novoObjeto = null;
+        InteracaoNPC npc = null; //caso colida com um NPC
+        GameObject novoObjeto = null; //caso colida com um objeto interativo
         bool podeInteragirObjeto = false;
 
-        if (hitSomething)
+        //se colidiu com algo
+        if (hitSomething) 
         {
             GameObject obj = hit.collider.gameObject;
 
@@ -122,7 +124,7 @@ public class RaioCentralInteracao : MonoBehaviour
 
                 if (lastNPC != null)
                 {
-                    lastNPC.MostrarAviso(true);
+                    lastNPC.MostrarAviso(true); //mostrar aviso é o 'Clicar em F'
 
                     if (modalAvisoMouse != null)
                         modalAvisoMouse.SetActive(false);
@@ -144,8 +146,8 @@ public class RaioCentralInteracao : MonoBehaviour
             vrInteractAction.action != null &&
             vrInteractAction.action.WasPressedThisFrame();
 
-        if ((!ModoVR && Input.GetKeyDown(KeyCode.F)) ||
-            solicitouInteracaoVR)
+        //Esse if lida com a interação com avatar pelo desktop e com o interação com o avatar ou pegar objetos pelo VR.
+        if ((!ModoVR && Input.GetKeyDown(KeyCode.F)) || solicitouInteracaoVR)
         {
             if (lastNPC != null)
             {
