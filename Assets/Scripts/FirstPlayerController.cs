@@ -164,7 +164,7 @@ public class FirstPlayerController : MonoBehaviour
     public float gravity = -15f;
 
     [Header("Movimentação VR")]
-    [Tooltip("Ação do analógico esquerdo. Use a mesma ação do Dynamic Move Provider.")]
+    [Tooltip("Ação do analógico esquerdo usada apenas para detectar movimento e atualizar áudio/animação no VR.")]
     public InputActionReference vrMoveAction;
 
     [Header("Áudio")]
