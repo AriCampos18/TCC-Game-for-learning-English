@@ -1,28 +1,50 @@
+
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR;
 
 public class ModalInstrucoes : MonoBehaviour
 {
+    [Header("Botões")]
     public Button botaoPlay;
-    private FirstPlayerController firstPlayerControllerScript;
-    public GameObject modalInstrucoes, modalMissoes, modalBarraProgressao;
-    public GameObject crosshair;
     public Button botaoAjuda;
-    public bool jogoJaComecou = false;
+
+    [Header("Painéis de instruções")]
+    public GameObject painelInstrucoesPC;
+    public GameObject painelInstrucoesVR;
+
+    [Header("Outros modais")]
+    public GameObject modalInstrucoes;
+    public GameObject modalMissoes;
+    public GameObject modalBarraProgressao;
     public GameObject modalSelecaoCenario;
 
-    
-    // Start is called before the first frame update
+    [Header("Elementos do jogo")]
+    public GameObject crosshair;
+
+    public bool jogoJaComecou = false;
+
+    private FirstPlayerController firstPlayerControllerScript;
+
     void Start()
     {
         firstPlayerControllerScript = FindObjectOfType<FirstPlayerController>();
 
-        if(firstPlayerControllerScript != null)
+        if (firstPlayerControllerScript != null)
             firstPlayerControllerScript.DesativarControle();
+
+        // Identifica se o jogo está executando em VR.
+        bool estaEmVR = XRSettings.isDeviceActive;
+
+        // Exibe somente o painel correspondente ao dispositivo.
+        if (painelInstrucoesPC != null)
+            painelInstrucoesPC.SetActive(!estaEmVR);
+
+        if (painelInstrucoesVR != null)
+            painelInstrucoesVR.SetActive(estaEmVR);
 
         if (botaoPlay != null)
             botaoPlay.onClick.AddListener(ComecarJogo);
-
     }
 
     void ComecarJogo()

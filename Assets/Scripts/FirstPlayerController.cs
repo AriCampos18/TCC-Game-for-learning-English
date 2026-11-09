@@ -240,8 +240,8 @@ public class FirstPlayerController : MonoBehaviour
 
     private void AtualizarModoVR()
     {
-        // O XR Interaction Toolkit movimenta o XR Origin e executa o Snap Turn.
-        // Este script apenas acompanha o input para animações e áudio.
+        // A movimentação e a rotação são controladas pelo Meta XR.
+        // Esta ação é utilizada somente para áudio e animações.
         Vector2 movimento = Vector2.zero;
 
         if (vrMoveAction != null && vrMoveAction.action != null)
