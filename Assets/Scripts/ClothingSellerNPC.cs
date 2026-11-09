@@ -1801,6 +1801,14 @@ public class ClothingSellerNPC : InteracaoNPC
                 }
             });
         }
+        else if (nivelAtual == "A1-A2")
+        {
+            
+        }
+        else if(nivelAtual== "A2-B1")
+        {
+            
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1837,13 +1845,25 @@ public class ClothingSellerNPC : InteracaoNPC
         {
             await interacaoA1();
         }
+        else if (nivelAtual == "A1-A2")
+        {
+            await interacaoA1A2();
+        }
         else if (nivelAtual == "A2")
         {
             await interacaoA2();
         }
-        else
+        else if (nivelAtual == "A2-B1")
+        {
+            await interacaoA2B1();
+        }
+        else if (nivelAtual == "B1")
         {
             await interacaoB1();
+        }
+        else
+        {
+            Debug.LogWarning("Nível de usuário não reconhecido: " + nivelAtual);
         }
 
         GameProgress.EstaEmDialogo = false;
