@@ -402,6 +402,62 @@ public class RestaurantClient : InteracaoNPC
         exerciciosWriting.Clear();
         exerciciosAssociacao.Clear();
 
+        if(nivelAtual== "A2-B1")
+        {
+            dialogoAtual = new List<string>()
+{
+    "Hi! Is this your first time at this restaurant?",
+    "Have you tried the hamburger here before?",
+    "I come here quite often. The hamburgers are really good, and the portions are quite large.",
+    "I agree! The fries are delicious, too."
+};
+
+exerciciosSpeaking.Add(new ExercicioSpeaking()
+{
+    enunciado = "Respond to the customer and explain whether this is your first visit.",
+    opcoesFala = new List<string>()
+    {
+        "Yes, this is my first time here. I'm enjoying it so far.\n",
+        "Yes, I'd like to pay the bill now.\n",
+        "No, I need to book a hotel room.\n"
+    },
+    respostaCorreta = 0
+});
+
+exerciciosSpeaking.Add(new ExercicioSpeaking()
+{
+    enunciado = "The customer asks if you have tried the hamburger before. Answer appropriately.",
+    opcoesFala = new List<string>()
+    {
+        "No, I haven't, but I'm looking forward to trying it.\n",
+        "Yes, could you bring me the bill?\n",
+        "No, I'd like to reserve a table for tomorrow.\n"
+    },
+    respostaCorreta = 0
+});
+
+exerciciosCriarFrases.Add(new ExercicioBlocos()
+{
+    enunciado = "Arrange the words to form the correct sentence in English: Você recomendaria experimentar o hambúrguer daqui?",
+    blocosPalavras = new List<string>()
+    {
+        "recommend",
+        "Would",
+        "here",
+        "trying",
+        "the",
+        "you",
+        "hamburger",
+        "recommendation",
+        "try",
+        "a",
+        "to"
+    },
+    respostaCorreta = "Would you recommend trying the hamburger here?\n"
+});
+        }
+        else if(nivelAtual== "B1")
+        {
             dialogoAtual = new List<string>()
             {
                 "Hi. Is this your first time here?",
@@ -463,6 +519,7 @@ public class RestaurantClient : InteracaoNPC
                     respostaCorreta = "Would you say the hamburger is worth trying?\n"
                 }
             );
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -489,16 +546,20 @@ public class RestaurantClient : InteracaoNPC
         nivelAtual = DadosJogador.nivelUsuario;
         InicializarConteudosPorNivel();
 
-        await interacaoUnica();
+        if (nivelAtual == "A2-B1")
+            await InteracaoA2B1();
+        else
+            await interacaoB1(); // B1 existente
 
         // A missão é criada pelo garçom antes de aguardar esta conversa.
-        MissionManager.ConcluirMissaoNPC("rest_b1_cliente");
+        MissionManager.ConcluirMissaoNPC(
+            nivelAtual == "A1-A2" ? "rest_a1a2_cliente" :
+            nivelAtual == "A2-B1" ? "rest_a2b1_cliente" :
+            "rest_b1_cliente"
+        );
 
-        // Desativa o estado quando a conversa acabar completamente!
         garcom.FinalizarConversaComCliente();
         GameProgress.EstaEmDialogo = false;
-
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
 
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
@@ -506,12 +567,10 @@ public class RestaurantClient : InteracaoNPC
         if (textoPularDialogo != null)
             textoPularDialogo.gameObject.SetActive(false);
 
-        GameProgress.EstaEmDialogo = false;
-
         LiberarControlePlayer();
     }
 
-    private async Task interacaoUnica()
+    private async Task interacaoB1()
     {
         int i = 0;
 
@@ -529,6 +588,28 @@ public class RestaurantClient : InteracaoNPC
 
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+
+        await PlayAudioETexto(i++);
+    }
+
+    private async Task InteracaoA2B1()
+    {
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+        await PlayAudioETexto(i++);
+
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++);
     }

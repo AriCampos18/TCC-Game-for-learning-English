@@ -1139,6 +1139,8 @@ public class RecepcionistHotelNPC: InteracaoNPC
 {
     string nivelAtual;
     string cumprimento, periodo, periodoIng;
+    [Header("Objeto do Hotel")]
+public GameObject cartaoQuarto;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
     private AudioSource audioSource;
@@ -1757,6 +1759,388 @@ public class RecepcionistHotelNPC: InteracaoNPC
                     }
             );
         }
+else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Welcome to the hotel. Do you have a reservation?",
+        "Great. Could I have your name, please?",
+        "Thank you. How many nights will you be staying?",
+        "Would you like to pay by card or cash?",
+        "Your room is 206, on the second floor. Here is your room key card. Please take it from the counter.",
+        "Breakfast is served from 7:00 a.m. to 10:00 a.m. in the restaurant on the first floor.",
+        "Your checkout is at 12:00 p.m. on " + dataCheckout + ". Enjoy your stay!"
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You arrive at the hotel. Tell the receptionist that you have a reservation.",
+            opcoesFala = new List<string>()
+            {
+                "I have a reservation, please\n",
+                "I am a reservation yesterday\n",
+                "I have the breakfast room\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The receptionist asks for your name. Write a complete sentence to introduce yourself."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The receptionist asks how long you will stay. Choose the correct answer.",
+            opcoesFala = new List<string>()
+            {
+                "I'll stay for five nights\n",
+                "I'll pay on the second floor\n",
+                "My room is at seven o'clock\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The receptionist asks how you would like to pay. What do you say?",
+            alternativas = new List<string>()
+            {
+                "I'd like to pay by card, please\r\n",
+                "I'd like to pay on the second floor\r\n",
+                "I'd like to pay for breakfast yesterday\r\n",
+                "I'd like to pay at 10:00 a.m.\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You need your room key. What do you say to the receptionist?",
+            opcoesFala = new List<string>()
+            {
+                "Could I have my room key, please?\n",
+                "Could I have breakfast yesterday?\n",
+                "Where is my reservation number floor?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: A que horas o café da manhã é servido?",
+            blocosPalavras = new List<string>()
+            {
+                "breakfast",
+                "What",
+                "served",
+                "time",
+                "is",
+                "the",
+                "lunch",
+                "when",
+                "are"
+            },
+            respostaCorreta = "What time is breakfast served?\n"
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the receptionist, where can you have breakfast?",
+            alternativas = new List<string>()
+            {
+                "On the second floor\r\n",
+                "In the restaurant on the first floor\r\n",
+                "At the reception desk\r\n",
+                "Inside the elevator\r\n"
+            },
+            alternativaCorreta = 1
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The receptionist tells you to enjoy your stay. How do you respond?",
+            opcoesFala = new List<string>()
+            {
+                "Thank you. I appreciate it\n",
+                "I would like to pay yesterday\n",
+                "My checkout is on the restaurant\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word with the English word.",
+            opcoesPort = new List<string>()
+            {
+                "reserva",
+                "hóspede",
+                "estadia",
+                "cartão do quarto",
+                "balcão",
+                "andar",
+                "servido",
+                "saída"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "checkout",
+                "guest",
+                "room key card",
+                "floor",
+                "reservation",
+                "served",
+                "counter",
+                "stay"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "reserva", palavraIngles = "reservation" },
+                new ParAssociacao { palavraPortugues = "hóspede", palavraIngles = "guest" },
+                new ParAssociacao { palavraPortugues = "estadia", palavraIngles = "stay" },
+                new ParAssociacao { palavraPortugues = "cartão do quarto", palavraIngles = "room key card" },
+                new ParAssociacao { palavraPortugues = "balcão", palavraIngles = "counter" },
+                new ParAssociacao { palavraPortugues = "andar", palavraIngles = "floor" },
+                new ParAssociacao { palavraPortugues = "servido", palavraIngles = "served" },
+                new ParAssociacao { palavraPortugues = "saída", palavraIngles = "checkout" }
+            }
+        }
+    );
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Welcome to the hotel. How can I help you today?",
+        "Certainly. Could you tell me the name the reservation is under?",
+        "I found your booking. You reserved a double room for seven nights, including breakfast. Is everything correct?",
+        "Great. Would you prefer to pay for your stay now or when you check out?",
+        "Your room is 308, on the third floor. Here is your room key card. You can pick it up from the counter. The Wi-Fi password is written on it.",
+        "The elevator is around the corner, next to the restaurant.",
+        "Breakfast is served from 6:30 a.m. to 10:00 a.m. You can also request room service if you prefer to eat in your room.",
+        "Is there anything else you would like to know about your stay?",
+        "Checkout is at 12:00 p.m. on " + dataCheckout + ". If you need more time, you can request a late checkout.",
+        "Late checkout is available until 2:00 p.m., depending on availability. Please contact the front desk in advance."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You arrive at the hotel. Explain that you have a reservation and mention how long you will be staying.",
+            opcoesFala = new List<string>()
+            {
+                "I have a reservation for seven nights\n",
+                "I have a reservation on the third floor yesterday\n",
+                "I would like seven breakfasts for my room\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The receptionist asks for the name on the reservation. Write a complete answer using the expression 'under the name'."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The receptionist confirms your reservation details. Confirm that the information is correct.",
+            opcoesFala = new List<string>()
+            {
+                "Yes, that's all correct\n",
+                "No, I would like to reserve the elevator\n",
+                "Yes, I stayed for breakfast yesterday\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The receptionist asks when you would like to pay. Choose the most appropriate answer.",
+            alternativas = new List<string>()
+            {
+                "I'd prefer to pay when I check out, please\r\n",
+                "I'd prefer to pay next to the elevator\r\n",
+                "I'd prefer to pay for breakfast yesterday\r\n",
+                "I'd prefer to pay on the third floor\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The receptionist gives you information about your room. Ask for your room key card.",
+            opcoesFala = new List<string>()
+            {
+                "Could you give me the room key card, please?\n",
+                "Could you tell me the breakfast password, please?\n",
+                "Could you reserve the elevator for seven nights?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: A senha do Wi-Fi está escrita no cartão.",
+            blocosPalavras = new List<string>()
+            {
+                "written",
+                "password",
+                "the",
+                "on",
+                "Wi-Fi",
+                "is",
+                "card",
+                "room",
+                "the",
+                "breakfast"
+            },
+            respostaCorreta = "The Wi-Fi password is written on the card.\n"
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to find the elevator. Ask the receptionist for directions.",
+            opcoesFala = new List<string>()
+            {
+                "Could you tell me where the elevator is?\n",
+                "Could you tell me when the room is served?\n",
+                "Could you tell me how much the breakfast walks?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "You would like to know whether breakfast can be served in your room. Write a question to the receptionist."
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the receptionist, what time does breakfast service end?",
+            alternativas = new List<string>()
+            {
+                "6:30 a.m.\r\n",
+                "10:00 a.m.\r\n",
+                "12:00 p.m.\r\n",
+                "2:00 p.m.\r\n"
+            },
+            alternativaCorreta = 1
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "You have plans in the afternoon and would like to leave the hotel later. Write a polite question asking whether late checkout is available."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The receptionist explains that late checkout depends on availability. Ask what time you could leave if your request is approved.",
+            opcoesFala = new List<string>()
+            {
+                "What time would I need to check out?\n",
+                "Where would I have my breakfast yesterday?\n",
+                "How many floors does my reservation have?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCompletarFrase.Add(
+        new ExercicioCompletarFrase()
+        {
+            enunciado = "Complete the sentence with the correct time:",
+            fraseAntes = "Late checkout is available until ",
+            fraseDepois = " p.m.",
+            respostaCorreta = "2:00",
+            opcoes = new List<string>()
+            {
+                "10:00",
+                "12:00",
+                "1:00",
+                "2:00",
+                "6:30"
+            }
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese expression with the English expression.",
+            opcoesPort = new List<string>()
+            {
+                "reserva",
+                "quarto de casal",
+                "confirmar",
+                "senha",
+                "ao virar a esquina",
+                "serviço de quarto",
+                "com antecedência",
+                "disponibilidade"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "in advance",
+                "double room",
+                "availability",
+                "reservation",
+                "room service",
+                "around the corner",
+                "password",
+                "confirm"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "reserva", palavraIngles = "reservation" },
+                new ParAssociacao { palavraPortugues = "quarto de casal", palavraIngles = "double room" },
+                new ParAssociacao { palavraPortugues = "confirmar", palavraIngles = "confirm" },
+                new ParAssociacao { palavraPortugues = "senha", palavraIngles = "password" },
+                new ParAssociacao { palavraPortugues = "ao virar a esquina", palavraIngles = "around the corner" },
+                new ParAssociacao { palavraPortugues = "serviço de quarto", palavraIngles = "room service" },
+                new ParAssociacao { palavraPortugues = "com antecedência", palavraIngles = "in advance" },
+                new ParAssociacao { palavraPortugues = "disponibilidade", palavraIngles = "availability" }
+            }
+        }
+    );
+}
     }
 
     private string ObterDataCheckout()
@@ -1836,6 +2220,16 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
             await interacaoA1();
         }
+        else if(nivelAtual == "A1-A2")
+        {
+            IniciarMissao(
+                "hotel_a1a2_checkin",
+                "Realize seu check-in e confirme os dados da hospedagem",
+                "Complete your check-in and confirm your stay details"
+            );
+
+            await interacaoA1A2();
+        }
         else if (nivelAtual == "A2")
         {
             IniciarMissao(
@@ -1845,6 +2239,16 @@ public class RecepcionistHotelNPC: InteracaoNPC
             );
 
             await interacaoA2();
+        }
+        else if(nivelAtual == "A2-B1")
+        {
+            IniciarMissao(
+                "hotel_a2b1_checkin",
+                "Confirme sua reserva e realize o check-in",
+                "Confirm your reservation and complete your check-in"
+            );
+
+            await interacaoA2B1();
         }
         else
         {
@@ -2086,6 +2490,189 @@ public class RecepcionistHotelNPC: InteracaoNPC
             exerciciosAssociacao[0]
         );
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[0]),
+        exerciciosSpeaking[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[0]),
+        exerciciosWriting[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[1]),
+        exerciciosSpeaking[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[0]),
+        exerciciosAlternativas[0]
+    );
+
+    MissionManager.ConcluirMissaoNPC("hotel_a1a2_checkin");
+
+    IniciarMissao(
+        "hotel_a1a2_cartao",
+        "Pegue o cartão do quarto no balcão",
+        "Pick up your room key card from the counter"
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[2]),
+        exerciciosSpeaking[2]
+    );
+
+    await AguardarPegarCartao();
+
+    MissionManager.ConcluirMissaoNPC("hotel_a1a2_cartao");
+
+    // Informações sobre o café da manhã.
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosCriarFrases[0]),
+        exerciciosCriarFrases[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[1]),
+        exerciciosAlternativas[1]
+    );
+
+    // Checkout e encerramento.
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[3]),
+        exerciciosSpeaking[3]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    // Reserva e confirmação dos dados.
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[0]),
+        exerciciosSpeaking[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[0]),
+        exerciciosWriting[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[1]),
+        exerciciosSpeaking[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[0]),
+        exerciciosAlternativas[0]
+    );
+
+    MissionManager.ConcluirMissaoNPC("hotel_a2b1_checkin");
+
+    // Cartão do quarto.
+    IniciarMissao(
+        "hotel_a2b1_cartao",
+        "Pegue o cartão do quarto no balcão",
+        "Pick up your room key card from the counter"
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[2]),
+        exerciciosSpeaking[2]
+    );
+
+    await AguardarPegarCartao();
+
+    MissionManager.ConcluirMissaoNPC("hotel_a2b1_cartao");
+
+    // Orientações sobre o hotel.
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosCriarFrases[0]),
+        exerciciosCriarFrases[0]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[3]),
+        exerciciosSpeaking[3]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[1]),
+        exerciciosWriting[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[1]),
+        exerciciosAlternativas[1]
+    );
+
+    // Checkout e solicitação de saída tardia.
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[2]),
+        exerciciosWriting[2]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[4]),
+        exerciciosSpeaking[4]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosCompletarFrase[0]),
+        exerciciosCompletarFrase[0]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+    private async Task AguardarPegarCartao()
+{
+    if (cartaoQuarto == null)
+    {
+        Debug.LogError("O objeto cartaoQuarto não foi configurado no Inspector.");
+        return;
+    }
+
+    cartaoQuarto.SetActive(true);
+
+    while (cartaoQuarto != null && cartaoQuarto.activeSelf)
+    {
+        await Task.Yield();
+    }
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

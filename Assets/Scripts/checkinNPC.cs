@@ -1471,6 +1471,230 @@ public class checkinNPC : InteracaoNPC
                 }
             );
         }
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Where are you flying today?",
+        "May I see your passport and booking confirmation, please?",
+        "Here is your boarding pass. Your gate is eighteen, and boarding starts at 2:30 p.m."
+    };
+
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: Estou indo para Londres.",
+            blocosPalavras = new List<string>()
+            {
+                "London",
+                "going",
+                "I",
+                "to",
+                "am",
+                "Paris",
+                "traveling",
+                "from",
+                "the",
+                "is"
+            },
+            respostaCorreta = "I am going to London\n"
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The airport employee asks to see your passport and booking confirmation. Choose the most appropriate response.",
+            opcoesFala = new List<string>()
+            {
+                "Here are my passport and booking confirmation.\n",
+                "I would like to change my boarding gate.\n",
+                "My suitcase is already at the destination.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCompletarFrase.Add(
+        new ExercicioCompletarFrase()
+        {
+            enunciado = "Complete the sentence with the correct number:",
+            fraseAntes = "Your boarding gate is ",
+            fraseDepois = ".",
+            respostaCorreta = "18",
+            opcoes = new List<string>()
+            {
+                "12",
+                "18",
+                "24",
+                "passport",
+                "airport",
+                "boarding",
+                "20",
+                "ticket"
+            }
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+            opcoesPort = new List<string>()
+            {
+                "passaporte",
+                "confirmação da reserva",
+                "cartão de embarque",
+                "portão de embarque",
+                "mala de viagem",
+                "despachar bagagem",
+                "destino",
+                "horário de embarque"
+            },
+
+            opcoesIngles = new List<string>()
+            {
+                "boarding pass",
+                "destination",
+                "suitcase",
+                "boarding time",
+                "passport",
+                "check in a bag",
+                "booking confirmation",
+                "boarding gate"
+            },
+
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "passaporte", palavraIngles = "passport" },
+                new ParAssociacao { palavraPortugues = "confirmação da reserva", palavraIngles = "booking confirmation" },
+                new ParAssociacao { palavraPortugues = "cartão de embarque", palavraIngles = "boarding pass" },
+                new ParAssociacao { palavraPortugues = "portão de embarque", palavraIngles = "boarding gate" },
+                new ParAssociacao { palavraPortugues = "mala de viagem", palavraIngles = "suitcase" },
+                new ParAssociacao { palavraPortugues = "despachar bagagem", palavraIngles = "check in a bag" },
+                new ParAssociacao { palavraPortugues = "destino", palavraIngles = "destination" },
+                new ParAssociacao { palavraPortugues = "horário de embarque", palavraIngles = "boarding time" }
+            }
+        }
+    );
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Where are you travelling today?",
+        "Could I see your passport and booking confirmation, please?",
+        "Are you checking any bags today? Your checked luggage will be transferred automatically to your connecting flight.",
+        "Your next flight leaves from gate 24. Boarding starts at 2:30 p.m. Please check the departure screens for any updates."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "Explain your travel plans to the airport employee, mentioning your destination and connecting flight.",
+            opcoesFala = new List<string>()
+            {
+                "I'm travelling to Toronto, and I have a connecting flight.\n",
+                "I'm collecting my luggage at the information desk.\n",
+                "My boarding pass is at the hotel reception.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The employee asks for your passport and booking confirmation. Choose the most appropriate response.",
+            opcoesFala = new List<string>()
+            {
+                "Certainly. I have both documents with me.\n",
+                "I need to check the departure screens first.\n",
+                "My connecting flight leaves from gate 24.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "You have a connecting flight. What will happen to your checked luggage?",
+            alternativas = new List<string>()
+            {
+                "It will be transferred automatically to the connecting flight.\r\n",
+                "You must carry it to the boarding gate yourself.\r\n",
+                "It will be sent to the information desk.\r\n",
+                "You must collect it before checking in.\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The employee advises you to check the departure screens for updates. Choose the most appropriate response.",
+            opcoesFala = new List<string>()
+            {
+                "Thank you. I'll check the departure screens.\n",
+                "Thank you. I'll collect my luggage now.\n",
+                "Thank you. I'll ask for a hotel room.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+            opcoesPort = new List<string>()
+            {
+                "voo de conexão",
+                "destino final",
+                "bagagem despachada",
+                "ser transferido automaticamente",
+                "telas de partidas",
+                "mudança de portão",
+                "confirmação da reserva",
+                "horário de embarque",
+                "balcão de informações",
+                "terminal"
+            },
+
+            opcoesIngles = new List<string>()
+            {
+                "departure screens",
+                "checked baggage",
+                "terminal",
+                "booking confirmation",
+                "connecting flight",
+                "gate change",
+                "information desk",
+                "final destination",
+                "boarding time",
+                "be transferred automatically"
+            },
+
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "voo de conexão", palavraIngles = "connecting flight" },
+                new ParAssociacao { palavraPortugues = "destino final", palavraIngles = "final destination" },
+                new ParAssociacao { palavraPortugues = "bagagem despachada", palavraIngles = "checked baggage" },
+                new ParAssociacao { palavraPortugues = "ser transferido automaticamente", palavraIngles = "be transferred automatically" },
+                new ParAssociacao { palavraPortugues = "telas de partidas", palavraIngles = "departure screens" },
+                new ParAssociacao { palavraPortugues = "mudança de portão", palavraIngles = "gate change" },
+                new ParAssociacao { palavraPortugues = "confirmação da reserva", palavraIngles = "booking confirmation" },
+                new ParAssociacao { palavraPortugues = "horário de embarque", palavraIngles = "boarding time" },
+                new ParAssociacao { palavraPortugues = "balcão de informações", palavraIngles = "information desk" },
+                new ParAssociacao { palavraPortugues = "terminal", palavraIngles = "terminal" }
+            }
+        }
+    );
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1511,9 +1735,17 @@ public class checkinNPC : InteracaoNPC
         {
             await interacaoA1();
         }
+        else if(nivelAtual == "A1-A2")
+        {
+            await interacaoA1A2();
+        }
         else if (nivelAtual == "A2")
         {
             await interacaoA2();
+        }
+        else if(nivelAtual == "A2-B1")
+        {
+            await interacaoA2B1();
         }
         else
         {
@@ -1670,6 +1902,129 @@ public class checkinNPC : InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    IniciarMissao(
+        "aeroporto_a1a2_3",
+        "Dirija-se ao balcão de check-in e informe seu destino",
+        "Go to the check-in desk and tell the employee your destination"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a1a2_3");
+
+    IniciarMissao(
+        "aeroporto_a1a2_4",
+        "Apresente seu passaporte e confirmação da reserva",
+        "Present your passport and booking confirmation"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a1a2_4");
+
+    IniciarMissao(
+        "aeroporto_a1a2_5",
+        "Consulte seu cartão de embarque e encontre o portão 18",
+        "Check your boarding pass and find gate 18"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCompletarFrase[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+
+    IniciarMissaoChegadaPortao(
+        "aeroporto_a1a2_6",
+        "Encontre o portão 18",
+        "Find gate 18",
+        pontoChegadaPortao18,
+        marcadorPortao18
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    IniciarMissao(
+        "aeroporto_a2b1_3",
+        "Informe seu destino e os detalhes do voo de conexão",
+        "Provide your destination and connecting-flight details"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a2b1_3");
+
+    IniciarMissao(
+        "aeroporto_a2b1_4",
+        "Apresente seus documentos de viagem",
+        "Present your travel documents"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a2b1_4");
+
+    IniciarMissao(
+        "aeroporto_a2b1_5",
+        "Confirme as informações sobre sua bagagem despachada",
+        "Confirm the information about your checked baggage"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a2b1_5");
+
+    IniciarMissao(
+        "aeroporto_a2b1_6",
+        "Confira as informações sobre o embarque e o portão de conexão",
+        "Check the boarding information and connecting gate"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+
+    IniciarMissaoChegadaPortao(
+        "aeroporto_a2b1_7",
+        "Encontre o portão 24 para seu voo",
+        "Find gate 24 for your flight",
+        pontoChegadaPortao24,
+        marcadorPortao24
+    );
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

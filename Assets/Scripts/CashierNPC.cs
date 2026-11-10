@@ -1140,7 +1140,7 @@ public class CashierNPC : InteracaoNPC
                 }
             );
         }
-        else
+        else if(nivelAtual == "B1")
         {
             valorTotal = 16.75;
             dialogoAtual = new List<string>()
@@ -1262,6 +1262,191 @@ public class CashierNPC : InteracaoNPC
                 }
             );
         }
+else if (nivelAtual == "A1-A2")
+{
+    valorTotal = 12.75;
+
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + " Did you find everything you needed?",
+        "Your total is twelve dollars and seventy-five cents.",
+        "Would you like a bag for your groceries?",
+        "How would you like to pay: cash or card?",
+        "Would you like a printed receipt?",
+        "Thank you for shopping with us. Have a nice day!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Respond to the cashier's greeting and confirm that you found everything you needed.",
+        opcoesFala = new List<string>()
+        {
+            cumprimento + " Yes, I found everything I needed, thank you.\r\n",
+            "I would like to reserve a table.\r\n",
+            "I'm looking for a clothing store.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The cashier tells you that your total is $12.75. What is the correct amount?",
+        alternativas = new List<string>()
+        {
+            "Twelve dollars and seventy-five cents.",
+            "Twenty dollars and fifty cents.",
+            "Twelve dollars and fifteen cents.",
+            "Seventeen dollars and twenty-five cents."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Say the total amount of your purchase.",
+        opcoesFala = new List<string>()
+        {
+            "Twelve dollars and seventy-five cents.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Eu gostaria de uma sacola para minhas compras, por favor.",
+        blocosPalavras = new List<string>()
+        {
+            "I'd", "like", "a", "bag", "for", "my",
+            "groceries", "please", "thank", "you", "today"
+        },
+        respostaCorreta = "I'd like a bag for my groceries, please."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The cashier asks how you would like to pay. Tell them that you would prefer to use your debit card.",
+        opcoesFala = new List<string>()
+        {
+            "I'd prefer to pay with my debit card.\r\n",
+            "I'd like to try another size.\r\n",
+            "I usually buy cereal on Mondays.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The cashier asks whether you would like a printed receipt. What should you say if you want one?",
+        alternativas = new List<string>()
+        {
+            "Yes, please. I'd like a receipt.",
+            "No, I don't need any milk.",
+            "I'd like to change my shopping cart.",
+            "The store closes at nine."
+        },
+        alternativaCorreta = 0
+    });
+}
+else if (nivelAtual == "A2-B1")
+{
+    valorTotal = 18.40;
+
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + " Did you manage to find everything you were looking for today?",
+        "Your total comes to eighteen dollars and forty cents.",
+        "Would you like to use one of our reusable bags, or have you brought your own?",
+        "We also have paper bags available if you prefer.",
+        "Which payment method would you like to use?",
+        "Would you like a printed receipt, or would you prefer a digital one?",
+        "Thank you for shopping with us. Have a wonderful day!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Respond to the cashier politely. Confirm that you found everything you needed and thank them."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The cashier says that your total comes to $18.40. Which option correctly expresses this amount?",
+        alternativas = new List<string>()
+        {
+            "Eighteen dollars and forty cents.",
+            "Eighty dollars and eighteen cents.",
+            "Eighteen dollars and fourteen cents.",
+            "Fourteen dollars and eighty cents."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Say the total amount of your purchase clearly.",
+        opcoesFala = new List<string>()
+        {
+            "Eighteen dollars and forty cents.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The cashier asks whether you brought your own bag. Explain that you brought a reusable bag and do not need another one.",
+        opcoesFala = new List<string>()
+        {
+            "I brought my own reusable bag, so I don't need another one.\r\n",
+            "I would like to order a sandwich.\r\n",
+            "I need to find the dairy section.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Eu prefiro pagar com cartão de débito, se possível.",
+        blocosPalavras = new List<string>()
+        {
+            "I'd", "prefer", "to", "pay", "with", "my",
+            "debit", "card", "if", "possible", "please",
+            "cash", "instead"
+        },
+        respostaCorreta = "I'd prefer to pay with my debit card, if possible."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The cashier offers you a printed or digital receipt. Which response requests a digital receipt?",
+        alternativas = new List<string>()
+        {
+            "A digital receipt would be great, thank you.",
+            "I'd like to pay in cash.",
+            "I brought my own shopping bag.",
+            "Could you show me the cereal aisle?"
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
+    {
+        enunciado = "Complete the sentence with the correct words:",
+        partesFrase = new List<string>()
+        {
+            "I'd prefer to pay with my ",
+            " ",
+            " card, and I'd like a digital ",
+            " ",
+            "."
+        },
+        respostaCorreta = "debit, receipt",
+        opcoes = new List<string>()
+        {
+            "debit", "credit", "cash", "receipt",
+            "bag", "money", "paper", "card",
+            "payment", "change", "total"
+        }
+    });
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1295,6 +1480,10 @@ public class CashierNPC : InteracaoNPC
 
             if (nivelAtual == "A1")
                 await interacaoA1();
+            else if(nivelAtual=="A1-A2")
+                await interacaoA1A2();
+            else if(nivelAtual=="A2-B1")
+                await interacaoA2B1();
             else if (nivelAtual == "A2")
                 await interacaoA2();
             else
@@ -1441,6 +1630,87 @@ public class CashierNPC : InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++, mostrarLegenda: true);
+
+    exAtual = exerciciosCompletarFrase[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
     private async Task PegarChocolate()
     {

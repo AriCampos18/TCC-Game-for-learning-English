@@ -1562,6 +1562,265 @@ public class VisitorCenterNPC: InteracaoNPC
                 }
             );
         }
+else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". How can I help you?",
+        "Is this your first time visiting our city?",
+        "The City Park is a popular place to visit. Would you like to go there?",
+        "Turn right and walk straight ahead. At the end of the block, turn left. Then turn right again. The park is next to the hotel.",
+        "It takes about ten minutes to get there on foot."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You are visiting the city for the first time. Tell the tour guide that you would like to visit some attractions.",
+            opcoesFala = new List<string>()
+            {
+                "I'd like to visit some tourist attractions.\n",
+                "I need to check in at my hotel.\n",
+                "I'd like to order something to eat.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The guide asks if this is your first time in the city. Choose the appropriate response.",
+            opcoesFala = new List<string>()
+            {
+                "Yes, this is my first time here.\n",
+                "Yes, I am the city.\n",
+                "No, I like the directions.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the guide, where is the City Park?",
+            alternativas = new List<string>()
+            {
+                "Next to the hotel.\r\n",
+                "Behind the airport.\r\n",
+                "Inside the museum.\r\n",
+                "Across from the university.\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to know how long it takes to walk to the City Park. What should you ask?",
+            opcoesFala = new List<string>()
+            {
+                "How long does it take to get there on foot?\n",
+                "How much does the hotel room cost?\n",
+                "What time does the museum close yesterday?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+            opcoesPort = new List<string>()
+            {
+                "ponto turístico",
+                "primeira visita",
+                "quarteirão",
+                "virar à direita",
+                "virar à esquerda",
+                "seguir em frente",
+                "ao lado de",
+                "a pé"
+            },
+
+            opcoesIngles = new List<string>()
+            {
+                "on foot",
+                "turn left",
+                "first visit",
+                "next to",
+                "go straight",
+                "block",
+                "tourist attraction",
+                "turn right"
+            },
+
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "ponto turístico", palavraIngles = "tourist attraction" },
+                new ParAssociacao { palavraPortugues = "primeira visita", palavraIngles = "first visit" },
+                new ParAssociacao { palavraPortugues = "quarteirão", palavraIngles = "block" },
+                new ParAssociacao { palavraPortugues = "virar à direita", palavraIngles = "turn right" },
+                new ParAssociacao { palavraPortugues = "virar à esquerda", palavraIngles = "turn left" },
+                new ParAssociacao { palavraPortugues = "seguir em frente", palavraIngles = "go straight" },
+                new ParAssociacao { palavraPortugues = "ao lado de", palavraIngles = "next to" },
+                new ParAssociacao { palavraPortugues = "a pé", palavraIngles = "on foot" }
+            }
+        }
+    );
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Welcome to the visitor center. How can I assist you today?",
+        "Have you visited our city before, or is this your first time here?",
+        "I'd recommend the City Park. It is one of the most popular attractions in the area.",
+        "To get there, take the first turn on your right and continue straight ahead. At the end of the block, turn left. Then, take another right. The park is next to the hotel.",
+        "The walk should take approximately ten minutes. If you prefer not to walk, you can take bus 42, which stops in front of the park.",
+        "I'd recommend visiting in the morning, as the park tends to get crowded in the afternoon."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You are visiting the city and would like recommendations. Explain to the guide that you want to explore local attractions.",
+            opcoesFala = new List<string>()
+            {
+                "I'm visiting the city and would like to know which attractions you recommend.\n",
+                "I'm looking for a hotel room near the airport.\n",
+                "I'd like to know where I can collect my luggage.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: Esta é minha primeira vez visitando a cidade.",
+            blocosPalavras = new List<string>()
+            {
+                "my",
+                "city",
+                "first",
+                "visiting",
+                "this",
+                "time",
+                "the",
+                "is",
+                "hotel",
+                "been",
+                "ever",
+                "in"
+            },
+            respostaCorreta = "This is my first time visiting the city.\n"
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The guide recommends the City Park. Express your interest and ask for directions.",
+            opcoesFala = new List<string>()
+            {
+                "The City Park sounds interesting. Could you explain how I can get there?\n",
+                "The City Park looks interesting. Could you tell me how much a hotel room costs?\n",
+                "I'd like to know whether the airport has a restaurant.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "You did not understand the directions to the City Park. Write a polite question asking the guide to explain the route again."
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the guide's directions, where should you turn after reaching the end of the block?",
+            alternativas = new List<string>()
+            {
+                "Turn left.\r\n",
+                "Turn right.\r\n",
+                "Go back to the visitor center.\r\n",
+                "Cross the street and enter the museum.\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to know if there is another way to reach the City Park without walking. Ask the guide.",
+            opcoesFala = new List<string>()
+            {
+                "Is there any public transportation I can take to get there?\n",
+                "Can I check in at the park?\n",
+                "How long does the museum stay open yesterday?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word or expression with the English equivalent.",
+
+            opcoesPort = new List<string>()
+            {
+                "recomendar",
+                "atração popular",
+                "área",
+                "seguir em frente",
+                "no final do quarteirão",
+                "aproximadamente",
+                "preferir",
+                "ponto de ônibus",
+                "ficar lotado",
+                "durante a tarde"
+            },
+
+            opcoesIngles = new List<string>()
+            {
+                "approximately",
+                "get crowded",
+                "recommend",
+                "in the afternoon",
+                "popular attraction",
+                "bus stop",
+                "area",
+                "at the end of the block",
+                "go straight",
+                "prefer"
+            },
+
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "recomendar", palavraIngles = "recommend" },
+                new ParAssociacao { palavraPortugues = "atração popular", palavraIngles = "popular attraction" },
+                new ParAssociacao { palavraPortugues = "área", palavraIngles = "area" },
+                new ParAssociacao { palavraPortugues = "seguir em frente", palavraIngles = "go straight" },
+                new ParAssociacao { palavraPortugues = "no final do quarteirão", palavraIngles = "at the end of the block" },
+                new ParAssociacao { palavraPortugues = "aproximadamente", palavraIngles = "approximately" },
+                new ParAssociacao { palavraPortugues = "preferir", palavraIngles = "prefer" },
+                new ParAssociacao { palavraPortugues = "ponto de ônibus", palavraIngles = "bus stop" },
+                new ParAssociacao { palavraPortugues = "ficar lotado", palavraIngles = "get crowded" },
+                new ParAssociacao { palavraPortugues = "durante a tarde", palavraIngles = "in the afternoon" }
+            }
+        }
+    );
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1592,9 +1851,17 @@ public class VisitorCenterNPC: InteracaoNPC
         {
             await interacaoA1();
         }
+        else if(nivelAtual == "A1-A2")
+        {
+            await interacaoA1A2();
+        }
         else if (nivelAtual == "A2")
         {
             await interacaoA2();
+        }
+        else if(nivelAtual == "A2-B1")
+        {
+            await interacaoA2B1();
         }
         else
         {
@@ -1784,6 +2051,120 @@ public class VisitorCenterNPC: InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    IniciarMissao(
+        "visitor_center_a1a2_conversa",
+        "Converse com o funcionário do centro de informações turísticas",
+        "Talk to the visitor center employee"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("visitor_center_a1a2_conversa");
+
+    IniciarMissao(
+        "visitor_center_a1a2_atracoes",
+        "Escolha o City Park como ponto turístico para visitar",
+        "Choose the City Park as the tourist attraction to visit"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("visitor_center_a1a2_atracoes");
+
+    IniciarMissaoChegadaCityPark(
+        "visitor_center_a1a2_city_park",
+        "Siga as orientações e encontre o City Park",
+        "Follow the directions and find the City Park"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    IniciarMissao(
+        "visitor_center_a2b1_conversa",
+        "Converse com o funcionário e peça recomendações de atrações turísticas",
+        "Talk to the employee and ask for recommendations about tourist attractions"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("visitor_center_a2b1_conversa");
+
+    IniciarMissao(
+        "visitor_center_a2b1_escolher_destino",
+        "Escolha o City Park e peça orientações para chegar até lá",
+        "Choose the City Park and ask for directions to get there"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("visitor_center_a2b1_escolher_destino");
+
+    IniciarMissaoChegadaCityPark(
+        "visitor_center_a2b1_percorrer_trajeto",
+        "Interprete as orientações e siga o trajeto até o City Park",
+        "Understand the directions and follow the route to the City Park"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosWriting[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

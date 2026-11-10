@@ -1595,6 +1595,302 @@ public class RestaurantWaiterNPC : InteracaoNPC
                 }
             );
         }
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + " Welcome to our restaurant!",
+        "Here is the menu. You can take your time.",
+        "Are you ready to order?",
+        "Would you like something to drink?",
+        "Your hamburger and orange juice will be ready in about fifteen minutes.",
+        "How is your meal? Is everything okay?",
+        "Of course. I can bring you a container.",
+        "Here is your food to go.",
+        "Your bill is 35 dollars. Would you like to pay by card or cash?",
+        "Thank you for coming. Have a great day!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You would like to order a hamburger. Tell the waiter what you want.",
+        opcoesFala = new List<string>()
+        {
+            "I would like a hamburger, please.\n",
+            "I would like the bill, please.\n",
+            "I would like to book a hotel room.\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The waiter asks if you would like something to drink. Choose the best answer.",
+        alternativas = new List<string>()
+        {
+            "I'd like an orange juice, please.\r\n",
+            "I'd like another menu, please.\r\n",
+            "I'd like the restaurant, please.\r\n",
+            "I'd like a table, please.\r\n"
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Você poderia trazer uma embalagem para levar o restante, por favor?",
+        blocosPalavras = new List<string>()
+        {
+            "container",
+            "Could",
+            "the",
+            "bring",
+            "please",
+            "you",
+            "me",
+            "rest",
+            "for",
+            "a",
+            "bill",
+            "my"
+        },
+        respostaCorreta = "Could you bring me a container for the rest, please?\n"
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You have finished eating. Ask the waiter for the bill.",
+        opcoesFala = new List<string>()
+        {
+            "Could I have the bill, please?\n",
+            "Could I have the menu, please?\n",
+            "Could I have another hamburger, please?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The waiter asks how you would like to pay. Choose the correct answer.",
+        alternativas = new List<string>()
+        {
+            "I'd like to pay by card, please.\r\n",
+            "I'd like to pay by menu, please.\r\n",
+            "I'd like to pay by hamburger, please.\r\n",
+            "I'd like to pay by table, please.\r\n"
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Thank the waiter politely."
+    });
+
+    exerciciosAssociacao.Add(new ExercicioAssociacao()
+    {
+        enunciado = "Match the Portuguese word with its English equivalent.",
+        opcoesPort = new List<string>()
+        {
+            "garçom",
+            "cardápio",
+            "pedido",
+            "bebida",
+            "embalagem",
+            "conta",
+            "dinheiro"
+        },
+        opcoesIngles = new List<string>()
+        {
+            "bill",
+            "waiter",
+            "drink",
+            "cash",
+            "menu",
+            "container",
+            "order"
+        },
+        associacaoCorreta = new List<ParAssociacao>()
+        {
+            new ParAssociacao { palavraPortugues = "garçom", palavraIngles = "waiter" },
+            new ParAssociacao { palavraPortugues = "cardápio", palavraIngles = "menu" },
+            new ParAssociacao { palavraPortugues = "pedido", palavraIngles = "order" },
+            new ParAssociacao { palavraPortugues = "bebida", palavraIngles = "drink" },
+            new ParAssociacao { palavraPortugues = "embalagem", palavraIngles = "container" },
+            new ParAssociacao { palavraPortugues = "conta", palavraIngles = "bill" },
+            new ParAssociacao { palavraPortugues = "dinheiro", palavraIngles = "cash" }
+        }
+    });
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + " Welcome to our restaurant. Here is the menu.",
+        "Our hamburger is very popular. It comes with cheese, lettuce, tomato, and fries.",
+        "Would you like me to recommend something from the menu?",
+        "Is there anything else you would like to order?",
+        "Your order should be ready in about twenty minutes.",
+        "How was your meal? Was everything to your liking?",
+        "Certainly. I can pack the remaining food for you.",
+        "Here is your order. I hope you enjoy it later!",
+        "Your bill is R$42. Would you prefer to pay by card or in cash?",
+        "Here is your receipt. Thank you for visiting us!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You want to know what comes with the restaurant's hamburger. Ask the waiter.",
+        opcoesFala = new List<string>()
+        {
+            "Could you tell me what comes with the hamburger?\n",
+            "Could you tell me where the airport is?\n",
+            "Could you tell me when the restaurant closes yesterday?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask the waiter to recommend a dish from the menu.",
+        opcoesFala = new List<string>()
+        {
+            "Could you recommend a dish for me?\n",
+            "Could you pay my bill for me?\n",
+            "Could you bring me a hotel key?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Eu gostaria de pedir um hambúrguer com queijo e batatas fritas, por favor.",
+        blocosPalavras = new List<string>()
+        {
+            "fries",
+            "would",
+            "cheese",
+            "please",
+            "hamburger",
+            "I",
+            "with",
+            "like",
+            "and",
+            "to",
+            "order",
+            "a",
+            "salad",
+            "some"
+        },
+        respostaCorreta = "I would like to order a hamburger with cheese and fries, please.\n"
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Isso é tudo por enquanto, obrigado.",
+        blocosPalavras = new List<string>()
+        {
+            "That's",
+            "for",
+            "thank",
+            "all",
+            "now",
+            "you",
+            "everything",
+            "much",
+            "order",
+            "No",
+            "please"
+        },
+        respostaCorreta = "That's all for now, thank you.\n"
+    });
+
+    exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
+    {
+        enunciado = "Complete the sentence with the correct words:",
+        partesFrase = new List<string>()
+        {
+            "Could you ",
+            " the rest of my meal, please?"
+        },
+        respostaCorreta = "pack",
+        opcoes = new List<string>()
+        {
+            "pack",
+            "recommend",
+            "order",
+            "pay",
+            "serve",
+            "choose"
+        }
+    });
+
+    exerciciosWriting.Add(new ExercicioWriting()
+    {
+        enunciado = "You enjoyed your meal. Write a short message to compliment the waiter on the food and service."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You could not finish your meal. Politely ask the waiter to pack the leftovers."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask the waiter for the bill and explain that you are ready to pay."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The waiter asks whether you would prefer to pay by card or in cash. Choose the most appropriate answer.",
+        alternativas = new List<string>()
+        {
+            "I'd prefer to pay by card, if that's possible.\r\n",
+            "I'd prefer to order another table, if that's possible.\r\n",
+            "I'd prefer to take the menu home, if that's possible.\r\n",
+            "I'd prefer to change my meal yesterday, if that's possible.\r\n"
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosAssociacao.Add(new ExercicioAssociacao()
+    {
+        enunciado = "Match the Portuguese word or expression with its English equivalent.",
+        opcoesPort = new List<string>()
+        {
+            "ingredientes",
+            "acompanhamento",
+            "recomendar",
+            "sobras",
+            "embalar",
+            "atendimento",
+            "recibo",
+            "dinheiro em espécie"
+        },
+        opcoesIngles = new List<string>()
+        {
+            "receipt",
+            "leftovers",
+            "service",
+            "ingredients",
+            "cash",
+            "side dish",
+            "pack",
+            "recommend"
+        },
+        associacaoCorreta = new List<ParAssociacao>()
+        {
+            new ParAssociacao { palavraPortugues = "ingredientes", palavraIngles = "ingredients" },
+            new ParAssociacao { palavraPortugues = "acompanhamento", palavraIngles = "side dish" },
+            new ParAssociacao { palavraPortugues = "recomendar", palavraIngles = "recommend" },
+            new ParAssociacao { palavraPortugues = "sobras", palavraIngles = "leftovers" },
+            new ParAssociacao { palavraPortugues = "embalar", palavraIngles = "pack" },
+            new ParAssociacao { palavraPortugues = "atendimento", palavraIngles = "service" },
+            new ParAssociacao { palavraPortugues = "recibo", palavraIngles = "receipt" },
+            new ParAssociacao { palavraPortugues = "dinheiro em espécie", palavraIngles = "cash" }
+        }
+    });
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1635,11 +1931,19 @@ public class RestaurantWaiterNPC : InteracaoNPC
         {
             await interacaoA1();
         }
+        else if(nivelAtual == "A1-A2")
+        {
+            await interacaoA1A2();
+        }
         else if (nivelAtual == "A2")
         {
             await interacaoA2();
         }
-        else
+        else if(nivelAtual == "A2-B1")
+        {
+            await interacaoA2B1();
+        }
+        else if(nivelAtual == "B1")
         {
             await interacaoB1();
         }
@@ -1823,6 +2127,168 @@ public class RestaurantWaiterNPC : InteracaoNPC
         ConcluirMissao("rest_b1_pagamento");
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    IniciarMissao("rest_a1a2_entrar",
+        "Entre no restaurante e sente-se em uma mesa",
+        "Enter the restaurant and sit at a table");
+
+    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a1a2_entrar");
+
+    IniciarMissao("rest_a1a2_pedido",
+        "Faça seu pedido ao garçom",
+        "Place your order with the waiter");
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a1a2_pedido");
+
+    IniciarMissao("rest_a1a2_refeicao",
+        "Aproveite sua refeição",
+        "Enjoy your meal");
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a1a2_refeicao");
+
+    IniciarMissao("rest_a1a2_viagem",
+        "Peça para levar o restante da refeição",
+        "Ask to take the rest of your meal to go");
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a1a2_viagem");
+
+    IniciarMissao("rest_a1a2_pagamento",
+        "Realize o pagamento da conta",
+        "Pay the bill");
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("rest_a1a2_pagamento");
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    IniciarMissao("rest_a2b1_entrar",
+        "Entre no restaurante e sente-se em uma mesa",
+        "Enter the restaurant and sit at a table");
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a2b1_entrar");
+
+    IniciarMissao("rest_a2b1_pratos",
+        "Pergunte sobre os pratos e peça uma recomendação",
+        "Ask about the dishes and request a recommendation");
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a2b1_pratos");
+
+    IniciarMissao("rest_a2b1_pedido",
+        "Faça seu pedido ao garçom",
+        "Place your order with the waiter");
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a2b1_pedido");
+
+    IniciarMissao("rest_a2b1_cliente",
+        "Converse com o outro cliente",
+        "Talk to the other customer");
+
+    await AguardarConversaComCliente();
+    // RestaurantClient conclui essa missão ao terminar a conversa.
+
+    IniciarMissao("rest_a2b1_refeicao",
+        "Aproveite sua refeição",
+        "Enjoy your meal");
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a2b1_refeicao");
+
+    IniciarMissao("rest_a2b1_viagem",
+        "Peça para embalar o restante da refeição",
+        "Ask the waiter to pack the rest of your meal");
+
+    exAtual = exerciciosWriting[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a2b1_viagem");
+
+    IniciarMissao("rest_a2b1_pagamento",
+        "Pague a conta e solicite o recibo",
+        "Pay the bill and ask for the receipt");
+
+    exAtual = exerciciosSpeaking[3];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+    ConcluirMissao("rest_a2b1_pagamento");
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

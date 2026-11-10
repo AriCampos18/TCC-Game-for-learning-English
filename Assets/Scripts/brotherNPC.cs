@@ -713,6 +713,110 @@ public class brotherNPC : InteracaoNPC
                 }
             );
         }
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        "Hey! It's really good to see you again.",
+        "School has been going well. I usually do my homework before playing with the dog.",
+        "He loves playing with his ball in the backyard. We played together yesterday!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your brother how school has been going.",
+        opcoesFala = new List<string>()
+        {
+            "How has school been going lately?\n",
+            "How much is the dinner today?\n",
+            "Where did you buy the bathroom?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your brother what he usually does before playing with the dog."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your brother what the dog likes to play with.",
+        opcoesFala = new List<string>()
+        {
+            "What does he like playing with?\n",
+            "Where does he go to school?\n",
+            "When does he eat dinner yesterday?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "What does the dog enjoy playing with?",
+        alternativas = new List<string>()
+        {
+            "A ball\r\n",
+            "A notebook\r\n",
+            "A chair\r\n",
+            "A school bag\r\n"
+        },
+        alternativaCorreta = 0
+    });
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        "Hey! I wasn't expecting to see you today. How have you been?",
+        "School has been pretty interesting. I've been trying to keep up with my homework, but I still make time to play with the dog.",
+        "He has been enjoying our games in the backyard. He especially loves playing fetch with his ball."
+    };
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Tenho tentado organizar melhor meu tempo entre os estudos e o lazer.",
+        blocosPalavras = new List<string>()
+        {
+            "my",
+            "between",
+            "better",
+            "I've",
+            "organize",
+            "studies",
+            "free",
+            "time",
+            "and",
+            "been",
+            "trying",
+            "to",
+            "work"
+        },
+        respostaCorreta = "I've been trying to organize my time better between studies and free time.\n"
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your brother how he has been managing his schoolwork lately.",
+        opcoesFala = new List<string>()
+        {
+            "How have you been managing your schoolwork lately?\n",
+            "Where is the nearest restaurant located?\n",
+            "How much does the dog weigh tomorrow?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosWriting.Add(new ExercicioWriting()
+    {
+        enunciado = "Write a short paragraph about how you balance your studies, responsibilities, and free time."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your brother what activities he and the dog have been doing together."
+    });
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

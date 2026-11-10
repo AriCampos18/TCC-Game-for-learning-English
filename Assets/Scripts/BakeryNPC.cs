@@ -847,7 +847,7 @@ public class BakeryNPC : InteracaoNPC
             //     }
             // );
         }
-        else
+        else if(nivelAtual=="B1")
         {
             dialogoAtual = new List<string>()
             {
@@ -904,6 +904,183 @@ public class BakeryNPC : InteracaoNPC
                     alternativaCorreta = 3
                 });
         }
+        else if (nivelAtual == "A1-A2")
+        {
+            dialogoAtual = new List<string>()
+    {
+        "Hello! Welcome to the bakery. What would you like today?",
+        "Of course! We have fresh bread, chicken sandwiches and chocolate cake.",
+        "Would you like something to drink with your order?",
+        "We have orange juice and water. Which one would you prefer?",
+        "Great choice! Would you like anything else?",
+        "Certainly! I'll get the cake and sandwich for you.",
+        "Here is your order. Is there anything else you need?",
+        "You're welcome! Enjoy your food!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Tell the bakery attendant that you would like to buy a chicken sandwich.",
+        opcoesFala = new List<string>()
+        {
+            "I'd like a chicken sandwich, please.\r\n",
+            "I'd like to book a hotel room.\r\n",
+            "I need to find the train station.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "Which products does the attendant say are available?",
+        alternativas = new List<string>()
+        {
+            "Fresh bread, chicken sandwiches and chocolate cake.",
+            "Pizza, hamburgers and ice cream.",
+            "Rice, pasta and frozen vegetables.",
+            "Coffee, tea and apple pie only."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The attendant asks whether you would like something to drink. Ask for orange juice.",
+        opcoesFala = new List<string>()
+        {
+            "Could I have some orange juice, please?\r\n",
+            "Could I have another room, please?\r\n",
+            "Where can I buy a train ticket?\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Eu gostaria de um sanduíche e um suco de laranja.",
+        blocosPalavras = new List<string>()
+        {
+            "I'd", "like", "a", "sandwich", "and",
+            "some", "orange", "juice", "please", "thank"
+        },
+        respostaCorreta = "I'd like a sandwich and some orange juice."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The attendant asks if you would like anything else. Tell them that you would also like a piece of chocolate cake.",
+        opcoesFala = new List<string>()
+        {
+            "I'd also like a piece of chocolate cake, please.\r\n",
+            "I would like to check out of the hotel.\r\n",
+            "I need a larger pair of shoes.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+            exerciciosAlternativas.Add(new ExercicioAlternativas()
+            {
+                enunciado = "The attendant asks if you need anything else. Choose the appropriate response.",
+                alternativas = new List<string>()
+                {
+                    "No, that's everything. Thank you.",
+                    "I usually wake up at seven.",
+                    "The airport is near the city center.",
+                    "I'd like to change my reservation."
+                },
+                alternativaCorreta = 0
+            });
+        }
+        else if(nivelAtual== "A2-B1")
+        {
+            dialogoAtual = new List<string>()
+    {
+        "Hello! Are you looking for something to eat, or would you like me to recommend some of our products?",
+        "We have freshly baked chocolate croissants, cheese sandwiches and sourdough bread today.",
+        "The croissants are especially popular in the morning. Would you like to know more about the sandwiches as well?",
+        "The chicken sandwich comes with lettuce and tomato. We also have a cheese sandwich if you prefer a vegetarian option.",
+        "Would you like to have a drink with your order?",
+        "We have fresh orange juice and bottled water. The juice is made here every morning.",
+        "That sounds good! Would you like anything else?",
+        "Certainly. I'll prepare your order now.",
+        "Here you are. I hope you enjoy everything!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Explain what you are looking for and ask the attendant to recommend something freshly baked."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "Which statement correctly describes the products available today?",
+        alternativas = new List<string>()
+        {
+            "The bakery has chocolate croissants, cheese sandwiches and sourdough bread.",
+            "The bakery only sells frozen meals.",
+            "The bakery has no sandwiches available.",
+            "All the products are sold out."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You are interested in the chicken sandwich. Ask what ingredients it contains."
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Eu gostaria de saber se o sanduíche contém algum ingrediente picante.",
+        blocosPalavras = new List<string>()
+        {
+            "I'd", "like", "to", "know", "if", "the",
+            "sandwich", "contains", "any", "spicy", "ingredients",
+            "because", "today", "please"
+        },
+        respostaCorreta = "I'd like to know if the sandwich contains any spicy ingredients."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You prefer a vegetarian option. Explain this preference and ask whether the cheese sandwich would be suitable."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The attendant says the orange juice is made fresh every morning. What does this mean?",
+        alternativas = new List<string>()
+        {
+            "It is prepared fresh each morning.",
+            "It is always served frozen.",
+            "It is made only once a month.",
+            "It contains no fruit."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You have chosen a sandwich and a drink. Tell the attendant that you would also like a chocolate croissant."
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Embora eu já tenha escolhido um sanduíche, gostaria de experimentar o croissant também.",
+        blocosPalavras = new List<string>()
+        {
+            "Although", "I've", "already", "chosen", "a", "sandwich,",
+            "I'd", "also", "like", "to", "try", "the", "croissant",
+            "because", "it", "looks", "delicious"
+        },
+        respostaCorreta = "Although I've already chosen a sandwich, I'd also like to try the croissant."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The attendant asks whether you need anything else. Confirm that your order is complete and thank them politely."
+    });
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -935,9 +1112,17 @@ public class BakeryNPC : InteracaoNPC
         {
             await interacaoA1();
         }
+        else if (nivelAtual == "A1-A2")
+        {
+            await interacaoA1A2();
+        }
         else if (nivelAtual == "A2")
         {
             await interacaoA2();
+        }
+        else if(nivelAtual == "A2-B1")
+        {
+            await interacaoA2B1();
         }
         else
         {
@@ -1069,6 +1254,105 @@ public class BakeryNPC : InteracaoNPC
 
         await PlayAudioETexto(i++);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PegarProduto(cake, falar: true);
+    await PegarProduto(sandwich, falar: false);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[3];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PegarProduto(sandwich, falar: true);
+    await PegarProduto(sourdough, falar: false);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[4];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
    private async Task PegarProduto(GameObject produto, bool falar = true)
     {

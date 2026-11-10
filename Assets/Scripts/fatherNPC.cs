@@ -583,6 +583,102 @@ public class fatherNPC : InteracaoNPC
                 }
             );
         }
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        "Hi! It's great to see you again.",
+        "I've been busy at work, but things are going well.",
+        "Are you staying with us tonight?"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Tell your father how you have been feeling.",
+        opcoesFala = new List<string>()
+        {
+            "I've been doing well, Dad. Thanks for asking.\n",
+            "I'd like to see the menu, please.\n",
+            "Could you tell me where the bathroom is?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your father how things are going at work.",
+        opcoesFala = new List<string>()
+        {
+            "How have things been going at work, Dad?\n",
+            "What time does the restaurant open?\n",
+            "Would you like to order a dessert?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Answer your father's question and say that you are staying for the night."
+    });
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        "It's been a while! How have things been going for you?",
+        "Work has been quite busy lately. I'm currently involved in a new project, and it's been an interesting experience.",
+        "Are you planning to stay overnight, or will you be heading back home later?"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Tell your father about something that has changed in your routine recently.",
+        opcoesFala = new List<string>()
+        {
+            "I've been trying to organize my routine better lately.\n",
+            "I'd like to reserve a table for two.\n",
+            "Could you tell me where the nearest pharmacy is?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your father about the project he is currently working on.",
+        opcoesFala = new List<string>()
+        {
+            "What kind of project are you working on at the moment?\n",
+            "How many bedrooms does this house have yesterday?\n",
+            "Would you like me to order something from the menu?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
+    {
+        enunciado = "Complete the sentence with the correct words:",
+        partesFrase = new List<string>()
+        {
+            "I've been ",
+            " on a new project, so I've had less free time."
+        },
+        respostaCorreta = "working",
+        opcoes = new List<string>()
+        {
+            "working",
+            "sleeping",
+            "cooking",
+            "travel",
+            "played",
+            "work"
+        }
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Answer your father and explain whether you are staying overnight or going home."
+    });
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

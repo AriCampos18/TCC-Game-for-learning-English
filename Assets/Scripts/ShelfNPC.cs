@@ -101,7 +101,15 @@ public class ShelfNPC : InteracaoNPC
         {
             await interacaoA2();
         }
-        else
+        else if (nivelAtual == "A1-A2")
+        {
+            await interacaoA1A2();
+        }
+        else if (nivelAtual == "A2-B1")
+        {
+            await interacaoA2B1();
+        }
+        else if(nivelAtual == "B1")
         {
             await interacaoB1();
         }
@@ -231,6 +239,118 @@ public class ShelfNPC : InteracaoNPC
 
         ProdutoManager.Instance.LiberarProdutos(nivelAtual);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    crosshair.SetActive(true);
+    await FluxoSeguirNPCAtelarPrateleira();
+    crosshair.SetActive(false);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    crosshair.SetActive(true);
+    await FluxoSeguirNPCAtelarPrateleira();
+    crosshair.SetActive(false);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    missaoManager.AdicionarMissao(
+        "interagir_produtos",
+        "Get the milk, cereal and snacks from the shelves",
+        "Pegue o leite, o cereal e os salgadinhos nas prateleiras"
+    );
+
+    ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    crosshair.SetActive(true);
+    await FluxoSeguirNPCAtelarPrateleira();
+    crosshair.SetActive(false);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    crosshair.SetActive(true);
+    await FluxoSeguirNPCAtelarPrateleira();
+    crosshair.SetActive(false);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosCriarFrases[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[3];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    missaoManager.AdicionarMissao(
+        "interagir_produtos",
+        "Get the selected products from the shelves",
+        "Pegue os produtos escolhidos nas prateleiras"
+    );
+
+    ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+}
 
     private async Task FluxoSeguirNPCAtelarPrateleira()
     {
@@ -473,7 +593,7 @@ public class ShelfNPC : InteracaoNPC
                 alternativaCorreta = 2
             });
         }
-        else // B1
+        else if(nivelAtual == "B1") // B1
         {
             dialogoAtual = new List<string>()
             { 
@@ -505,6 +625,179 @@ public class ShelfNPC : InteracaoNPC
                 respostaCorreta = "That was all I needed. If I need anything else, I'll let you know. Thank you.",
             });
         }
+else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        "Hi! Are you looking for something specific today?",
+        "Of course! What products do you need?",
+        "Sure, follow me. I'll show you where the milk is.",
+        "Here it is. We also have different types of milk. Do you usually buy this one?",
+        "I can show you the cereal aisle too. It's just around the corner.",
+        "Here are the cereals. Some brands are on sale today. Would you like to check them out?",
+        "The snacks are in the next aisle. Do you need anything else?",
+        "Of course! Let me know if you need more help. Happy shopping!"
+    };
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Você poderia me mostrar onde fica o leite?",
+        blocosPalavras = new List<string>()
+        {
+            "Could", "me", "where", "the", "milk", "show", "you", "is",
+            "please", "find", "I", "can", "it"
+        },
+        respostaCorreta = "Could you show me where the milk is?"
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The attendant asks what you are looking for. Tell them that you need milk and cereal.",
+        opcoesFala = new List<string>()
+        {
+            "I'm looking for some milk and cereal.\r\n",
+            "I would like to book a hotel room.\r\n",
+            "I'm waiting for my flight.\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The attendant shows you the milk. Which question asks whether it is available in another type?",
+        alternativas = new List<string>()
+        {
+            "Do you have another kind of milk?",
+            "How much is the hotel room?",
+            "Where is the nearest airport?",
+            "Can I pay for my dinner?"
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Você costuma comprar essa marca de cereal?",
+        blocosPalavras = new List<string>()
+        {
+            "Do", "you", "usually", "buy", "this", "brand", "of",
+            "cereal", "does", "where", "are", "today"
+        },
+        respostaCorreta = "Do you usually buy this brand of cereal?"
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The attendant tells you that some cereals are on sale. Ask whether there are any special discounts.",
+        opcoesFala = new List<string>()
+        {
+            "Are there any special discounts today?\r\n",
+            "I have a reservation for two.\r\n",
+            "Could you bring me the menu?\r\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The attendant asks if you need anything else. Choose the most appropriate response.",
+        alternativas = new List<string>()
+        {
+            "No, thank you. I think that's everything I need.",
+            "I usually go to school by bus.",
+            "The weather is very cold today.",
+            "I would like to change my hotel room."
+        },
+        alternativaCorreta = 0
+    });
+}
+
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        "Hi! Are you looking for anything in particular, or would you like some recommendations?",
+        "Certainly. Which products are you planning to buy?",
+        "Follow me, please. I'll show you where the dairy products are.",
+        "Here is the milk section. We have whole, semi-skimmed, and lactose-free options. Do you have a preference?",
+        "The cereal aisle is just ahead. Some brands are currently discounted.",
+        "This brand is quite popular, especially because it contains less sugar than some of the alternatives.",
+        "We also have a promotion on snacks in the next aisle. Would you like to take a look?",
+        "Here are the available options. Some products have a discount when you buy more than one.",
+        "Is there anything else you would like me to help you find?",
+        "You're welcome! Enjoy your shopping."
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Explain to the attendant which products you need and whether you have any particular preferences."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The attendant offers whole, semi-skimmed, and lactose-free milk. Which response clearly expresses a preference?",
+        alternativas = new List<string>()
+        {
+            "I'd prefer lactose-free milk, if you have it.",
+            "I went to the supermarket yesterday.",
+            "I would like to reserve a table.",
+            "The cereal is under the chair."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You want to know more about the cereal promotion. Ask the attendant whether the discount applies when buying more than one package."
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Gostaria de comparar as opções antes de escolher uma marca.",
+        blocosPalavras = new List<string>()
+        {
+            "I'd", "like", "to", "compare", "the", "options",
+            "before", "choosing", "a", "brand", "because",
+            "they", "are", "expensive", "today"
+        },
+        respostaCorreta = "I'd like to compare the options before choosing a brand."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "The attendant says that one cereal contains less sugar than the alternatives. What does this information help you do?",
+        alternativas = new List<string>()
+        {
+            "Compare the nutritional characteristics of the products.",
+            "Find out how much the shopping cart weighs.",
+            "Check whether the store accepts cash.",
+            "Ask for a different shopping basket."
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "You are interested in the snack promotion, but you are unsure whether buying multiple packages is worthwhile. Ask the attendant for more details."
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Se eu comprar duas embalagens, receberei algum desconto?",
+        blocosPalavras = new List<string>()
+        {
+            "If", "I", "buy", "two", "packages,",
+            "will", "I", "get", "a", "discount",
+            "today", "because", "they", "are", "available"
+        },
+        respostaCorreta = "If I buy two packages, will I get a discount?"
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "The attendant asks whether you need anything else. Explain that you have found everything you need and thank them."
+    });
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

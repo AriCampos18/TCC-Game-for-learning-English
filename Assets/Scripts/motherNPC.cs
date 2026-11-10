@@ -1103,6 +1103,207 @@ public class motherNPC : InteracaoNPC
                 }
             );
         }
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        "Hi! It's so nice to have you home. How are you doing?",
+        "How was your day? Did anything interesting happen?",
+        "Look! We have made some changes to the bathroom. What do you think?",
+        "I've had a busy day at work, but everything is going well.",
+        "Dinner is ready! Come and join us at the table."
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Greet your mother and tell her how you are feeling.",
+        opcoesFala = new List<string>()
+        {
+            "I'm doing well, thank you. It's great to be home.\n",
+            "I would like to book a room, please.\n",
+            "Where can I find the train station?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosWriting.Add(new ExercicioWriting()
+    {
+        enunciado = "Write a short paragraph about something interesting that happened during your day."
+    });
+
+    exerciciosAlternativas.Add(new ExercicioAlternativas()
+    {
+        enunciado = "Your mother asks what you think about the renovated bathroom. Choose the most appropriate response.",
+        alternativas = new List<string>()
+        {
+            "It looks really nice! I like the new design.\r\n",
+            "I would like to order something to drink.\r\n",
+            "I have to finish my homework yesterday.\r\n",
+            "The dog is playing with a ball outside.\r\n"
+        },
+        alternativaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Describe one thing you like about the renovated bathroom."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your mother how her day at work was.",
+        opcoesFala = new List<string>()
+        {
+            "How was your day at work, Mom?\n",
+            "Where did you buy your new shoes yesterday?\n",
+            "Would you like to visit the airport?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Respond to your mother and say that you are ready for dinner."
+    });
+
+    exerciciosAssociacao.Add(new ExercicioAssociacao()
+    {
+        enunciado = "Match the Portuguese word or expression with its English equivalent.",
+        opcoesPort = new List<string>()
+        {
+            "reforma",
+            "banheiro",
+            "dia ocupado",
+            "trabalho",
+            "jantar",
+            "mesa",
+            "estar em casa"
+        },
+        opcoesIngles = new List<string>()
+        {
+            "dinner",
+            "busy day",
+            "bathroom",
+            "renovation",
+            "at home",
+            "work",
+            "table"
+        },
+        associacaoCorreta = new List<ParAssociacao>()
+        {
+            new ParAssociacao { palavraPortugues = "reforma", palavraIngles = "renovation" },
+            new ParAssociacao { palavraPortugues = "banheiro", palavraIngles = "bathroom" },
+            new ParAssociacao { palavraPortugues = "dia ocupado", palavraIngles = "busy day" },
+            new ParAssociacao { palavraPortugues = "trabalho", palavraIngles = "work" },
+            new ParAssociacao { palavraPortugues = "jantar", palavraIngles = "dinner" },
+            new ParAssociacao { palavraPortugues = "mesa", palavraIngles = "table" },
+            new ParAssociacao { palavraPortugues = "estar em casa", palavraIngles = "at home" }
+        }
+    });
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        "It's wonderful to have you back! How have you been lately?",
+        "We decided to renovate the bathroom while you were away. What do you think of the changes?",
+        "Work has been quite demanding recently, but I'm enjoying the new responsibilities.",
+        "Dinner is ready, everyone. I hope you're hungry!",
+        "It was really nice having you home. I hope you can visit us again soon!"
+    };
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Tell your mother how things have been going lately and ask about her.",
+        opcoesFala = new List<string>()
+        {
+            "I've been doing well, thanks. How about you?\n",
+            "I would like to check out of the hotel.\n",
+            "Could you show me the way to the station?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosWriting.Add(new ExercicioWriting()
+    {
+        enunciado = "Write a short message describing what you think about the bathroom renovation. Mention at least two details you liked."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your mother what motivated the family to renovate the bathroom."
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your mother how her new responsibilities at work are going.",
+        opcoesFala = new List<string>()
+        {
+            "How have your new responsibilities at work been going?\n",
+            "How much does the bathroom renovation cost yesterday?\n",
+            "Where do you usually buy your dinner?\n"
+        },
+        respostaCorreta = 0
+    });
+
+    exerciciosCriarFrases.Add(new ExercicioBlocos()
+    {
+        enunciado = "Arrange the words to form the correct sentence in English: Parece que vocês fizeram um ótimo trabalho na reforma.",
+        blocosPalavras = new List<string>()
+        {
+            "a",
+            "job",
+            "you",
+            "great",
+            "renovation",
+            "It",
+            "did",
+            "the",
+            "looks",
+            "like",
+            "with"
+        },
+        respostaCorreta = "It looks like you did a great job with the renovation.\n"
+    });
+
+    exerciciosAssociacao.Add(new ExercicioAssociacao()
+    {
+        enunciado = "Match the Portuguese word or expression with its English equivalent.",
+        opcoesPort = new List<string>()
+        {
+            "responsabilidades",
+            "reforma",
+            "exigente",
+            "ultimamente",
+            "mudanças",
+            "aproveitar",
+            "trabalho",
+            "juntar-se"
+        },
+        opcoesIngles = new List<string>()
+        {
+            "demanding",
+            "responsibilities",
+            "renovation",
+            "join",
+            "lately",
+            "changes",
+            "work",
+            "enjoy"
+        },
+        associacaoCorreta = new List<ParAssociacao>()
+        {
+            new ParAssociacao { palavraPortugues = "responsabilidades", palavraIngles = "responsibilities" },
+            new ParAssociacao { palavraPortugues = "reforma", palavraIngles = "renovation" },
+            new ParAssociacao { palavraPortugues = "exigente", palavraIngles = "demanding" },
+            new ParAssociacao { palavraPortugues = "ultimamente", palavraIngles = "lately" },
+            new ParAssociacao { palavraPortugues = "mudanças", palavraIngles = "changes" },
+            new ParAssociacao { palavraPortugues = "aproveitar", palavraIngles = "enjoy" },
+            new ParAssociacao { palavraPortugues = "trabalho", palavraIngles = "work" },
+            new ParAssociacao { palavraPortugues = "juntar-se", palavraIngles = "join" }
+        }
+    });
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

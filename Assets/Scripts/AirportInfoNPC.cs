@@ -763,6 +763,98 @@ public class AirportInfoNPC : InteracaoNPC
                 }
             );
         }
+
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Can I help you?",
+        "The check-in desks are on the second floor.",
+        "Take the escalator upstairs and walk straight ahead. You will find the desks on your left."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "Ask the airport employee which floor the check-in desks are on.",
+            opcoesFala = new List<string>()
+            {
+                "Could you tell me which floor the check-in desks are on?\n",
+                "Could you tell me where I can collect my luggage?\n",
+                "Could you tell me when my flight will land?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The employee says the check-in desks are on the second floor. How should you get there?",
+            alternativas = new List<string>()
+            {
+                "Take the escalator upstairs and walk straight ahead.\r\n",
+                "Go downstairs and turn left.\r\n",
+                "Walk outside and look for a taxi.\r\n",
+                "Go to the baggage claim area.\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Welcome to the airport. How can I assist you?",
+        "Your airline's check-in desks are located on the second floor.",
+        "Take the escalator behind me, turn right at the top, and walk past the cafés. The desks will be on your left.",
+        "It should take around five minutes. I recommend heading there now, as the queues can get quite long."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You need to find your airline's check-in desks. Ask the employee where they are located.",
+            opcoesFala = new List<string>()
+            {
+                "Would you mind telling me which floor the check-in desks are on?\n",
+                "Could you confirm whether my luggage has been transferred?\n",
+                "Do you know when the boarding process will finish?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The employee explains how to reach the check-in desks. What should you do after taking the escalator?",
+            alternativas = new List<string>()
+            {
+                "Turn right and walk past the cafés.\r\n",
+                "Turn left and go downstairs again.\r\n",
+                "Walk straight to the baggage claim area.\r\n",
+                "Leave the terminal and enter the parking area.\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to know how long it will take to reach the check-in desks. Ask the employee politely.",
+            opcoesFala = new List<string>()
+            {
+                "Would you mind telling me how long it takes to get there?\n",
+                "Could you tell me how much my checked baggage weighs?\n",
+                "Do you know which gate my connecting flight leaves from?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -810,10 +902,14 @@ public class AirportInfoNPC : InteracaoNPC
             {
                 await interacaoA1();
             }
+            else if(nivelAtual=="A1-A2")
+                await interacaoA1A2();
             else if (nivelAtual == "A2")
             {
                 await interacaoA2();
             }
+            else if(nivelAtual=="A2-B1")
+                await interacaoA2B1();
             else
             {
                 await interacaoB1();
@@ -913,6 +1009,85 @@ public class AirportInfoNPC : InteracaoNPC
 
         ConcluirMissao("aeroporto_b1_2");
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    IniciarMissao(
+        "aeroporto_a1a2_1",
+        "Chegue ao aeroporto e procure o balcão de informações",
+        "Arrive at the airport and find the information desk"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a1a2_1");
+
+    IniciarMissao(
+        "aeroporto_a1a2_2",
+        "Peça orientações para encontrar o balcão de check-in",
+        "Ask for directions to find the check-in desk"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    ConcluirMissao("aeroporto_a1a2_2");
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    IniciarMissao(
+        "aeroporto_a2b1_1",
+        "Dirija-se ao balcão de informações e explique que precisa encontrar o check-in",
+        "Go to the information desk and explain that you need to find the check-in desks"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a2b1_1");
+
+    IniciarMissao(
+        "aeroporto_a2b1_2",
+        "Descubra o caminho para chegar ao segundo andar",
+        "Find out how to reach the second floor"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    ConcluirMissao("aeroporto_a2b1_2");
+
+    IniciarMissao(
+        "aeroporto_a2b1_3",
+        "Confirme quanto tempo levará para chegar ao check-in",
+        "Find out how long it will take to reach the check-in desks"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    ConcluirMissao("aeroporto_a2b1_3");
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

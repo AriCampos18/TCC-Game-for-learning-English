@@ -1420,6 +1420,345 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 }
             );
         }
+else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". How can I help you today?",
+        "Could you tell me your full name, please?",
+        "Which course would you like to enroll in?",
+        "Thank you. Could you also provide your date of birth?",
+        "Your enrollment in Computer Science is complete.",
+        "The tuition fee is R$500 per month. Classes start on February tenth.",
+        "Your first classroom is room 204, on the second floor. You can follow the signs near the stairs."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The secretary asks how she can help you. Explain that you want to enroll in Computer Science.",
+            opcoesFala = new List<string>()
+            {
+                "I would like to enroll in Computer Science.\n",
+                "I would like to teach the secretary's office.\n",
+                "I would like to pay for the library's books.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The secretary asks for your full name. Write your answer in a complete sentence."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The secretary asks which course you would like to study. Choose the appropriate answer.",
+            opcoesFala = new List<string>()
+            {
+                "I would like to enroll in Computer Science.\n",
+                "I would like to enroll on the second floor.\n",
+                "I would like to enroll on February tenth.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The secretary asks for your date of birth. Write your answer in a complete sentence, with the month written out."
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "What is the monthly tuition fee mentioned by the secretary?",
+            alternativas = new List<string>()
+            {
+                "R$300 per month\r\n",
+                "R$400 per month\r\n",
+                "R$500 per month\r\n",
+                "R$600 per month\r\n"
+            },
+            alternativaCorreta = 2
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to confirm when your classes begin. What do you ask?",
+            opcoesFala = new List<string>()
+            {
+                "When do classes start?\n",
+                "Where do classes pay?\n",
+                "How much do classes enroll?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the secretary, when do classes start?",
+            alternativas = new List<string>()
+            {
+                "February 5th\r\n",
+                "February 10th\r\n",
+                "February 15th\r\n",
+                "February 20th\r\n"
+            },
+            alternativaCorreta = 1
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You need to find your first classroom. Ask the secretary where it is.",
+            opcoesFala = new List<string>()
+            {
+                "Where is my classroom?\n",
+                "How much is my tuition?\n",
+                "When does my enrollment start?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word with the English word.",
+            opcoesPort = new List<string>()
+            {
+                "nome completo",
+                "data de nascimento",
+                "matrícula",
+                "mensalidade",
+                "curso",
+                "sala de aula",
+                "andar",
+                "mensal"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "classroom",
+                "monthly",
+                "enrollment",
+                "full name",
+                "floor",
+                "tuition fee",
+                "course",
+                "date of birth"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "nome completo", palavraIngles = "full name" },
+                new ParAssociacao { palavraPortugues = "data de nascimento", palavraIngles = "date of birth" },
+                new ParAssociacao { palavraPortugues = "matrícula", palavraIngles = "enrollment" },
+                new ParAssociacao { palavraPortugues = "mensalidade", palavraIngles = "tuition fee" },
+                new ParAssociacao { palavraPortugues = "curso", palavraIngles = "course" },
+                new ParAssociacao { palavraPortugues = "sala de aula", palavraIngles = "classroom" },
+                new ParAssociacao { palavraPortugues = "andar", palavraIngles = "floor" },
+                new ParAssociacao { palavraPortugues = "mensal", palavraIngles = "monthly" }
+            }
+        }
+    );
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Are you here to complete your enrollment?",
+        "Of course. Could you provide your full name and date of birth?",
+        "Thank you. I found your application. You are applying for the Computer Science program, correct?",
+        "Before I finalize your enrollment, I'd like to confirm that all your information is correct.",
+        "Everything is confirmed. Your enrollment is now complete. The tuition fee is R$500 per month.",
+        "The semester begins on February fifteenth. Your first class will take place in room 325.",
+        "Room 325 is on the third floor. Go up the stairs and follow the signs along the hallway.",
+        "Do you have any other questions about your enrollment or class schedule?"
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "Explain to the secretary that you are there to complete your enrollment in Computer Science.",
+            opcoesFala = new List<string>()
+            {
+                "I'm here to complete my enrollment in Computer Science.\n",
+                "I'm here to complete my classroom on the third floor.\n",
+                "I'm here to confirm the library's opening hours.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The secretary asks for your full name and date of birth. Write both pieces of information in complete sentences."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The secretary confirms that you are applying for Computer Science. Confirm that the information is correct.",
+            opcoesFala = new List<string>()
+            {
+                "Yes, that's correct. I'm applying for Computer Science.\n",
+                "Yes, that's correct. I'm applying for room 325.\n",
+                "Yes, that's correct. I'm applying for the tuition fee.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCompletarFrase.Add(
+        new ExercicioCompletarFrase()
+        {
+            enunciado = "Complete the sentence with the correct words:",
+            partesFrase = new List<string>()
+            {
+                "Before I finalize your enrollment, I'd like ",
+                " ",
+                " all your information is correct."
+            },
+            respostaCorreta = "to confirm, that",
+            opcoes = new List<string>()
+            {
+                "to confirm",
+                "to check",
+                "that",
+                "where",
+                "when",
+                "to enroll",
+                "if",
+                "how"
+            }
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The secretary asks you to confirm your course information. Write a polite sentence confirming that you are enrolling in Computer Science."
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "What is the monthly tuition fee for the course?",
+            alternativas = new List<string>()
+            {
+                "R$400 per month\r\n",
+                "R$450 per month\r\n",
+                "R$500 per month\r\n",
+                "R$550 per month\r\n"
+            },
+            alternativaCorreta = 2
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to know when the semester begins. Ask the secretary politely.",
+            opcoesFala = new List<string>()
+            {
+                "Could you tell me when the semester begins?\n",
+                "Could you tell me where the semester is located?\n",
+                "Could you tell me how much the semester enrolls?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the secretary, where will your first class take place?",
+            alternativas = new List<string>()
+            {
+                "Room 204, on the second floor\r\n",
+                "Room 305, on the third floor\r\n",
+                "Room 325, on the third floor\r\n",
+                "Room 325, on the second floor\r\n"
+            },
+            alternativaCorreta = 2
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "You know your classroom number but need directions. Write a polite question asking how to get to room 325."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The secretary asks if you have any other questions. Ask for clarification about the location of your classroom.",
+            opcoesFala = new List<string>()
+            {
+                "Could you explain how to get to room 325?\n",
+                "Could you explain how much room 325 costs?\n",
+                "Could you explain when room 325 enrolls?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese expression with the English expression.",
+            opcoesPort = new List<string>()
+            {
+                "concluir a matrícula",
+                "data de nascimento",
+                "confirmar informações",
+                "mensalidade",
+                "período letivo",
+                "primeira aula",
+                "andar",
+                "esclarecimento"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "tuition fee",
+                "to confirm information",
+                "first class",
+                "clarification",
+                "to complete enrollment",
+                "floor",
+                "date of birth",
+                "semester"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "concluir a matrícula", palavraIngles = "to complete enrollment" },
+                new ParAssociacao { palavraPortugues = "data de nascimento", palavraIngles = "date of birth" },
+                new ParAssociacao { palavraPortugues = "confirmar informações", palavraIngles = "to confirm information" },
+                new ParAssociacao { palavraPortugues = "mensalidade", palavraIngles = "tuition fee" },
+                new ParAssociacao { palavraPortugues = "período letivo", palavraIngles = "semester" },
+                new ParAssociacao { palavraPortugues = "primeira aula", palavraIngles = "first class" },
+                new ParAssociacao { palavraPortugues = "andar", palavraIngles = "floor" },
+                new ParAssociacao { palavraPortugues = "esclarecimento", palavraIngles = "clarification" }
+            }
+        }
+    );
+}
     }
 
     private void IniciarMissao(string id, string texto, string traducao)
@@ -1447,6 +1786,30 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "Faça sua matrícula",
                 "Complete your enrollment");
             await interacaoA2();
+        }
+        else if (nivelAtual == "A1-A2")
+        {
+            IniciarMissao(
+                "universidade_a1a2_matricula",
+                "Realize sua matrícula e consulte as informações do curso",
+                "Complete your enrollment and check the course information"
+            );
+
+            await interacaoA1A2();
+
+            MissionManager.ConcluirMissaoNPC("universidade_a1a2_matricula");
+        }
+        else if (nivelAtual == "A2-B1")
+        {
+            IniciarMissao(
+                "universidade_a2b1_matricula",
+                "Confirme seus dados, conclua a matrícula e consulte as informações da primeira aula",
+                "Confirm your details, complete your enrollment, and check the first class information"
+            );
+
+            await interacaoA2B1();
+
+            MissionManager.ConcluirMissaoNPC("universidade_a2b1_matricula");
         }
         else
         {
@@ -1612,6 +1975,133 @@ public class SecretaryCollegeNPC: InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[0]),
+        exerciciosSpeaking[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[0]),
+        exerciciosWriting[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[1]),
+        exerciciosSpeaking[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[1]),
+        exerciciosWriting[1]
+    );
+
+    await PlayAudioETexto(i++);
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[0]),
+        exerciciosAlternativas[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[2]),
+        exerciciosSpeaking[2]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[1]),
+        exerciciosAlternativas[1]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[3]),
+        exerciciosSpeaking[3]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[0]),
+        exerciciosSpeaking[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[0]),
+        exerciciosWriting[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[1]),
+        exerciciosSpeaking[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosCompletarFrase[0]),
+        exerciciosCompletarFrase[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[1]),
+        exerciciosWriting[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[0]),
+        exerciciosAlternativas[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[2]),
+        exerciciosSpeaking[2]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[1]),
+        exerciciosAlternativas[1]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[2]),
+        exerciciosWriting[2]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[3]),
+        exerciciosSpeaking[3]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

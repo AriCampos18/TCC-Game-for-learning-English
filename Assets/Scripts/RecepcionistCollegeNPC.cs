@@ -760,6 +760,270 @@ public class RecepcionistCollegeNPC: InteracaoNPC
                     }
             );
         }
+        else if (nivelAtual == "A1-A2")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Welcome to the college. Are you looking for a specific office?",
+        "The secretary's office is on the first floor. Go straight and turn right after the reception desk.",
+        "You will see the secretary's office at the end of the hallway. She can help you with your enrollment.",
+        "If you have any questions, you can come back here. Have a nice day!"
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You need to enroll in a course. Explain what you are looking for.",
+            opcoesFala = new List<string>()
+            {
+                "I'm looking for the secretary's office because I want to enroll in a course.\n",
+                "I'm looking for the cafeteria because I want to enroll in a classroom.\n",
+                "I'm looking for the library because I want to pay my teacher.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: Onde fica o escritório da secretaria?",
+            blocosPalavras = new List<string>()
+            {
+                "Where",
+                "the",
+                "secretary's",
+                "office",
+                "is",
+                "located",
+                "classroom",
+                "floor",
+                "How",
+                "library"
+            },
+            respostaCorreta = "Where is the secretary's office located?\n"
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The receptionist gives you directions. Ask her to explain the route again.",
+            opcoesFala = new List<string>()
+            {
+                "Could you repeat the directions, please?\n",
+                "Could you enroll me in a course, please?\n",
+                "Could you tell me the tuition fee, please?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the receptionist, where is the secretary's office?",
+            alternativas = new List<string>()
+            {
+                "On the first floor, at the end of the hallway\r\n",
+                "On the second floor, next to the library\r\n",
+                "On the ground floor, behind the cafeteria\r\n",
+                "On the third floor, near the classrooms\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You understood the directions. Thank the receptionist before leaving.",
+            opcoesFala = new List<string>()
+            {
+                "Thank you for your help. I'll go there now.\n",
+                "I would like to change my course yesterday.\n",
+                "My classroom is helping the reception desk.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese word with the English word.",
+            opcoesPort = new List<string>()
+            {
+                "escritório",
+                "secretaria",
+                "andar",
+                "corredor",
+                "recepção",
+                "direções",
+                "matrícula",
+                "ajuda"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "enrollment",
+                "directions",
+                "office",
+                "help",
+                "floor",
+                "reception",
+                "hallway",
+                "secretary"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "escritório", palavraIngles = "office" },
+                new ParAssociacao { palavraPortugues = "secretaria", palavraIngles = "secretary" },
+                new ParAssociacao { palavraPortugues = "andar", palavraIngles = "floor" },
+                new ParAssociacao { palavraPortugues = "corredor", palavraIngles = "hallway" },
+                new ParAssociacao { palavraPortugues = "recepção", palavraIngles = "reception" },
+                new ParAssociacao { palavraPortugues = "direções", palavraIngles = "directions" },
+                new ParAssociacao { palavraPortugues = "matrícula", palavraIngles = "enrollment" },
+                new ParAssociacao { palavraPortugues = "ajuda", palavraIngles = "help" }
+            }
+        }
+    );
+}
+else if (nivelAtual == "A2-B1")
+{
+    dialogoAtual = new List<string>()
+    {
+        cumprimento + ". Welcome to the college. Are you here to speak with the secretary?",
+        "Her office is on the first floor. Walk past the reception desk and take the hallway on your right.",
+        "Continue to the end of the hallway. You will find her office on your left, next to the administrative office.",
+        "She can assist you with enrollment and answer questions about the courses.",
+        "If you have trouble finding the office, feel free to come back and ask me for help."
+    };
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "Explain to the receptionist why you need to speak with the secretary.",
+            opcoesFala = new List<string>()
+            {
+                "I need to speak with the secretary because I'm interested in enrolling in a course.\n",
+                "I need to speak with the cafeteria because I'm interested in the hallway.\n",
+                "I need to speak with the library because I'm interested in paying the reception.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "The receptionist asks which office you need to visit. Write a complete sentence explaining that you need to go to the secretary's office to complete your enrollment."
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You want to make sure you understood the route correctly. Ask the receptionist to clarify where you should turn.",
+            opcoesFala = new List<string>()
+            {
+                "Could you clarify which hallway I should take?\n",
+                "Could you clarify how much the course costs per month?\n",
+                "Could you clarify when the library closes?\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: Continue até o final do corredor e vire à esquerda.",
+            blocosPalavras = new List<string>()
+            {
+                "Continue",
+                "the",
+                "end",
+                "of",
+                "hallway",
+                "and",
+                "turn",
+                "left",
+                "right",
+                "before"
+            },
+            respostaCorreta = "Continue to the end of the hallway and turn left.\n"
+        }
+    );
+
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the receptionist, what can the secretary help you with?",
+            alternativas = new List<string>()
+            {
+                "Enrollment and course-related questions\r\n",
+                "Library opening hours and book returns\r\n",
+                "Cafeteria payments and meal schedules\r\n",
+                "Classroom cleaning and building maintenance\r\n"
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You have understood the directions. Respond politely before going to the secretary's office.",
+            opcoesFala = new List<string>()
+            {
+                "Thank you for explaining the route. I'll head there now.\n",
+                "Thank you for enrolling me in the course yesterday.\n",
+                "Thank you for confirming my classroom schedule.\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    exerciciosAssociacao.Add(
+        new ExercicioAssociacao()
+        {
+            enunciado = "Match the Portuguese expression with the English expression.",
+            opcoesPort = new List<string>()
+            {
+                "passar pela recepção",
+                "seguir em frente",
+                "no final do corredor",
+                "virar à direita",
+                "escritório administrativo",
+                "matrícula",
+                "esclarecer",
+                "estar interessado em"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "to clarify",
+                "to be interested in",
+                "to turn right",
+                "administrative office",
+                "to walk past the reception desk",
+                "at the end of the hallway",
+                "enrollment",
+                "to continue straight"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao { palavraPortugues = "passar pela recepção", palavraIngles = "to walk past the reception desk" },
+                new ParAssociacao { palavraPortugues = "seguir em frente", palavraIngles = "to continue straight" },
+                new ParAssociacao { palavraPortugues = "no final do corredor", palavraIngles = "at the end of the hallway" },
+                new ParAssociacao { palavraPortugues = "virar à direita", palavraIngles = "to turn right" },
+                new ParAssociacao { palavraPortugues = "escritório administrativo", palavraIngles = "administrative office" },
+                new ParAssociacao { palavraPortugues = "matrícula", palavraIngles = "enrollment" },
+                new ParAssociacao { palavraPortugues = "esclarecer", palavraIngles = "to clarify" },
+                new ParAssociacao { palavraPortugues = "estar interessado em", palavraIngles = "to be interested in" }
+            }
+        }
+    );
+}
     }
 
     private void IniciarMissao(string id, string texto, string traducao)
@@ -801,6 +1065,30 @@ public class RecepcionistCollegeNPC: InteracaoNPC
                 IniciarMissao("universidade_a2_encontrar_secretaria",
                     "Encontre o escritório da secretaria",
                     "Find the secretary's office");
+            }
+            else if (nivelAtual == "A1-A2")
+            {
+                IniciarMissao(
+                    "universidade_a1a2_recepcao",
+                    "Converse com o recepcionista e descubra como chegar ao escritório da secretaria",
+                    "Talk to the receptionist and find out how to get to the secretary's office"
+                );
+
+                await interacaoA1A2();
+
+                MissionManager.ConcluirMissaoNPC("universidade_a1a2_recepcao");
+            }
+            else if (nivelAtual == "A2-B1")
+            {
+                IniciarMissao(
+                    "universidade_a2b1_orientacoes",
+                    "Peça orientações detalhadas para chegar ao escritório da secretaria",
+                    "Ask for detailed directions to the secretary's office"
+                );
+
+                await interacaoA2B1();
+
+                MissionManager.ConcluirMissaoNPC("universidade_a2b1_orientacoes");
             }
             else
             {
@@ -907,6 +1195,90 @@ public class RecepcionistCollegeNPC: InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[0]),
+        exerciciosSpeaking[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosCriarFrases[0]),
+        exerciciosCriarFrases[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[1]),
+        exerciciosSpeaking[1]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[0]),
+        exerciciosAlternativas[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[2]),
+        exerciciosSpeaking[2]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[0]),
+        exerciciosSpeaking[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosWriting[0]),
+        exerciciosWriting[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[1]),
+        exerciciosSpeaking[1]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosCriarFrases[0]),
+        exerciciosCriarFrases[0]
+    );
+
+    await PlayAudioETexto(i++);
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAlternativas[0]),
+        exerciciosAlternativas[0]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosSpeaking[2]),
+        exerciciosSpeaking[2]
+    );
+
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {
@@ -1059,6 +1431,11 @@ public class RecepcionistCollegeNPC: InteracaoNPC
 
         if (nivelAtual == "A2")
             return PlayAudioETexto(1);
+        if (nivelAtual == "A1-A2")
+            return PlayAudioETexto(2);
+
+        if (nivelAtual == "A2-B1")
+            return PlayAudioETexto(2);
 
         return Task.CompletedTask;
     }

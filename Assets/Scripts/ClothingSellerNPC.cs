@@ -1406,6 +1406,7 @@ public class ClothingSellerNPC : InteracaoNPC
                         "at",
                         "is",
                         "my",
+                        "a",
                         "for",
                         "looking"
                     },
@@ -1542,12 +1543,12 @@ public class ClothingSellerNPC : InteracaoNPC
                     "barato",
                     "outra cor",
                     "ajustar",
-                    "vestir bem"
+                    "servir bem"
                 },
 
                 opcoesIngles = new List<string>
                 {
-                    "affordable",
+                    "cheap",
                     "try on",
                     "fit well",
                     "salesperson",
@@ -1563,10 +1564,10 @@ public class ClothingSellerNPC : InteracaoNPC
                     new ParAssociacao { palavraPortugues = "vendedor", palavraIngles = "salesperson" },
                     new ParAssociacao { palavraPortugues = "tamanho médio", palavraIngles = "medium size" },
                     new ParAssociacao { palavraPortugues = "caro", palavraIngles = "expensive" },
-                    new ParAssociacao { palavraPortugues = "barato", palavraIngles = "affordable" },
+                    new ParAssociacao { palavraPortugues = "barato", palavraIngles = "cheap" },
                     new ParAssociacao { palavraPortugues = "outra cor", palavraIngles = "another color" },
                     new ParAssociacao { palavraPortugues = "ajustar", palavraIngles = "adjust" },
-                    new ParAssociacao { palavraPortugues = "vestir bem", palavraIngles = "fit well" }
+                    new ParAssociacao { palavraPortugues = "servir bem", palavraIngles = "fit well" }
                 }
             });
 
@@ -1736,7 +1737,7 @@ public class ClothingSellerNPC : InteracaoNPC
             exerciciosAlternativas.Add(
                 new ExercicioAlternativas()
                 {
-                    enunciado = "You have chosen a shirt and are ready to pay. How would you politely inform the salesperson that you prefer to use your credit card instead of cash?",
+                    enunciado = "You have chosen a blazer and trousers and are ready to pay. How would you politely inform the salesperson that you prefer to use your credit card instead of cash?",
                     alternativas = new List<string>() {
                         "Would you mind giving me a discount?",
                         "I'd prefer to pay by credit card, if that's possible.",
@@ -1803,11 +1804,445 @@ public class ClothingSellerNPC : InteracaoNPC
         }
         else if (nivelAtual == "A1-A2")
         {
-            
+            dialogoAtual = new List<string>()
+{
+    cumprimento + " Welcome to our store! Are you looking for something special?",
+    "Is it for everyday use or a special occasion?",
+    "Do you prefer casual or formal clothing?",
+    "This T-shirt is available in blue, black, and white. What size do you wear?",
+    "The medium is twenty-eight dollars. Would you like to try it on?",
+    "How does it feel? Is it too tight?",
+    "No problem! I can bring you a larger size.",
+    "Here is the larger one. Is it more comfortable?",
+    "Would you like to purchase it?",
+    "Would you like to pay by cash or card?",
+    "Thank you! Have a nice day!"
+};
+
+
+    // EXERCÍCIO 1 - MÚLTIPLA ESCOLHA
+exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "You are looking for a T-shirt for everyday use. Tell the salesperson what you need and describe the style you prefer.",
+            alternativas = new List<string>()
+            {
+                "I don’t like something comfortable to use.",
+                "I would like a black sneakers.",
+                "I'm looking for a fancy dress.",
+                "I'm looking for a T-shirt for everyday use."
+            },
+            alternativaCorreta = 3
+        }
+    );
+
+
+    // EXERCÍCIO 2 - MÚLTIPLA ESCOLHA
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The salesperson asks whether you prefer casual or formal clothing. Which answer expresses a casual preference?",
+            alternativas = new List<string>()
+            {
+                "I'd prefer something comfortable for everyday use.",
+                "I would like to reserve a hotel room.",
+                "I usually wear a medium yesterday.",
+                "I usually wear a medium."
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 3 - ESCRITA
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "Tell the salesperson which color and size you would like. Write a complete sentence."
+        }
+    );
+
+    // EXERCÍCIO 4 - SPEAKING COM OPÇÕES
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You like the blue T-shirt, but you would also like to see another option. Ask the salesperson about the available colors.",
+            opcoesFala = new List<string>()
+            {
+                "Can I see another color, please? \r\n",
+                "Could you tell me where the airport is?\r\n",
+                "I would like to pay for my dinner, please.\r\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 6 - SPEAKING COM OPÇÕES
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The salesperson asks if you would like to try the T-shirt on. Choose the appropriate response.",
+            opcoesFala = new List<string>()
+            {
+                "Yes, I'd like to try it on, please.\r\n",
+                "Yes, I'd like to wash it yesterday.\r\n",
+                "No, I don't know the price of the shoes.\r\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 7 - SPEAKING LIVRE
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You tried on the T-shirt and it feels too tight. Ask for a larger size."
+        }
+    );
+
+    // EXERCÍCIO 8 - COMPLETAR FRASE
+    exerciciosCompletarFrase.Add(
+        new ExercicioCompletarFrase()
+        {
+            enunciado = "Complete the sentence with the correct word:",
+            fraseAntes = "The small T-shirt is ",
+            fraseDepois = " tight for me.",
+            respostaCorreta = "too",
+            opcoes = new List<string>()
+            {
+                "very",
+                "most",
+                "more",
+                "many",
+                "much",
+                "enough",
+                "too",
+                "as",
+                "better",
+                "less"
+            }
+        }
+    );
+
+    // EXERCÍCIO 9 - MONTAGEM DE PALAVRAS
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: Eu gostaria de experimentar um tamanho maior, por favor.",
+            blocosPalavras = new List<string>()
+            {
+                "larger",
+                "please.",
+                "would",
+                "try",
+                "a",
+                "I",
+                "like",
+                "size",
+                "the",
+                "smaller",
+                "could",
+                "buy",
+                "to",
+                "one"
+            },
+            respostaCorreta = "I would like to try a larger size, please.\n"
+        }
+    );
+
+    // EXERCÍCIO 10 - SPEAKING COM OPÇÕES
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The salesperson asks if you would like to buy the larger T-shirt. Tell them you have decided to purchase it.",
+            opcoesFala = new List<string>()
+            {
+                "I'll take it, please. This size is much better.\r\n",
+                "I would like to try another restaurant.\r\n",
+                "I usually go shopping on Sundays yesterday.\r\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 11 - MÚLTIPLA ESCOLHA
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The salesperson asks how you would like to pay. Which answer tells them that you prefer to use a credit card?",
+            alternativas = new List<string>()
+            {
+                "I'd like to try another size.",
+                "I'd prefer to pay by credit card.",
+                "I'd like to buy another color.",
+                "I usually wear a large size."
+            },
+            alternativaCorreta = 1
+        }
+    );
+
+    // EXERCÍCIO FINAL - ASSOCIAÇÃO
+    exerciciosAssociacao.Add(new ExercicioAssociacao
+    {
+        enunciado = "Match the Portuguese word with the English word.",
+
+        opcoesPort = new List<string>
+        {
+            "roupa casual",
+            "ocasião",
+            "confortável",
+            "experimentar",
+            "apertado",
+            "tamanho maior",
+            "disponível",
+            "comprar"
+        },
+
+        opcoesIngles = new List<string>
+        {
+            "available",
+            "purchase",
+            "tight",
+            "try on",
+            "occasion",
+            "casual clothing",
+            "larger size",
+            "comfortable"
+        },
+
+        associacaoCorreta = new List<ParAssociacao>
+        {
+            new ParAssociacao { palavraPortugues = "roupa casual", palavraIngles = "casual clothing" },
+            new ParAssociacao { palavraPortugues = "ocasião", palavraIngles = "occasion" },
+            new ParAssociacao { palavraPortugues = "confortável", palavraIngles = "comfortable" },
+            new ParAssociacao { palavraPortugues = "experimentar", palavraIngles = "try on" },
+            new ParAssociacao { palavraPortugues = "apertado", palavraIngles = "tight" },
+            new ParAssociacao { palavraPortugues = "tamanho maior", palavraIngles = "larger size" },
+            new ParAssociacao { palavraPortugues = "disponível", palavraIngles = "available" },
+            new ParAssociacao { palavraPortugues = "comprar", palavraIngles = "purchase" }
+        }
+    });
         }
         else if(nivelAtual== "A2-B1")
         {
-            
+            dialogoAtual = new List<string>()
+{
+    cumprimento + " Welcome to our clothing store! What brings you here today?",
+    "Would you prefer a formal outfit or something more casual?",
+    "We have a navy blazer that might suit the occasion. It can be combined with different types of trousers.",
+    "It is made from a cotton blend. It is lightweight and comfortable, but it should be dry cleaned.",
+    "We also have matching navy trousers. Would you like to see them?",
+    "The trousers are fifty-five dollars, and the blazer is eighty-nine.",
+    "Would you like to try both pieces on before deciding?",
+    "How do they fit? Is there anything you would like to change?",
+    "Certainly! I'll bring you a different size. How does it fit now?",
+    "Would you like to purchase both pieces, or just the blazer?",
+    "The total is one hundred and forty-four dollars. Would you prefer to pay by card or cash?",
+    "Thank you for choosing our store! I hope you enjoy your new outfit."
+};
+
+
+    // EXERCÍCIO 1 - SPEAKING LIVRE
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You need an outfit for an upcoming event. Explain to the salesperson what the event is and what kind of clothing you are looking for."
+        }
+    );
+
+    // EXERCÍCIO 2 - SPEAKING COM OPÇÕES
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The salesperson asks whether you prefer a formal or casual outfit. Choose the answer that best describes a smart-casual preference.",
+            opcoesFala = new List<string>()
+            {
+                "I'd like something elegant but not too formal.\r\n",
+                "I need something for swimming in the ocean yesterday.\r\n",
+                "I would like to order a table for dinner.\r\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 3 - MÚLTIPLA ESCOLHA
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "Why might the salesperson recommend the navy blazer?",
+            alternativas = new List<string>()
+            {
+                "Because it can be combined with different types of trousers.",
+                "Because it is only suitable for sports activities.",
+                "Because it is made entirely of leather.",
+                "Because it is the only item available in the store."
+            },
+            alternativaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 4 - ESCRITA
+    exerciciosWriting.Add(
+        new ExercicioWriting()
+        {
+            enunciado = "You like the blazer but want to know how to take care of it. Ask the salesperson about the recommended cleaning instructions in a complete sentence."
+        }
+    );
+
+    // EXERCÍCIO 5 - MÚLTIPLA ESCOLHA
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "According to the salesperson, how should the blazer be cleaned?",
+            alternativas = new List<string>()
+            {
+                "It should be washed with hot water.",
+                "It should be dry cleaned.",
+                "It should be cleaned with soap every day.",
+                "It should be placed in the freezer."
+            },
+            alternativaCorreta = 1
+        }
+    );
+
+    // EXERCÍCIO 6 - SPEAKING LIVRE
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The salesperson offers matching trousers. Ask about their price.", 
+opcoesFala = new List<string>() { "Yes, please. How much are the trousers?\r\n", "Yes, please. Where are the trousers cost?\r\n", "No, thank you. I would like to see the trousers.\r\n" }, 
+respostaCorreta = 0 
+        }
+    );
+
+    // EXERCÍCIO 7 - MONTAGEM DE PALAVRAS
+    exerciciosCriarFrases.Add(
+        new ExercicioBlocos()
+        {
+            enunciado = "Arrange the words to form the correct sentence in English: Embora o blazer seja elegante, gostaria de ver outra opção.",
+            blocosPalavras = new List<string>() { "Although", "the", "blazer", "is", "elegant,", "I'd", "like", "to", "see", "another", "option.", "because", "buy", "compare", "one" },
+            respostaCorreta = "Although the blazer is elegant, I'd like to see another option.\n”
+        }
+    );
+
+    // EXERCÍCIO 8 - SPEAKING COM OPÇÕES
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "The salesperson asks if you would like to try both pieces on. Choose the most appropriate response.",
+            opcoesFala = new List<string>()
+            {
+                "Yes, I'd like to try them on together, please.\r\n",
+                "No, I would like to book a flight instead.\r\n",
+                "Yes, I have already paid for the restaurant.\r\n"
+            },
+            respostaCorreta = 0
+        }
+    );
+
+    // EXERCÍCIO 9 - SPEAKING LIVRE
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "After trying on the outfit, you notice that the blazer feels tight around the shoulders. Explain the problem and ask the salesperson whether another size is available."
+        }
+    );
+
+    // EXERCÍCIO 10 - COMPLETAR FRASE
+    exerciciosCompletarFrase.Add(
+        new ExercicioCompletarFrase()
+        {
+            enunciado = "Complete the sentence with the correct word:",
+            fraseAntes = "The new size fits ",
+            fraseDepois = " than the previous one.",
+            respostaCorreta = "better",
+            opcoes = new List<string>()
+            {
+                "best",
+                "well",
+                "better",
+                "more",
+                "enough",
+                "worse",
+                "quite",
+                "as",
+                "too",
+                "less"
+            }
+        }
+    );
+
+    // EXERCÍCIO 11 - MÚLTIPLA ESCOLHA
+    exerciciosAlternativas.Add(
+        new ExercicioAlternativas()
+        {
+            enunciado = "The salesperson asks whether you want to buy both pieces or only the blazer. Which response clearly expresses that you want to purchase both?",
+            alternativas = new List<string>()
+            {
+                "I'd rather return both items tomorrow.",
+                "I'll take both pieces, as they work well together.",
+                "I only need the trousers, because I already bought the blazer.",
+                "Could you show me a different store?"
+            },
+            alternativaCorreta = 1
+        }
+    );
+
+    // EXERCÍCIO 12 - SPEAKING COM OPÇÕES
+    exerciciosSpeaking.Add(
+        new ExercicioSpeaking()
+        {
+            enunciado = "You have decided to purchase both items. The salesperson tells you the total is $144. Choose the correct response to say that you would like to pay by card.",
+            opcoesFala = new List<string>()
+            {
+                "I'd like to exchange the trousers for another size yesterday.\r\n",
+                "I'd rather try on a different color.\r\n",
+		        "I'd prefer to pay by card, please\r\n"  
+            },
+            respostaCorreta = 2
+        }
+    );
+
+    // EXERCÍCIO FINAL - ASSOCIAÇÃO
+    exerciciosAssociacao.Add(new ExercicioAssociacao
+    {
+        enunciado = "Match the Portuguese word with the English word.",
+
+        opcoesPort = new List<string>
+        {
+            "evento",
+            "formal",
+            "mistura de algodão",
+            "leve",
+            "lavagem a seco",
+            "combinar",
+            "ombros",
+            "decidir"
+        },
+
+        opcoesIngles = new List<string>
+        {
+            "shoulders",
+            "lightweight",
+            "decide",
+            "formal",
+            "cotton blend",
+            "event",
+            "match",
+            "dry cleaning"
+        },
+
+        associacaoCorreta = new List<ParAssociacao>
+        {
+            new ParAssociacao { palavraPortugues = "evento", palavraIngles = "event" },
+            new ParAssociacao { palavraPortugues = "formal", palavraIngles = "formal" },
+            new ParAssociacao { palavraPortugues = "mistura de algodão", palavraIngles = "cotton blend" },
+            new ParAssociacao { palavraPortugues = "leve", palavraIngles = "lightweight" },
+            new ParAssociacao { palavraPortugues = "lavagem a seco", palavraIngles = "dry cleaning" },
+            new ParAssociacao { palavraPortugues = "combinar", palavraIngles = "match" },
+            new ParAssociacao { palavraPortugues = "ombros", palavraIngles = "shoulders" },
+            new ParAssociacao { palavraPortugues = "decidir", palavraIngles = "decide" }
+        }
+    });
         }
     }
 
@@ -2157,6 +2592,231 @@ public class ClothingSellerNPC : InteracaoNPC
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
     }
+
+    private async Task interacaoA1A2()
+{
+    int i = 0;
+
+    // Missão 1: explicar o que está procurando.
+    IniciarMissao(
+        "roupas_a1a2_1",
+        "Talk to the salesperson and explain what kind of clothing you need",
+        "Converse com o vendedor e explique que tipo de roupa precisa"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a1a2_1");
+
+    // Missão 2: escolher o estilo e as características da camiseta.
+    IniciarMissao(
+        "roupas_a1a2_2",
+        "Choose a T-shirt and explain your style, color, and size preferences",
+        "Escolha uma camiseta e explique suas preferências de estilo, cor e tamanho"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosWriting[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await AndarAteRoupa("blue_tshirt");
+
+    MissionManager.ConcluirMissaoNPC("roupas_a1a2_2");
+
+    // Missão 3: experimentar a camiseta e avaliar o tamanho.
+    IniciarMissao(
+        "roupas_a1a2_3",
+        "Try on the T-shirt and explain whether it fits comfortably",
+        "Experimente a camiseta e explique se ela ficou confortável"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[3];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosCompletarFrase[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a1a2_3");
+
+    // Missão 4: escolher a camiseta e finalizar a compra.
+    IniciarMissao(
+        "roupas_a1a2_4",
+        "Choose the T-shirt and complete your purchase",
+        "Escolha a camiseta e finalize sua compra"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[4];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a1a2_4");
+
+    // Associação sempre ao final.
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
+
+    private async Task interacaoA2B1()
+{
+    int i = 0;
+
+    // Missão 1: explicar a ocasião e escolher o tipo de roupa.
+    IniciarMissao(
+        "roupas_a2b1_1",
+        "Explain the occasion and describe the outfit you are looking for",
+        "Explique a ocasião e descreva a roupa que está procurando"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a2b1_1");
+
+    // Missão 2: escolher o estilo e conhecer as características do blazer.
+    IniciarMissao(
+        "roupas_a2b1_2",
+        "Explore the clothing options and ask about the blazer's characteristics",
+        "Conheça as opções de roupas e pergunte sobre as características do blazer"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosWriting[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a2b1_2");
+
+    // Missão 3: conhecer as calças e comparar as peças.
+    IniciarMissao(
+        "roupas_a2b1_3",
+        "Ask about matching trousers and compare the available outfit options",
+        "Pergunte sobre as calças que combinam com o blazer e compare as opções disponíveis"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    exAtual = exerciciosCriarFrases[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a2b1_3");
+
+    // Missão 4: experimentar as peças e solicitar ajustes.
+    IniciarMissao(
+        "roupas_a2b1_4",
+        "Try on the outfit and explain whether any adjustments are needed",
+        "Experimente as peças e explique se algum ajuste é necessário"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[3];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[4];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosCompletarFrase[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a2b1_4");
+
+    // Missão 5: escolher as peças e concluir a compra.
+    IniciarMissao(
+        "roupas_a2b1_5",
+        "Choose the outfit and complete your purchase",
+        "Escolha a roupa e finalize sua compra"
+    );
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[5];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[6];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    MissionManager.ConcluirMissaoNPC("roupas_a2b1_5");
+
+    // Associação sempre ao final.
+    await AbrirExercicio(
+        ObterTipoExercicio(exerciciosAssociacao[0]),
+        exerciciosAssociacao[0]
+    );
+}
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {
