@@ -1,37 +1,35 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BotaoAjuda : MonoBehaviour
+public class BotaoConfiguracoes : MonoBehaviour
 {
-    public Button botaoAjuda;
-    public GameObject modalInstrucoes;
+    public Button botaoConfiguracoes;
+    public GameObject modalConfiguracoes;
     public FirstPlayerController firstPlayerControllerScript;
 
     void Start()
     {
-        if (botaoAjuda != null)
-            botaoAjuda.onClick.AddListener(() =>
+        if (botaoConfiguracoes != null)
+            botaoConfiguracoes.onClick.AddListener(() =>
             {
-                Debug.Log("CLIQUE RECEBIDO PELO BOTÃO DE AJUDA!");
-                AbrirInstrucoes();
+                AbrirConfiguracoes();
             });
     }
 
-    void AbrirInstrucoes()
+    void AbrirConfiguracoes()
     {
-        Debug.Log("ABRIR INSTRUÇÕES FOI CHAMADOOOOOOO!");
-        botaoAjuda.gameObject.SetActive(false);
+        botaoConfiguracoes.gameObject.SetActive(false);
         if (firstPlayerControllerScript != null)
             firstPlayerControllerScript.DesativarControle();
         
-        modalInstrucoes.SetActive(true);
+        modalConfiguracoes.SetActive(true);
     }
 
     // ADICIONE OU ADAPTE ESTE MÉTODO QUE SEU BOTÃO DE FECHAR/PLAY CHAMA:
-    public void FecharInstrucoes()
+    public void FecharConfiguracoes()
     {
-        modalInstrucoes.SetActive(false);
-        botaoAjuda.gameObject.SetActive(true);
+        modalConfiguracoes.SetActive(false);
+        botaoConfiguracoes.gameObject.SetActive(true);
 
         // O PULO DO GATO: Checa se o player estava conversando antes de liberar a câmera
         if (GameProgress.EstaEmDialogo)
@@ -44,15 +42,12 @@ public class BotaoAjuda : MonoBehaviour
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            Debug.Log("Instruções fechadas: Mantendo controles bloqueados pois está em diálogo.");
         }
         else
         {
             // Se NÃO está em diálogo, o player pode voltar a andar e olhar pro lado de boa
             if (firstPlayerControllerScript != null)
                 firstPlayerControllerScript.AtivarControle(); // Ou o método equivalente que você usa para liberar
-            
-            Debug.Log("Instruções fechadas: Controles liberados para o gameplay.");
         }
     }
 }

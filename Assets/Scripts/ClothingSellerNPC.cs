@@ -2120,7 +2120,7 @@ respostaCorreta = 0
         {
             enunciado = "Arrange the words to form the correct sentence in English: Embora o blazer seja elegante, gostaria de ver outra opção.",
             blocosPalavras = new List<string>() { "Although", "the", "blazer", "is", "elegant,", "I'd", "like", "to", "see", "another", "option.", "because", "buy", "compare", "one" },
-            respostaCorreta = "Although the blazer is elegant, I'd like to see another option.\n”
+            respostaCorreta = "Although the blazer is elegant, I'd like to see another option.\n"
         }
     );
 
