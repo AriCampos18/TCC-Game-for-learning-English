@@ -38,6 +38,7 @@ public sealed class AuthenticationManagerTests
             Assert.That(result.Value.AccessToken, Is.EqualTo("access-1"));
             Assert.That(result.Value.RefreshToken, Is.EqualTo("refresh-1"));
             Assert.That(result.Value.ExpiresIn, Is.EqualTo(900));
+            Assert.That(result.Value.User.Id, Is.EqualTo(42));
             Assert.That(capturedMethod, Is.EqualTo(HttpMethod.Post));
             Assert.That(capturedUri,
                 Is.EqualTo("https://example.invalid/custom/api/auth/login"));
@@ -45,6 +46,53 @@ public sealed class AuthenticationManagerTests
             JObject requestBody = JObject.Parse(capturedBody);
             Assert.That(requestBody.Value<string>("email_or_username"), Is.EqualTo("test-user"));
             Assert.That(requestBody.Value<string>("password"), Is.EqualTo("test-password"));
+        }
+    }
+
+    [Test]
+    public async Task CurrentUserUsesBearerTokenAndParsesBackendUserId()
+    {
+        string capturedPath = null;
+        HttpMethod capturedMethod = null;
+        string capturedAuthorization = null;
+        var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+        {
+            capturedPath = request.RequestUri.AbsolutePath;
+            capturedMethod = request.Method;
+            capturedAuthorization = request.Headers.Authorization == null
+                ? null
+                : request.Headers.Authorization.ToString();
+            return Task.FromResult(JsonResponse(HttpStatusCode.OK, CurrentUserResponse(73)));
+        });
+
+        using (var manager = new AuthenticationManager("https://example.invalid", handler))
+        {
+            AuthenticationResult<AuthenticatedUser> result =
+                await manager.GetCurrentUserAsync("opaque-token-containing-no-user-id");
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value.Id, Is.EqualTo(73));
+            Assert.That(capturedPath, Is.EqualTo("/api/users/me"));
+            Assert.That(capturedMethod, Is.EqualTo(HttpMethod.Get));
+            Assert.That(capturedAuthorization, Is.EqualTo("Bearer opaque-token-containing-no-user-id"));
+        }
+    }
+
+    [Test]
+    public async Task LoginRequiresBackendUserAndDoesNotInferIdFromToken()
+    {
+        const string response =
+            "{\"data\":{\"access_token\":\"user-id-999-token\",\"refresh_token\":\"refresh-1\",\"expires_in\":900}}";
+        var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+            Task.FromResult(JsonResponse(HttpStatusCode.OK, response)));
+
+        using (var manager = new AuthenticationManager("https://example.invalid", handler))
+        {
+            AuthenticationResult<AuthenticationTokens> result =
+                await manager.LoginAsync("test-user", "test-password");
+
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error.Type, Is.EqualTo(AuthenticationFailureType.UnexpectedResponse));
         }
     }
 
@@ -186,6 +234,7 @@ public sealed class AuthenticationManagerTests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.IsWarning, Is.False);
             Assert.That(session.AccessToken, Is.EqualTo("access-1"));
+            Assert.That(session.AuthenticatedUserId, Is.EqualTo(42));
             Assert.That(session.RememberMe, Is.True);
             Assert.That(store.Token, Is.EqualTo("refresh-1"));
         }
@@ -411,6 +460,7 @@ public sealed class AuthenticationManagerTests
 
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(session.AccessToken, Is.EqualTo("access-1"));
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(42));
                 Assert.That(session.RememberMe, Is.True);
                 Assert.That(store.Token, Is.EqualTo("refresh-1"));
                 Assert.That(store.SaveCount, Is.EqualTo(1));
@@ -432,6 +482,7 @@ public sealed class AuthenticationManagerTests
 
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(session.AccessToken, Is.EqualTo("access-1"));
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(42));
                 Assert.That(session.RememberMe, Is.False);
                 Assert.That(store.Token, Is.Null);
                 Assert.That(store.SaveCount, Is.EqualTo(0));
@@ -445,8 +496,14 @@ public sealed class AuthenticationManagerTests
             var store = new MemoryRefreshTokenStore { Token = "saved-refresh" };
             var handler = new StubHttpMessageHandler((request, cancellationToken) =>
             {
-                Assert.That(request.RequestUri.AbsolutePath, Is.EqualTo("/api/auth/refresh"));
-                return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenResponse("access-new", "refresh-new", 900)));
+                if (request.RequestUri.AbsolutePath == "/api/auth/refresh")
+                {
+                    return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenResponse("access-new", "refresh-new", 900)));
+                }
+
+                Assert.That(request.RequestUri.AbsolutePath, Is.EqualTo("/api/users/me"));
+                Assert.That(request.Headers.Authorization.ToString(), Is.EqualTo("Bearer access-new"));
+                return Task.FromResult(JsonResponse(HttpStatusCode.OK, CurrentUserResponse(73)));
             });
 
             using (var authentication = new AuthenticationManager("https://example.invalid", handler))
@@ -457,9 +514,185 @@ public sealed class AuthenticationManagerTests
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(result.Value, Is.True);
                 Assert.That(session.AccessToken, Is.EqualTo("access-new"));
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(73));
                 Assert.That(session.RememberMe, Is.True);
                 Assert.That(store.Token, Is.EqualTo("refresh-new"));
                 Assert.That(store.SaveCount, Is.EqualTo(1));
+                Assert.That(handler.RequestCount, Is.EqualTo(2));
+            }
+        }
+
+        [Test]
+        public async Task TemporaryCurrentUserFailureClearsIdentityButKeepsRefreshedSession()
+        {
+            var store = new MemoryRefreshTokenStore { Token = "saved-refresh" };
+            int requestIndex = 0;
+            var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+            {
+                requestIndex++;
+                if (requestIndex == 1)
+                {
+                    return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenResponse("access-old", "refresh-old", 900, 12)));
+                }
+
+                if (requestIndex == 2)
+                {
+                    return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenResponse("access-new", "refresh-new", 900, 99)));
+                }
+
+                throw new HttpRequestException("temporary network failure");
+            });
+
+            using (var authentication = new AuthenticationManager("https://example.invalid", handler))
+            {
+                var session = new SessionManager(authentication, store);
+                AuthenticationResult<bool> loginResult =
+                    await session.LoginAsync("test-user", "test-password", true);
+                Assert.That(loginResult.IsSuccess, Is.True);
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(12));
+
+                AuthenticationResult<bool> restoreResult = await session.RestoreSessionAsync();
+
+                Assert.That(restoreResult.IsSuccess, Is.False);
+                Assert.That(restoreResult.Error.Type, Is.EqualTo(AuthenticationFailureType.Connection));
+                Assert.That(session.AuthenticatedUserId, Is.Null);
+                Assert.That(session.AccessToken, Is.EqualTo("access-new"));
+                Assert.That(store.Token, Is.EqualTo("refresh-new"));
+            }
+        }
+
+        [Test]
+        public async Task RejectedCurrentUserClearsIdentityAndInvalidatesLocalSession()
+        {
+            var store = new MemoryRefreshTokenStore();
+            var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+            {
+                if (request.RequestUri.AbsolutePath == "/api/auth/login")
+                {
+                    return Task.FromResult(JsonResponse(
+                        HttpStatusCode.OK,
+                        TokenResponse("access-login", "refresh-login", 900, 12)));
+                }
+
+                if (request.RequestUri.AbsolutePath == "/api/auth/refresh")
+                {
+                    return Task.FromResult(JsonResponse(
+                        HttpStatusCode.OK,
+                        TokenResponse("access-renewed", "refresh-renewed", 900, 12)));
+                }
+
+                return Task.FromResult(JsonResponse(
+                    HttpStatusCode.Unauthorized,
+                    "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sessão inválida.\"}}"));
+            });
+
+            using (var authentication = new AuthenticationManager("https://example.invalid", handler))
+            {
+                var session = new SessionManager(authentication, store);
+                await session.LoginAsync("test-user", "test-password", true);
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(12));
+
+                AuthenticationResult<bool> restoreResult = await session.RestoreSessionAsync();
+
+                Assert.That(restoreResult.IsSuccess, Is.False);
+                Assert.That(restoreResult.Error.Type, Is.EqualTo(AuthenticationFailureType.InvalidSession));
+                Assert.That(session.AuthenticatedUserId, Is.Null);
+                Assert.That(session.AccessToken, Is.Null);
+                Assert.That(store.Token, Is.Null);
+                Assert.That(handler.RequestCount, Is.EqualTo(3));
+            }
+        }
+
+        [Test]
+        public async Task LoginSwitchesIdentityAndFailedLoginDoesNotKeepPreviousIdentity()
+        {
+            int loginCount = 0;
+            var store = new MemoryRefreshTokenStore();
+            var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+            {
+                loginCount++;
+                return Task.FromResult(loginCount == 1
+                    ? JsonResponse(HttpStatusCode.OK, TokenResponse("access-first", "refresh-first", 900, 12))
+                    : JsonResponse(
+                        HttpStatusCode.Unauthorized,
+                        "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Credenciais inválidas.\"}}"));
+            });
+
+            using (var authentication = new AuthenticationManager("https://example.invalid", handler))
+            {
+                var session = new SessionManager(authentication, store);
+                AuthenticationResult<bool> firstLogin =
+                    await session.LoginAsync("first-user", "test-password", false);
+                Assert.That(firstLogin.IsSuccess, Is.True);
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(12));
+
+                AuthenticationResult<bool> failedLogin =
+                    await session.LoginAsync("second-user", "wrong-password", false);
+
+                Assert.That(failedLogin.IsSuccess, Is.False);
+                Assert.That(session.AuthenticatedUserId, Is.Null);
+                Assert.That(session.AccessToken, Is.Null);
+            }
+        }
+
+        [Test]
+        public async Task SuccessfulAccountSwitchReplacesUserId()
+        {
+            int loginCount = 0;
+            var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+            {
+                loginCount++;
+                return Task.FromResult(JsonResponse(
+                    HttpStatusCode.OK,
+                    TokenResponse(
+                        "access-" + loginCount,
+                        "refresh-" + loginCount,
+                        900,
+                        loginCount == 1 ? 12 : 73)));
+            });
+
+            using (var authentication = new AuthenticationManager("https://example.invalid", handler))
+            {
+                var session = new SessionManager(authentication, new MemoryRefreshTokenStore());
+                await session.LoginAsync("first-user", "test-password", false);
+                await session.LoginAsync("second-user", "test-password", false);
+
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(73));
+                Assert.That(session.AccessToken, Is.EqualTo("access-2"));
+            }
+        }
+
+        [Test]
+        public async Task RefreshReconfirmsIdentityFromCurrentUserEndpoint()
+        {
+            int requestIndex = 0;
+            var handler = new StubHttpMessageHandler((request, cancellationToken) =>
+            {
+                requestIndex++;
+                if (request.RequestUri.AbsolutePath == "/api/auth/login")
+                {
+                    return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenResponse("access-1", "refresh-1", 900, 12)));
+                }
+
+                if (request.RequestUri.AbsolutePath == "/api/auth/refresh")
+                {
+                    return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenResponse("access-2", "refresh-2", 900, 99)));
+                }
+
+                Assert.That(request.RequestUri.AbsolutePath, Is.EqualTo("/api/users/me"));
+                return Task.FromResult(JsonResponse(HttpStatusCode.OK, CurrentUserResponse(73)));
+            });
+
+            using (var authentication = new AuthenticationManager("https://example.invalid", handler))
+            {
+                var session = new SessionManager(authentication, new MemoryRefreshTokenStore());
+                await session.LoginAsync("test-user", "test-password", false);
+                AuthenticationResult<bool> refreshResult = await session.RefreshAsync();
+
+                Assert.That(refreshResult.IsSuccess, Is.True);
+                Assert.That(session.AuthenticatedUserId, Is.EqualTo(73));
+                Assert.That(session.AccessToken, Is.EqualTo("access-2"));
+                Assert.That(handler.RequestCount, Is.EqualTo(3));
             }
         }
 
@@ -559,6 +792,7 @@ public sealed class AuthenticationManagerTests
 
                 Assert.That(logoutResult.IsSuccess, Is.True);
                 Assert.That(session.AccessToken, Is.Null);
+                Assert.That(session.AuthenticatedUserId, Is.Null);
                 Assert.That(session.IsAuthenticated, Is.False);
                 Assert.That(store.Token, Is.Null);
             }
@@ -597,11 +831,22 @@ public sealed class AuthenticationManagerTests
             }
         }
 
-        private static string TokenResponse(string accessToken, string refreshToken, int expiresIn)
+        private static string TokenResponse(
+            string accessToken,
+            string refreshToken,
+            int expiresIn,
+            int userId = 42)
         {
-            return "{\"data\":{\"access_token\":\"" + accessToken +
+            return "{\"data\":{\"user\":{\"id\":" + userId +
+                   "},\"access_token\":\"" + accessToken +
                    "\",\"refresh_token\":\"" + refreshToken +
                    "\",\"expires_in\":" + expiresIn + "}}";
+        }
+
+        private static string CurrentUserResponse(int userId)
+        {
+            return "{\"data\":{\"id\":" + userId +
+                   ",\"email\":\"test@example.invalid\",\"username\":\"test-user\",\"status\":true}}";
         }
 
         private static HttpResponseMessage JsonResponse(HttpStatusCode statusCode, string json)
@@ -766,11 +1011,22 @@ public sealed class AuthenticationManagerTests
         }
     }
 
-    private static string TokenResponse(string accessToken, string refreshToken, int expiresIn)
+    private static string TokenResponse(
+        string accessToken,
+        string refreshToken,
+        int expiresIn,
+        int userId = 42)
     {
-        return "{\"data\":{\"access_token\":\"" + accessToken +
+        return "{\"data\":{\"user\":{\"id\":" + userId +
+               "},\"access_token\":\"" + accessToken +
                "\",\"refresh_token\":\"" + refreshToken +
                "\",\"expires_in\":" + expiresIn + "}}";
+    }
+
+    private static string CurrentUserResponse(int userId)
+    {
+        return "{\"data\":{\"id\":" + userId +
+               ",\"email\":\"test@example.invalid\",\"username\":\"test-user\",\"status\":true}}";
     }
 
     private static TMP_InputField FindInputField(GameObject root, string objectName)

@@ -12,6 +12,7 @@ public sealed class SessionManager
     private string refreshToken;
     private DateTimeOffset accessTokenExpiresAtUtc;
     private bool rememberMe;
+    private int? authenticatedUserId;
 
     public string AccessToken
     {
@@ -34,6 +35,11 @@ public sealed class SessionManager
     public bool RememberMe
     {
         get { return rememberMe; }
+    }
+
+    public int? AuthenticatedUserId
+    {
+        get { return authenticatedUserId; }
     }
 
     public SessionManager(AuthenticationManager authenticationManager, IRefreshTokenStore refreshTokenStore)
@@ -83,7 +89,7 @@ public sealed class SessionManager
                 }
             }
 
-            SetInMemorySession(tokens, remember);
+            SetInMemorySession(tokens, remember, tokens.User.Id);
             return AuthenticationResult<bool>.Success(true);
         }
         finally
@@ -117,7 +123,14 @@ public sealed class SessionManager
                 return AuthenticationResult<bool>.Success(false);
             }
 
-            return await RefreshSessionCoreAsync(savedRefreshToken, true, cancellationToken);
+            AuthenticationResult<bool> refreshResult =
+                await RefreshSessionCoreAsync(savedRefreshToken, true, cancellationToken);
+            if (!refreshResult.IsSuccess)
+            {
+                return refreshResult;
+            }
+
+            return await ConfirmCurrentUserAsync(cancellationToken);
         }
         finally
         {
@@ -139,7 +152,14 @@ public sealed class SessionManager
                     "Não há refresh token em memória para renovar a sessão."));
             }
 
-            return await RefreshSessionCoreAsync(refreshToken, rememberMe, cancellationToken);
+            AuthenticationResult<bool> refreshResult =
+                await RefreshSessionCoreAsync(refreshToken, rememberMe, cancellationToken);
+            if (!refreshResult.IsSuccess)
+            {
+                return refreshResult;
+            }
+
+            return await ConfirmCurrentUserAsync(cancellationToken);
         }
         finally
         {
@@ -247,8 +267,38 @@ public sealed class SessionManager
             }
         }
 
-        SetInMemorySession(tokens, persistRotatedToken);
+        SetInMemorySession(tokens, persistRotatedToken, null);
         return AuthenticationResult<bool>.Success(true);
+    }
+
+    private async Task<AuthenticationResult<bool>> ConfirmCurrentUserAsync(
+        CancellationToken cancellationToken)
+    {
+        authenticatedUserId = null;
+        AuthenticationResult<AuthenticatedUser> userResult =
+            await authenticationManager.GetCurrentUserAsync(AccessToken, cancellationToken);
+        if (userResult.IsSuccess)
+        {
+            authenticatedUserId = userResult.Value.Id;
+            return AuthenticationResult<bool>.Success(true);
+        }
+
+        if (userResult.Error.Type == AuthenticationFailureType.InvalidSession)
+        {
+            ClearInMemorySession();
+            AuthenticationError clearError = ClearStoredRefreshToken();
+            if (clearError != null)
+            {
+                return AuthenticationResult<bool>.Failure(new AuthenticationError(
+                    AuthenticationFailureType.Storage,
+                    "A identidade da sessão foi rejeitada e não foi possível limpar o refresh token local.",
+                    clearError.Message,
+                    userResult.Error.StatusCode,
+                    userResult.Error.Code));
+            }
+        }
+
+        return AuthenticationResult<bool>.Failure(userResult.Error);
     }
 
     private async Task<AuthenticationResult<bool>> HandlePersistenceFailureAsync(
@@ -314,12 +364,16 @@ public sealed class SessionManager
         return new AuthenticationError(AuthenticationFailureType.Storage, message, details);
     }
 
-    private void SetInMemorySession(AuthenticationTokens tokens, bool isRemembered)
+    private void SetInMemorySession(
+        AuthenticationTokens tokens,
+        bool isRemembered,
+        int? userId)
     {
         accessToken = tokens.AccessToken;
         refreshToken = tokens.RefreshToken;
         accessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc;
         rememberMe = isRemembered;
+        authenticatedUserId = userId;
     }
 
     private void ClearInMemorySession()
@@ -328,5 +382,6 @@ public sealed class SessionManager
         refreshToken = null;
         accessTokenExpiresAtUtc = default(DateTimeOffset);
         rememberMe = false;
+        authenticatedUserId = null;
     }
 }

@@ -45,6 +45,7 @@ public sealed class AuthenticationManager : IDisposable
             "api/auth/login",
             new LoginRequest { email_or_username = emailOrUsername, password = password },
             AuthenticationFailureType.InvalidCredentials,
+            true,
             cancellationToken);
     }
 
@@ -75,6 +76,7 @@ public sealed class AuthenticationManager : IDisposable
                     password = password
                 },
                 AuthenticationFailureType.Http,
+                false,
                 cancellationToken);
 
         if (!registerResult.IsSuccess)
@@ -111,7 +113,34 @@ public sealed class AuthenticationManager : IDisposable
             "api/auth/refresh",
             new RefreshRequest { refresh_token = refreshToken },
             AuthenticationFailureType.InvalidSession,
+            false,
             cancellationToken);
+    }
+
+    public async Task<AuthenticationResult<AuthenticatedUser>> GetCurrentUserAsync(
+        string accessToken,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return AuthenticationResult<AuthenticatedUser>.Failure(new AuthenticationError(
+                AuthenticationFailureType.InvalidSession,
+                "Access token ausente."));
+        }
+
+        ApiResponse response = await SendAsync(
+            HttpMethod.Get,
+            "api/users/me",
+            null,
+            accessToken,
+            AuthenticationFailureType.InvalidSession,
+            cancellationToken);
+        if (response.Error != null)
+        {
+            return AuthenticationResult<AuthenticatedUser>.Failure(response.Error);
+        }
+
+        return ParseUser(response.Data);
     }
 
     public async Task<AuthenticationResult<bool>> LogoutAsync(
@@ -156,6 +185,7 @@ public sealed class AuthenticationManager : IDisposable
         string endpoint,
         object request,
         AuthenticationFailureType unauthorizedFailure,
+        bool requireUser,
         CancellationToken cancellationToken)
     {
         ApiResponse response = await PostAsync(endpoint, request, unauthorizedFailure, cancellationToken);
@@ -191,11 +221,31 @@ public sealed class AuthenticationManager : IDisposable
                 "A resposta de autenticação contém tokens ou validade inválidos.");
         }
 
+        AuthenticatedUser user = null;
+        if (requireUser)
+        {
+            JToken userToken;
+            if (!response.Data.TryGetValue("user", StringComparison.Ordinal, out userToken))
+            {
+                return UnexpectedResponse<AuthenticationTokens>(
+                    "A resposta de login não contém o usuário autenticado.");
+            }
+
+            AuthenticationResult<AuthenticatedUser> userResult = ParseUser(userToken);
+            if (!userResult.IsSuccess)
+            {
+                return AuthenticationResult<AuthenticationTokens>.Failure(userResult.Error);
+            }
+
+            user = userResult.Value;
+        }
+
         return AuthenticationResult<AuthenticationTokens>.Success(new AuthenticationTokens(
             accessTokenValue,
             refreshTokenValue,
             (int)expiresInValue,
-            DateTimeOffset.UtcNow.AddSeconds(expiresInValue)));
+            DateTimeOffset.UtcNow.AddSeconds(expiresInValue),
+            user));
     }
 
     private async Task<ApiResponse> PostAsync(
@@ -205,15 +255,37 @@ public sealed class AuthenticationManager : IDisposable
         CancellationToken cancellationToken)
     {
         string requestJson = JsonConvert.SerializeObject(request);
-        using (var content = new StringContent(requestJson, Encoding.UTF8, "application/json"))
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+        return await SendAsync(
+            HttpMethod.Post,
+            endpoint,
+            content,
+            null,
+            unauthorizedFailure,
+            cancellationToken);
+    }
+
+    private async Task<ApiResponse> SendAsync(
+        HttpMethod method,
+        string endpoint,
+        HttpContent content,
+        string bearerToken,
+        AuthenticationFailureType unauthorizedFailure,
+        CancellationToken cancellationToken)
+    {
+        using (var request = new HttpRequestMessage(method, new Uri(backendBaseUri, endpoint)))
         {
+            request.Content = content;
+            if (!string.IsNullOrWhiteSpace(bearerToken))
+            {
+                request.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+            }
+
             HttpResponseMessage httpResponse;
             try
             {
-                httpResponse = await httpClient.PostAsync(
-                    new Uri(backendBaseUri, endpoint),
-                    content,
-                    cancellationToken);
+                httpResponse = await httpClient.SendAsync(request, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -311,6 +383,42 @@ public sealed class AuthenticationManager : IDisposable
                 return ApiResponse.FromData((JObject)data);
             }
         }
+    }
+
+    private static AuthenticationResult<AuthenticatedUser> ParseUser(JToken userToken)
+    {
+        if (userToken == null || userToken.Type != JTokenType.Object)
+        {
+            return UnexpectedResponse<AuthenticatedUser>(
+                "A resposta do usuário autenticado não é um objeto válido.");
+        }
+
+        JToken idToken;
+        if (!((JObject)userToken).TryGetValue("id", StringComparison.Ordinal, out idToken) ||
+            idToken.Type != JTokenType.Integer)
+        {
+            return UnexpectedResponse<AuthenticatedUser>(
+                "A resposta do usuário autenticado não contém um ID inteiro.");
+        }
+
+        long idValue;
+        try
+        {
+            idValue = idToken.Value<long>();
+        }
+        catch (Exception exception) when (exception is OverflowException || exception is FormatException)
+        {
+            return UnexpectedResponse<AuthenticatedUser>(
+                "O ID do usuário autenticado está fora do intervalo permitido.");
+        }
+
+        if (idValue <= 0 || idValue > int.MaxValue)
+        {
+            return UnexpectedResponse<AuthenticatedUser>(
+                "O ID do usuário autenticado está fora do intervalo permitido.");
+        }
+
+        return AuthenticationResult<AuthenticatedUser>.Success(new AuthenticatedUser((int)idValue));
     }
 
     private static AuthenticationError CreateHttpError(
@@ -421,17 +529,35 @@ public sealed class AuthenticationTokens
     public string RefreshToken { get; private set; }
     public int ExpiresIn { get; private set; }
     public DateTimeOffset AccessTokenExpiresAtUtc { get; private set; }
+    public AuthenticatedUser User { get; private set; }
 
     public AuthenticationTokens(
         string accessToken,
         string refreshToken,
         int expiresIn,
-        DateTimeOffset accessTokenExpiresAtUtc)
+        DateTimeOffset accessTokenExpiresAtUtc,
+        AuthenticatedUser user = null)
     {
         AccessToken = accessToken;
         RefreshToken = refreshToken;
         ExpiresIn = expiresIn;
         AccessTokenExpiresAtUtc = accessTokenExpiresAtUtc;
+        User = user;
+    }
+}
+
+public sealed class AuthenticatedUser
+{
+    public int Id { get; private set; }
+
+    public AuthenticatedUser(int id)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id));
+        }
+
+        Id = id;
     }
 }
 
