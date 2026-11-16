@@ -1616,11 +1616,11 @@ public class RestaurantWaiterNPC : InteracaoNPC
         enunciado = "You would like to order a hamburger. Tell the waiter what you want.",
         opcoesFala = new List<string>()
         {
-            "I would like a hamburger, please.\n",
             "I would like the bill, please.\n",
-            "I would like to book a hotel room.\n"
+            "I would like to book a hotel room.\n",
+            "I would like a hamburger, please.\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -1628,12 +1628,12 @@ public class RestaurantWaiterNPC : InteracaoNPC
         enunciado = "The waiter asks if you would like something to drink. Choose the best answer.",
         alternativas = new List<string>()
         {
+            "I'd like a table, please.\r\n",
             "I'd like an orange juice, please.\r\n",
             "I'd like another menu, please.\r\n",
-            "I'd like the restaurant, please.\r\n",
-            "I'd like a table, please.\r\n"
+            "I'd like the restaurant, please.\r\n"
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 1
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()
@@ -1662,11 +1662,11 @@ public class RestaurantWaiterNPC : InteracaoNPC
         enunciado = "You have finished eating. Ask the waiter for the bill.",
         opcoesFala = new List<string>()
         {
-            "Could I have the bill, please?\n",
             "Could I have the menu, please?\n",
-            "Could I have another hamburger, please?\n"
+            "Could I have another hamburger, please?\n",
+            "Could I have the bill, please?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -1674,12 +1674,12 @@ public class RestaurantWaiterNPC : InteracaoNPC
         enunciado = "The waiter asks how you would like to pay. Choose the correct answer.",
         alternativas = new List<string>()
         {
-            "I'd like to pay by card, please.\r\n",
             "I'd like to pay by menu, please.\r\n",
             "I'd like to pay by hamburger, please.\r\n",
-            "I'd like to pay by table, please.\r\n"
+            "I'd like to pay by table, please.\r\n",
+            "I'd like to pay by card, please.\r\n"
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1743,11 +1743,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "You want to know what comes with the restaurant's hamburger. Ask the waiter.",
         opcoesFala = new List<string>()
         {
-            "Could you tell me what comes with the hamburger?\n",
             "Could you tell me where the airport is?\n",
-            "Could you tell me when the restaurant closes yesterday?\n"
+            "Could you tell me when the restaurant closes yesterday?\n",
+            "Could you tell me what comes with the hamburger?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1755,11 +1755,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Ask the waiter to recommend a dish from the menu.",
         opcoesFala = new List<string>()
         {
+            "Could you bring me a hotel key?\n",
             "Could you recommend a dish for me?\n",
-            "Could you pay my bill for me?\n",
-            "Could you bring me a hotel key?\n"
+            "Could you pay my bill for me?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()
@@ -1816,12 +1816,12 @@ else if (nivelAtual == "A2-B1")
         respostaCorreta = "pack",
         opcoes = new List<string>()
         {
-            "pack",
-            "recommend",
             "order",
             "pay",
             "serve",
-            "choose"
+            "choose",
+            "pack",
+            "recommend"
         }
     });
 
@@ -1845,12 +1845,12 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The waiter asks whether you would prefer to pay by card or in cash. Choose the most appropriate answer.",
         alternativas = new List<string>()
         {
-            "I'd prefer to pay by card, if that's possible.\r\n",
             "I'd prefer to order another table, if that's possible.\r\n",
             "I'd prefer to take the menu home, if that's possible.\r\n",
-            "I'd prefer to change my meal yesterday, if that's possible.\r\n"
+            "I'd prefer to change my meal yesterday, if that's possible.\r\n",
+            "I'd prefer to pay by card, if that's possible.\r\n"
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 
     exerciciosAssociacao.Add(new ExercicioAssociacao()

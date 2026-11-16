@@ -1507,11 +1507,11 @@ public class checkinNPC : InteracaoNPC
             enunciado = "The airport employee asks to see your passport and booking confirmation. Choose the most appropriate response.",
             opcoesFala = new List<string>()
             {
-                "Here are my passport and booking confirmation.\n",
                 "I would like to change my boarding gate.\n",
-                "My suitcase is already at the destination.\n"
+                "My suitcase is already at the destination.\n",
+                "Here are my passport and booking confirmation.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1524,14 +1524,14 @@ public class checkinNPC : InteracaoNPC
             respostaCorreta = "18",
             opcoes = new List<string>()
             {
-                "12",
-                "18",
-                "24",
                 "passport",
                 "airport",
                 "boarding",
                 "20",
-                "ticket"
+                "ticket",
+                "12",
+                "18",
+                "24"
             }
         }
     );
@@ -1595,11 +1595,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "Explain your travel plans to the airport employee, mentioning your destination and connecting flight.",
             opcoesFala = new List<string>()
             {
+                "My boarding pass is at the hotel reception.\n",
                 "I'm travelling to Toronto, and I have a connecting flight.\n",
-                "I'm collecting my luggage at the information desk.\n",
-                "My boarding pass is at the hotel reception.\n"
+                "I'm collecting my luggage at the information desk.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1609,11 +1609,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The employee asks for your passport and booking confirmation. Choose the most appropriate response.",
             opcoesFala = new List<string>()
             {
-                "Certainly. I have both documents with me.\n",
                 "I need to check the departure screens first.\n",
-                "My connecting flight leaves from gate 24.\n"
+                "My connecting flight leaves from gate 24.\n",
+                "Certainly. I have both documents with me.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1623,12 +1623,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You have a connecting flight. What will happen to your checked luggage?",
             alternativas = new List<string>()
             {
-                "It will be transferred automatically to the connecting flight.\r\n",
                 "You must carry it to the boarding gate yourself.\r\n",
                 "It will be sent to the information desk.\r\n",
-                "You must collect it before checking in.\r\n"
+                "You must collect it before checking in.\r\n",
+                "It will be transferred automatically to the connecting flight.\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 3
         }
     );
 
@@ -1638,11 +1638,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The employee advises you to check the departure screens for updates. Choose the most appropriate response.",
             opcoesFala = new List<string>()
             {
-                "Thank you. I'll check the departure screens.\n",
                 "Thank you. I'll collect my luggage now.\n",
-                "Thank you. I'll ask for a hotel room.\n"
+                "Thank you. I'll ask for a hotel room.\n",
+                "Thank you. I'll check the departure screens.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 

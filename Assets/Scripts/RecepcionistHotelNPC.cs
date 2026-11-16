@@ -1778,11 +1778,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "You arrive at the hotel. Tell the receptionist that you have a reservation.",
             opcoesFala = new List<string>()
             {
+                "I have the breakfast room\n",
                 "I have a reservation, please\n",
-                "I am a reservation yesterday\n",
-                "I have the breakfast room\n"
+                "I am a reservation yesterday\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1799,11 +1799,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "The receptionist asks how long you will stay. Choose the correct answer.",
             opcoesFala = new List<string>()
             {
-                "I'll stay for five nights\n",
                 "I'll pay on the second floor\n",
-                "My room is at seven o'clock\n"
+                "My room is at seven o'clock\n",
+                "I'll stay for five nights\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1813,12 +1813,12 @@ else if (nivelAtual == "A1-A2")
             enunciado = "The receptionist asks how you would like to pay. What do you say?",
             alternativas = new List<string>()
             {
+                "I'd like to pay at 10:00 a.m.\r\n",
                 "I'd like to pay by card, please\r\n",
                 "I'd like to pay on the second floor\r\n",
-                "I'd like to pay for breakfast yesterday\r\n",
-                "I'd like to pay at 10:00 a.m.\r\n"
+                "I'd like to pay for breakfast yesterday\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 1
         }
     );
 
@@ -1828,11 +1828,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "You need your room key. What do you say to the receptionist?",
             opcoesFala = new List<string>()
             {
-                "Could I have my room key, please?\n",
                 "Could I have breakfast yesterday?\n",
-                "Where is my reservation number floor?\n"
+                "Where is my reservation number floor?\n",
+                "Could I have my room key, please?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1862,12 +1862,12 @@ else if (nivelAtual == "A1-A2")
             enunciado = "According to the receptionist, where can you have breakfast?",
             alternativas = new List<string>()
             {
-                "On the second floor\r\n",
-                "In the restaurant on the first floor\r\n",
                 "At the reception desk\r\n",
-                "Inside the elevator\r\n"
+                "Inside the elevator\r\n",
+                "On the second floor\r\n",
+                "In the restaurant on the first floor\r\n"
             },
-            alternativaCorreta = 1
+            alternativaCorreta = 3
         }
     );
 
@@ -1877,11 +1877,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "The receptionist tells you to enjoy your stay. How do you respond?",
             opcoesFala = new List<string>()
             {
-                "Thank you. I appreciate it\n",
                 "I would like to pay yesterday\n",
-                "My checkout is on the restaurant\n"
+                "My checkout is on the restaurant\n",
+                "Thank you. I appreciate it\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1947,11 +1947,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You arrive at the hotel. Explain that you have a reservation and mention how long you will be staying.",
             opcoesFala = new List<string>()
             {
+                "I would like seven breakfasts for my room\n",
                 "I have a reservation for seven nights\n",
-                "I have a reservation on the third floor yesterday\n",
-                "I would like seven breakfasts for my room\n"
+                "I have a reservation on the third floor yesterday\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1968,11 +1968,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The receptionist confirms your reservation details. Confirm that the information is correct.",
             opcoesFala = new List<string>()
             {
-                "Yes, that's all correct\n",
                 "No, I would like to reserve the elevator\n",
-                "Yes, I stayed for breakfast yesterday\n"
+                "Yes, I stayed for breakfast yesterday\n",
+                "Yes, that's all correct\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1982,12 +1982,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The receptionist asks when you would like to pay. Choose the most appropriate answer.",
             alternativas = new List<string>()
             {
+                "I'd prefer to pay on the third floor\r\n",
                 "I'd prefer to pay when I check out, please\r\n",
                 "I'd prefer to pay next to the elevator\r\n",
-                "I'd prefer to pay for breakfast yesterday\r\n",
-                "I'd prefer to pay on the third floor\r\n"
+                "I'd prefer to pay for breakfast yesterday\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 1
         }
     );
 
@@ -1997,11 +1997,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The receptionist gives you information about your room. Ask for your room key card.",
             opcoesFala = new List<string>()
             {
-                "Could you give me the room key card, please?\n",
                 "Could you tell me the breakfast password, please?\n",
-                "Could you reserve the elevator for seven nights?\n"
+                "Could you reserve the elevator for seven nights?\n",
+                "Could you give me the room key card, please?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -2032,11 +2032,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You want to find the elevator. Ask the receptionist for directions.",
             opcoesFala = new List<string>()
             {
+                "Could you tell me how much the breakfast walks?\n",
                 "Could you tell me where the elevator is?\n",
-                "Could you tell me when the room is served?\n",
-                "Could you tell me how much the breakfast walks?\n"
+                "Could you tell me when the room is served?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -2053,12 +2053,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "According to the receptionist, what time does breakfast service end?",
             alternativas = new List<string>()
             {
+                "2:00 p.m.\r\n",
                 "6:30 a.m.\r\n",
                 "10:00 a.m.\r\n",
-                "12:00 p.m.\r\n",
-                "2:00 p.m.\r\n"
+                "12:00 p.m.\r\n"
             },
-            alternativaCorreta = 1
+            alternativaCorreta = 2
         }
     );
 
@@ -2075,11 +2075,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The receptionist explains that late checkout depends on availability. Ask what time you could leave if your request is approved.",
             opcoesFala = new List<string>()
             {
+                "How many floors does my reservation have?\n",
                 "What time would I need to check out?\n",
-                "Where would I have my breakfast yesterday?\n",
-                "How many floors does my reservation have?\n"
+                "Where would I have my breakfast yesterday?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -2092,11 +2092,11 @@ else if (nivelAtual == "A2-B1")
             respostaCorreta = "2:00",
             opcoes = new List<string>()
             {
+                "6:30",
                 "10:00",
                 "12:00",
                 "1:00",
-                "2:00",
-                "6:30"
+                "2:00"
             }
         }
     );

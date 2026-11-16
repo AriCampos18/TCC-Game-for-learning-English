@@ -1439,11 +1439,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "The secretary asks how she can help you. Explain that you want to enroll in Computer Science.",
             opcoesFala = new List<string>()
             {
+                "I would like to pay for the library's books.\n",
                 "I would like to enroll in Computer Science.\n",
-                "I would like to teach the secretary's office.\n",
-                "I would like to pay for the library's books.\n"
+                "I would like to teach the secretary's office.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1460,11 +1460,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "The secretary asks which course you would like to study. Choose the appropriate answer.",
             opcoesFala = new List<string>()
             {
-                "I would like to enroll in Computer Science.\n",
                 "I would like to enroll on the second floor.\n",
-                "I would like to enroll on February tenth.\n"
+                "I would like to enroll on February tenth.\n",
+                "I would like to enroll in Computer Science.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1481,12 +1481,12 @@ else if (nivelAtual == "A1-A2")
             enunciado = "What is the monthly tuition fee mentioned by the secretary?",
             alternativas = new List<string>()
             {
+                "R$600 per month\r\n",
                 "R$300 per month\r\n",
                 "R$400 per month\r\n",
-                "R$500 per month\r\n",
-                "R$600 per month\r\n"
+                "R$500 per month\r\n"
             },
-            alternativaCorreta = 2
+            alternativaCorreta = 3
         }
     );
 
@@ -1496,11 +1496,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "You want to confirm when your classes begin. What do you ask?",
             opcoesFala = new List<string>()
             {
-                "When do classes start?\n",
                 "Where do classes pay?\n",
-                "How much do classes enroll?\n"
+                "How much do classes enroll?\n",
+                "When do classes start?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1510,12 +1510,12 @@ else if (nivelAtual == "A1-A2")
             enunciado = "According to the secretary, when do classes start?",
             alternativas = new List<string>()
             {
+                "February 20th\r\n",
                 "February 5th\r\n",
                 "February 10th\r\n",
-                "February 15th\r\n",
-                "February 20th\r\n"
+                "February 15th\r\n"
             },
-            alternativaCorreta = 1
+            alternativaCorreta = 2
         }
     );
 
@@ -1525,11 +1525,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "You need to find your first classroom. Ask the secretary where it is.",
             opcoesFala = new List<string>()
             {
-                "Where is my classroom?\n",
                 "How much is my tuition?\n",
-                "When does my enrollment start?\n"
+                "When does my enrollment start?\n",
+                "Where is my classroom?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1593,11 +1593,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "Explain to the secretary that you are there to complete your enrollment in Computer Science.",
             opcoesFala = new List<string>()
             {
+                "I'm here to confirm the library's opening hours.\n",
                 "I'm here to complete my enrollment in Computer Science.\n",
-                "I'm here to complete my classroom on the third floor.\n",
-                "I'm here to confirm the library's opening hours.\n"
+                "I'm here to complete my classroom on the third floor.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1614,11 +1614,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The secretary confirms that you are applying for Computer Science. Confirm that the information is correct.",
             opcoesFala = new List<string>()
             {
-                "Yes, that's correct. I'm applying for Computer Science.\n",
                 "Yes, that's correct. I'm applying for room 325.\n",
-                "Yes, that's correct. I'm applying for the tuition fee.\n"
+                "Yes, that's correct. I'm applying for the tuition fee.\n",
+                "Yes, that's correct. I'm applying for Computer Science.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1635,14 +1635,14 @@ else if (nivelAtual == "A2-B1")
             respostaCorreta = "to confirm, that",
             opcoes = new List<string>()
             {
-                "to confirm",
-                "to check",
-                "that",
                 "where",
                 "when",
                 "to enroll",
                 "if",
-                "how"
+                "how",
+                "to confirm",
+                "to check",
+                "that"
             }
         }
     );
@@ -1660,12 +1660,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "What is the monthly tuition fee for the course?",
             alternativas = new List<string>()
             {
+                "R$550 per month\r\n",
                 "R$400 per month\r\n",
                 "R$450 per month\r\n",
-                "R$500 per month\r\n",
-                "R$550 per month\r\n"
+                "R$500 per month\r\n"
             },
-            alternativaCorreta = 2
+            alternativaCorreta = 3
         }
     );
 
@@ -1675,11 +1675,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You want to know when the semester begins. Ask the secretary politely.",
             opcoesFala = new List<string>()
             {
-                "Could you tell me when the semester begins?\n",
                 "Could you tell me where the semester is located?\n",
-                "Could you tell me how much the semester enrolls?\n"
+                "Could you tell me how much the semester enrolls?\n",
+                "Could you tell me when the semester begins?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1689,12 +1689,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "According to the secretary, where will your first class take place?",
             alternativas = new List<string>()
             {
+                "Room 325, on the second floor\r\n",
                 "Room 204, on the second floor\r\n",
                 "Room 305, on the third floor\r\n",
-                "Room 325, on the third floor\r\n",
-                "Room 325, on the second floor\r\n"
+                "Room 325, on the third floor\r\n"
             },
-            alternativaCorreta = 2
+            alternativaCorreta = 3
         }
     );
 
@@ -1711,11 +1711,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The secretary asks if you have any other questions. Ask for clarification about the location of your classroom.",
             opcoesFala = new List<string>()
             {
-                "Could you explain how to get to room 325?\n",
                 "Could you explain how much room 325 costs?\n",
-                "Could you explain when room 325 enrolls?\n"
+                "Could you explain when room 325 enrolls?\n",
+                "Could you explain how to get to room 325?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 

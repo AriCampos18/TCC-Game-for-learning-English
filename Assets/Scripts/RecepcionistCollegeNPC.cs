@@ -776,11 +776,11 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             enunciado = "You need to enroll in a course. Explain what you are looking for.",
             opcoesFala = new List<string>()
             {
+                "I'm looking for the library because I want to pay my teacher.\n",
                 "I'm looking for the secretary's office because I want to enroll in a course.\n",
-                "I'm looking for the cafeteria because I want to enroll in a classroom.\n",
-                "I'm looking for the library because I want to pay my teacher.\n"
+                "I'm looking for the cafeteria because I want to enroll in a classroom.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -811,11 +811,11 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             enunciado = "The receptionist gives you directions. Ask her to explain the route again.",
             opcoesFala = new List<string>()
             {
-                "Could you repeat the directions, please?\n",
                 "Could you enroll me in a course, please?\n",
-                "Could you tell me the tuition fee, please?\n"
+                "Could you tell me the tuition fee, please?\n",
+                "Could you repeat the directions, please?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -825,12 +825,12 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             enunciado = "According to the receptionist, where is the secretary's office?",
             alternativas = new List<string>()
             {
-                "On the first floor, at the end of the hallway\r\n",
-                "On the second floor, next to the library\r\n",
                 "On the ground floor, behind the cafeteria\r\n",
-                "On the third floor, near the classrooms\r\n"
+                "On the third floor, near the classrooms\r\n",
+                "On the first floor, at the end of the hallway\r\n",
+                "On the second floor, next to the library\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 2
         }
     );
 
@@ -840,11 +840,11 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             enunciado = "You understood the directions. Thank the receptionist before leaving.",
             opcoesFala = new List<string>()
             {
-                "Thank you for your help. I'll go there now.\n",
                 "I would like to change my course yesterday.\n",
-                "My classroom is helping the reception desk.\n"
+                "My classroom is helping the reception desk.\n",
+                "Thank you for your help. I'll go there now.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -905,11 +905,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "Explain to the receptionist why you need to speak with the secretary.",
             opcoesFala = new List<string>()
             {
+                "I need to speak with the library because I'm interested in paying the reception.\n",
                 "I need to speak with the secretary because I'm interested in enrolling in a course.\n",
-                "I need to speak with the cafeteria because I'm interested in the hallway.\n",
-                "I need to speak with the library because I'm interested in paying the reception.\n"
+                "I need to speak with the cafeteria because I'm interested in the hallway.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -926,11 +926,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You want to make sure you understood the route correctly. Ask the receptionist to clarify where you should turn.",
             opcoesFala = new List<string>()
             {
-                "Could you clarify which hallway I should take?\n",
                 "Could you clarify how much the course costs per month?\n",
-                "Could you clarify when the library closes?\n"
+                "Could you clarify when the library closes?\n",
+                "Could you clarify which hallway I should take?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -961,12 +961,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "According to the receptionist, what can the secretary help you with?",
             alternativas = new List<string>()
             {
-                "Enrollment and course-related questions\r\n",
                 "Library opening hours and book returns\r\n",
                 "Cafeteria payments and meal schedules\r\n",
-                "Classroom cleaning and building maintenance\r\n"
+                "Classroom cleaning and building maintenance\r\n",
+                "Enrollment and course-related questions\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 3
         }
     );
 
@@ -976,11 +976,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You have understood the directions. Respond politely before going to the secretary's office.",
             opcoesFala = new List<string>()
             {
-                "Thank you for explaining the route. I'll head there now.\n",
                 "Thank you for enrolling me in the course yesterday.\n",
-                "Thank you for confirming my classroom schedule.\n"
+                "Thank you for confirming my classroom schedule.\n",
+                "Thank you for explaining the route. I'll head there now.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 

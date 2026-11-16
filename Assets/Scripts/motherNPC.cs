@@ -1119,11 +1119,11 @@ public class motherNPC : InteracaoNPC
         enunciado = "Greet your mother and tell her how you are feeling.",
         opcoesFala = new List<string>()
         {
-            "I'm doing well, thank you. It's great to be home.\n",
             "I would like to book a room, please.\n",
-            "Where can I find the train station?\n"
+            "Where can I find the train station?\n",
+            "I'm doing well, thank you. It's great to be home.\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosWriting.Add(new ExercicioWriting()
@@ -1136,12 +1136,12 @@ public class motherNPC : InteracaoNPC
         enunciado = "Your mother asks what you think about the renovated bathroom. Choose the most appropriate response.",
         alternativas = new List<string>()
         {
-            "It looks really nice! I like the new design.\r\n",
-            "I would like to order something to drink.\r\n",
             "I have to finish my homework yesterday.\r\n",
-            "The dog is playing with a ball outside.\r\n"
+            "The dog is playing with a ball outside.\r\n",
+            "It looks really nice! I like the new design.\r\n",
+            "I would like to order something to drink.\r\n"
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1154,11 +1154,11 @@ public class motherNPC : InteracaoNPC
         enunciado = "Ask your mother how her day at work was.",
         opcoesFala = new List<string>()
         {
-            "How was your day at work, Mom?\n",
             "Where did you buy your new shoes yesterday?\n",
-            "Would you like to visit the airport?\n"
+            "Would you like to visit the airport?\n",
+            "How was your day at work, Mom?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1217,11 +1217,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Tell your mother how things have been going lately and ask about her.",
         opcoesFala = new List<string>()
         {
+            "Could you show me the way to the station?\n",
             "I've been doing well, thanks. How about you?\n",
-            "I would like to check out of the hotel.\n",
-            "Could you show me the way to the station?\n"
+            "I would like to check out of the hotel.\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosWriting.Add(new ExercicioWriting()
@@ -1239,11 +1239,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Ask your mother how her new responsibilities at work are going.",
         opcoesFala = new List<string>()
         {
-            "How have your new responsibilities at work been going?\n",
             "How much does the bathroom renovation cost yesterday?\n",
-            "Where do you usually buy your dinner?\n"
+            "Where do you usually buy your dinner?\n",
+            "How have your new responsibilities at work been going?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()

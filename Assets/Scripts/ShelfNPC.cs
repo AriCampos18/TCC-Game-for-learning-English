@@ -655,11 +655,11 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The attendant asks what you are looking for. Tell them that you need milk and cereal.",
         opcoesFala = new List<string>()
         {
+            "I'm waiting for my flight.\r\n",
             "I'm looking for some milk and cereal.\r\n",
-            "I would like to book a hotel room.\r\n",
-            "I'm waiting for my flight.\r\n"
+            "I would like to book a hotel room.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -667,12 +667,12 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The attendant shows you the milk. Which question asks whether it is available in another type?",
         alternativas = new List<string>()
         {
-            "Do you have another kind of milk?",
-            "How much is the hotel room?",
             "Where is the nearest airport?",
-            "Can I pay for my dinner?"
+            "Can I pay for my dinner?",
+            "Do you have another kind of milk?",
+            "How much is the hotel room?"
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 2
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()
@@ -691,11 +691,11 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The attendant tells you that some cereals are on sale. Ask whether there are any special discounts.",
         opcoesFala = new List<string>()
         {
+            "Could you bring me the menu?\r\n",
             "Are there any special discounts today?\r\n",
-            "I have a reservation for two.\r\n",
-            "Could you bring me the menu?\r\n"
+            "I have a reservation for two.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -703,12 +703,12 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The attendant asks if you need anything else. Choose the most appropriate response.",
         alternativas = new List<string>()
         {
+            "I would like to change my hotel room.",
             "No, thank you. I think that's everything I need.",
             "I usually go to school by bus.",
-            "The weather is very cold today.",
-            "I would like to change my hotel room."
+            "The weather is very cold today."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 1
     });
 }
 
@@ -738,12 +738,12 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The attendant offers whole, semi-skimmed, and lactose-free milk. Which response clearly expresses a preference?",
         alternativas = new List<string>()
         {
-            "I'd prefer lactose-free milk, if you have it.",
-            "I went to the supermarket yesterday.",
             "I would like to reserve a table.",
-            "The cereal is under the chair."
+            "The cereal is under the chair.",
+            "I'd prefer lactose-free milk, if you have it.",
+            "I went to the supermarket yesterday."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -768,12 +768,12 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The attendant says that one cereal contains less sugar than the alternatives. What does this information help you do?",
         alternativas = new List<string>()
         {
-            "Compare the nutritional characteristics of the products.",
             "Find out how much the shopping cart weighs.",
             "Check whether the store accepts cash.",
-            "Ask for a different shopping basket."
+            "Ask for a different shopping basket.",
+            "Compare the nutritional characteristics of the products."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()

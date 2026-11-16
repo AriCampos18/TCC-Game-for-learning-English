@@ -1827,12 +1827,12 @@ exerciciosAlternativas.Add(
             enunciado = "You are looking for a T-shirt for everyday use. Tell the salesperson what you need and describe the style you prefer.",
             alternativas = new List<string>()
             {
-                "I don’t like something comfortable to use.",
                 "I would like a black sneakers.",
                 "I'm looking for a fancy dress.",
-                "I'm looking for a T-shirt for everyday use."
+                "I'm looking for a T-shirt for everyday use.",
+                "I don’t like something comfortable to use."
             },
-            alternativaCorreta = 3
+            alternativaCorreta = 2
         }
     );
 
@@ -1844,12 +1844,12 @@ exerciciosAlternativas.Add(
             enunciado = "The salesperson asks whether you prefer casual or formal clothing. Which answer expresses a casual preference?",
             alternativas = new List<string>()
             {
-                "I'd prefer something comfortable for everyday use.",
                 "I would like to reserve a hotel room.",
                 "I usually wear a medium yesterday.",
-                "I usually wear a medium."
+                "I usually wear a medium.",
+                "I'd prefer something comfortable for everyday use."
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 3
         }
     );
 
@@ -1868,11 +1868,11 @@ exerciciosAlternativas.Add(
             enunciado = "You like the blue T-shirt, but you would also like to see another option. Ask the salesperson about the available colors.",
             opcoesFala = new List<string>()
             {
+                "I would like to pay for my dinner, please.\r\n",
                 "Can I see another color, please? \r\n",
-                "Could you tell me where the airport is?\r\n",
-                "I would like to pay for my dinner, please.\r\n"
+                "Could you tell me where the airport is?\r\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1883,11 +1883,11 @@ exerciciosAlternativas.Add(
             enunciado = "The salesperson asks if you would like to try the T-shirt on. Choose the appropriate response.",
             opcoesFala = new List<string>()
             {
-                "Yes, I'd like to try it on, please.\r\n",
                 "Yes, I'd like to wash it yesterday.\r\n",
-                "No, I don't know the price of the shoes.\r\n"
+                "No, I don't know the price of the shoes.\r\n",
+                "Yes, I'd like to try it on, please.\r\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1909,16 +1909,16 @@ exerciciosAlternativas.Add(
             respostaCorreta = "too",
             opcoes = new List<string>()
             {
-                "very",
-                "most",
-                "more",
                 "many",
                 "much",
                 "enough",
                 "too",
                 "as",
                 "better",
-                "less"
+                "less",
+                "very",
+                "most",
+                "more"
             }
         }
     );
@@ -1956,11 +1956,11 @@ exerciciosAlternativas.Add(
             enunciado = "The salesperson asks if you would like to buy the larger T-shirt. Tell them you have decided to purchase it.",
             opcoesFala = new List<string>()
             {
+                "I usually go shopping on Sundays yesterday.\r\n",
                 "I'll take it, please. This size is much better.\r\n",
-                "I would like to try another restaurant.\r\n",
-                "I usually go shopping on Sundays yesterday.\r\n"
+                "I would like to try another restaurant.\r\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1971,12 +1971,12 @@ exerciciosAlternativas.Add(
             enunciado = "The salesperson asks how you would like to pay. Which answer tells them that you prefer to use a credit card?",
             alternativas = new List<string>()
             {
+                "I usually wear a large size.",
                 "I'd like to try another size.",
                 "I'd prefer to pay by credit card.",
-                "I'd like to buy another color.",
-                "I usually wear a large size."
+                "I'd like to buy another color."
             },
-            alternativaCorreta = 1
+            alternativaCorreta = 2
         }
     );
 
@@ -2056,11 +2056,11 @@ exerciciosAlternativas.Add(
             enunciado = "The salesperson asks whether you prefer a formal or casual outfit. Choose the answer that best describes a smart-casual preference.",
             opcoesFala = new List<string>()
             {
+                "I would like to order a table for dinner.\r\n",
                 "I'd like something elegant but not too formal.\r\n",
-                "I need something for swimming in the ocean yesterday.\r\n",
-                "I would like to order a table for dinner.\r\n"
+                "I need something for swimming in the ocean yesterday.\r\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -2071,12 +2071,12 @@ exerciciosAlternativas.Add(
             enunciado = "Why might the salesperson recommend the navy blazer?",
             alternativas = new List<string>()
             {
-                "Because it can be combined with different types of trousers.",
                 "Because it is only suitable for sports activities.",
                 "Because it is made entirely of leather.",
-                "Because it is the only item available in the store."
+                "Because it is the only item available in the store.",
+                "Because it can be combined with different types of trousers."
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 3
         }
     );
 
@@ -2095,12 +2095,12 @@ exerciciosAlternativas.Add(
             enunciado = "According to the salesperson, how should the blazer be cleaned?",
             alternativas = new List<string>()
             {
+                "It should be placed in the freezer.",
                 "It should be washed with hot water.",
                 "It should be dry cleaned.",
-                "It should be cleaned with soap every day.",
-                "It should be placed in the freezer."
+                "It should be cleaned with soap every day."
             },
-            alternativaCorreta = 1
+            alternativaCorreta = 2
         }
     );
 
@@ -2108,9 +2108,9 @@ exerciciosAlternativas.Add(
     exerciciosSpeaking.Add(
         new ExercicioSpeaking()
         {
-            enunciado = "The salesperson offers matching trousers. Ask about their price.", 
-opcoesFala = new List<string>() { "Yes, please. How much are the trousers?\r\n", "Yes, please. Where are the trousers cost?\r\n", "No, thank you. I would like to see the trousers.\r\n" }, 
-respostaCorreta = 0 
+            enunciado = "The salesperson offers matching trousers. Ask about their price.",
+opcoesFala = new List<string>() { "Yes, please. Where are the trousers cost?\r\n", "No, thank you. I would like to see the trousers.\r\n", "Yes, please. How much are the trousers?\r\n" },
+respostaCorreta = 2
         }
     );
 
@@ -2131,11 +2131,11 @@ respostaCorreta = 0
             enunciado = "The salesperson asks if you would like to try both pieces on. Choose the most appropriate response.",
             opcoesFala = new List<string>()
             {
+                "Yes, I have already paid for the restaurant.\r\n",
                 "Yes, I'd like to try them on together, please.\r\n",
-                "No, I would like to book a flight instead.\r\n",
-                "Yes, I have already paid for the restaurant.\r\n"
+                "No, I would like to book a flight instead.\r\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -2157,16 +2157,16 @@ respostaCorreta = 0
             respostaCorreta = "better",
             opcoes = new List<string>()
             {
-                "best",
-                "well",
-                "better",
-                "more",
-                "enough",
                 "worse",
                 "quite",
                 "as",
                 "too",
-                "less"
+                "less",
+                "best",
+                "well",
+                "better",
+                "more",
+                "enough"
             }
         }
     );
@@ -2178,12 +2178,12 @@ respostaCorreta = 0
             enunciado = "The salesperson asks whether you want to buy both pieces or only the blazer. Which response clearly expresses that you want to purchase both?",
             alternativas = new List<string>()
             {
+                "Could you show me a different store?",
                 "I'd rather return both items tomorrow.",
                 "I'll take both pieces, as they work well together.",
-                "I only need the trousers, because I already bought the blazer.",
-                "Could you show me a different store?"
+                "I only need the trousers, because I already bought the blazer."
             },
-            alternativaCorreta = 1
+            alternativaCorreta = 2
         }
     );
 
@@ -2194,11 +2194,11 @@ respostaCorreta = 0
             enunciado = "You have decided to purchase both items. The salesperson tells you the total is $144. Choose the correct response to say that you would like to pay by card.",
             opcoesFala = new List<string>()
             {
-                "I'd like to exchange the trousers for another size yesterday.\r\n",
                 "I'd rather try on a different color.\r\n",
-		        "I'd prefer to pay by card, please\r\n"  
+                "I'd prefer to pay by card, please\r\n",
+		        "I'd like to exchange the trousers for another size yesterday.\r\n"
             },
-            respostaCorreta = 2
+            respostaCorreta = 1
         }
     );
 

@@ -727,11 +727,11 @@ public class brotherNPC : InteracaoNPC
         enunciado = "Ask your brother how school has been going.",
         opcoesFala = new List<string>()
         {
+            "Where did you buy the bathroom?\n",
             "How has school been going lately?\n",
-            "How much is the dinner today?\n",
-            "Where did you buy the bathroom?\n"
+            "How much is the dinner today?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -744,11 +744,11 @@ public class brotherNPC : InteracaoNPC
         enunciado = "Ask your brother what the dog likes to play with.",
         opcoesFala = new List<string>()
         {
-            "What does he like playing with?\n",
             "Where does he go to school?\n",
-            "When does he eat dinner yesterday?\n"
+            "When does he eat dinner yesterday?\n",
+            "What does he like playing with?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -756,12 +756,12 @@ public class brotherNPC : InteracaoNPC
         enunciado = "What does the dog enjoy playing with?",
         alternativas = new List<string>()
         {
-            "A ball\r\n",
             "A notebook\r\n",
             "A chair\r\n",
-            "A school bag\r\n"
+            "A school bag\r\n",
+            "A ball\r\n"
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 }
 else if (nivelAtual == "A2-B1")
@@ -800,11 +800,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Ask your brother how he has been managing his schoolwork lately.",
         opcoesFala = new List<string>()
         {
-            "How have you been managing your schoolwork lately?\n",
             "Where is the nearest restaurant located?\n",
-            "How much does the dog weigh tomorrow?\n"
+            "How much does the dog weigh tomorrow?\n",
+            "How have you been managing your schoolwork lately?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosWriting.Add(new ExercicioWriting()

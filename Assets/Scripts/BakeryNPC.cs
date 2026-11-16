@@ -923,11 +923,11 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "Tell the bakery attendant that you would like to buy a chicken sandwich.",
         opcoesFala = new List<string>()
         {
-            "I'd like a chicken sandwich, please.\r\n",
             "I'd like to book a hotel room.\r\n",
-            "I need to find the train station.\r\n"
+            "I need to find the train station.\r\n",
+            "I'd like a chicken sandwich, please.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -935,12 +935,12 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "Which products does the attendant say are available?",
         alternativas = new List<string>()
         {
+            "Coffee, tea and apple pie only.",
             "Fresh bread, chicken sandwiches and chocolate cake.",
             "Pizza, hamburgers and ice cream.",
-            "Rice, pasta and frozen vegetables.",
-            "Coffee, tea and apple pie only."
+            "Rice, pasta and frozen vegetables."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 1
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -948,11 +948,11 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "The attendant asks whether you would like something to drink. Ask for orange juice.",
         opcoesFala = new List<string>()
         {
-            "Could I have some orange juice, please?\r\n",
             "Could I have another room, please?\r\n",
-            "Where can I buy a train ticket?\r\n"
+            "Where can I buy a train ticket?\r\n",
+            "Could I have some orange juice, please?\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()
@@ -971,11 +971,11 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "The attendant asks if you would like anything else. Tell them that you would also like a piece of chocolate cake.",
         opcoesFala = new List<string>()
         {
+            "I need a larger pair of shoes.\r\n",
             "I'd also like a piece of chocolate cake, please.\r\n",
-            "I would like to check out of the hotel.\r\n",
-            "I need a larger pair of shoes.\r\n"
+            "I would like to check out of the hotel.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
             exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -983,12 +983,12 @@ public class BakeryNPC : InteracaoNPC
                 enunciado = "The attendant asks if you need anything else. Choose the appropriate response.",
                 alternativas = new List<string>()
                 {
+                    "I'd like to change my reservation.",
                     "No, that's everything. Thank you.",
                     "I usually wake up at seven.",
-                    "The airport is near the city center.",
-                    "I'd like to change my reservation."
+                    "The airport is near the city center."
                 },
-                alternativaCorreta = 0
+                alternativaCorreta = 1
             });
         }
         else if(nivelAtual== "A2-B1")
@@ -1016,12 +1016,12 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "Which statement correctly describes the products available today?",
         alternativas = new List<string>()
         {
-            "The bakery has chocolate croissants, cheese sandwiches and sourdough bread.",
-            "The bakery only sells frozen meals.",
             "The bakery has no sandwiches available.",
-            "All the products are sold out."
+            "All the products are sold out.",
+            "The bakery has chocolate croissants, cheese sandwiches and sourdough bread.",
+            "The bakery only sells frozen meals."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1051,12 +1051,12 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "The attendant says the orange juice is made fresh every morning. What does this mean?",
         alternativas = new List<string>()
         {
-            "It is prepared fresh each morning.",
             "It is always served frozen.",
             "It is made only once a month.",
-            "It contains no fruit."
+            "It contains no fruit.",
+            "It is prepared fresh each morning."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()

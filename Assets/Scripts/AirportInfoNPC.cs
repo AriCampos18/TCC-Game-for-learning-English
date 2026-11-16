@@ -779,11 +779,11 @@ public class AirportInfoNPC : InteracaoNPC
             enunciado = "Ask the airport employee which floor the check-in desks are on.",
             opcoesFala = new List<string>()
             {
+                "Could you tell me when my flight will land?\n",
                 "Could you tell me which floor the check-in desks are on?\n",
-                "Could you tell me where I can collect my luggage?\n",
-                "Could you tell me when my flight will land?\n"
+                "Could you tell me where I can collect my luggage?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -793,12 +793,12 @@ public class AirportInfoNPC : InteracaoNPC
             enunciado = "The employee says the check-in desks are on the second floor. How should you get there?",
             alternativas = new List<string>()
             {
-                "Take the escalator upstairs and walk straight ahead.\r\n",
-                "Go downstairs and turn left.\r\n",
                 "Walk outside and look for a taxi.\r\n",
-                "Go to the baggage claim area.\r\n"
+                "Go to the baggage claim area.\r\n",
+                "Take the escalator upstairs and walk straight ahead.\r\n",
+                "Go downstairs and turn left.\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 2
         }
     );
 }
@@ -818,11 +818,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You need to find your airline's check-in desks. Ask the employee where they are located.",
             opcoesFala = new List<string>()
             {
+                "Do you know when the boarding process will finish?\n",
                 "Would you mind telling me which floor the check-in desks are on?\n",
-                "Could you confirm whether my luggage has been transferred?\n",
-                "Do you know when the boarding process will finish?\n"
+                "Could you confirm whether my luggage has been transferred?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -832,12 +832,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The employee explains how to reach the check-in desks. What should you do after taking the escalator?",
             alternativas = new List<string>()
             {
+                "Leave the terminal and enter the parking area.\r\n",
                 "Turn right and walk past the cafés.\r\n",
                 "Turn left and go downstairs again.\r\n",
-                "Walk straight to the baggage claim area.\r\n",
-                "Leave the terminal and enter the parking area.\r\n"
+                "Walk straight to the baggage claim area.\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 1
         }
     );
 
@@ -847,11 +847,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You want to know how long it will take to reach the check-in desks. Ask the employee politely.",
             opcoesFala = new List<string>()
             {
+                "Do you know which gate my connecting flight leaves from?\n",
                 "Would you mind telling me how long it takes to get there?\n",
-                "Could you tell me how much my checked baggage weighs?\n",
-                "Do you know which gate my connecting flight leaves from?\n"
+                "Could you tell me how much my checked baggage weighs?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 }

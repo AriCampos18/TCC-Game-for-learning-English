@@ -1579,11 +1579,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "You are visiting the city for the first time. Tell the tour guide that you would like to visit some attractions.",
             opcoesFala = new List<string>()
             {
+                "I'd like to order something to eat.\n",
                 "I'd like to visit some tourist attractions.\n",
-                "I need to check in at my hotel.\n",
-                "I'd like to order something to eat.\n"
+                "I need to check in at my hotel.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1593,11 +1593,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "The guide asks if this is your first time in the city. Choose the appropriate response.",
             opcoesFala = new List<string>()
             {
-                "Yes, this is my first time here.\n",
                 "Yes, I am the city.\n",
-                "No, I like the directions.\n"
+                "No, I like the directions.\n",
+                "Yes, this is my first time here.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1607,12 +1607,12 @@ else if (nivelAtual == "A1-A2")
             enunciado = "According to the guide, where is the City Park?",
             alternativas = new List<string>()
             {
-                "Next to the hotel.\r\n",
                 "Behind the airport.\r\n",
                 "Inside the museum.\r\n",
-                "Across from the university.\r\n"
+                "Across from the university.\r\n",
+                "Next to the hotel.\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 3
         }
     );
 
@@ -1622,11 +1622,11 @@ else if (nivelAtual == "A1-A2")
             enunciado = "You want to know how long it takes to walk to the City Park. What should you ask?",
             opcoesFala = new List<string>()
             {
-                "How long does it take to get there on foot?\n",
                 "How much does the hotel room cost?\n",
-                "What time does the museum close yesterday?\n"
+                "What time does the museum close yesterday?\n",
+                "How long does it take to get there on foot?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1691,11 +1691,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You are visiting the city and would like recommendations. Explain to the guide that you want to explore local attractions.",
             opcoesFala = new List<string>()
             {
+                "I'd like to know where I can collect my luggage.\n",
                 "I'm visiting the city and would like to know which attractions you recommend.\n",
-                "I'm looking for a hotel room near the airport.\n",
-                "I'd like to know where I can collect my luggage.\n"
+                "I'm looking for a hotel room near the airport.\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 1
         }
     );
 
@@ -1728,11 +1728,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "The guide recommends the City Park. Express your interest and ask for directions.",
             opcoesFala = new List<string>()
             {
-                "The City Park sounds interesting. Could you explain how I can get there?\n",
                 "The City Park looks interesting. Could you tell me how much a hotel room costs?\n",
-                "I'd like to know whether the airport has a restaurant.\n"
+                "I'd like to know whether the airport has a restaurant.\n",
+                "The City Park sounds interesting. Could you explain how I can get there?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 
@@ -1749,12 +1749,12 @@ else if (nivelAtual == "A2-B1")
             enunciado = "According to the guide's directions, where should you turn after reaching the end of the block?",
             alternativas = new List<string>()
             {
+                "Cross the street and enter the museum.\r\n",
                 "Turn left.\r\n",
                 "Turn right.\r\n",
-                "Go back to the visitor center.\r\n",
-                "Cross the street and enter the museum.\r\n"
+                "Go back to the visitor center.\r\n"
             },
-            alternativaCorreta = 0
+            alternativaCorreta = 1
         }
     );
 
@@ -1764,11 +1764,11 @@ else if (nivelAtual == "A2-B1")
             enunciado = "You want to know if there is another way to reach the City Park without walking. Ask the guide.",
             opcoesFala = new List<string>()
             {
-                "Is there any public transportation I can take to get there?\n",
                 "Can I check in at the park?\n",
-                "How long does the museum stay open yesterday?\n"
+                "How long does the museum stay open yesterday?\n",
+                "Is there any public transportation I can take to get there?\n"
             },
-            respostaCorreta = 0
+            respostaCorreta = 2
         }
     );
 

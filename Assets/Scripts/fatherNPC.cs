@@ -597,11 +597,11 @@ public class fatherNPC : InteracaoNPC
         enunciado = "Tell your father how you have been feeling.",
         opcoesFala = new List<string>()
         {
-            "I've been doing well, Dad. Thanks for asking.\n",
             "I'd like to see the menu, please.\n",
-            "Could you tell me where the bathroom is?\n"
+            "Could you tell me where the bathroom is?\n",
+            "I've been doing well, Dad. Thanks for asking.\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -609,11 +609,11 @@ public class fatherNPC : InteracaoNPC
         enunciado = "Ask your father how things are going at work.",
         opcoesFala = new List<string>()
         {
+            "Would you like to order a dessert?\n",
             "How have things been going at work, Dad?\n",
-            "What time does the restaurant open?\n",
-            "Would you like to order a dessert?\n"
+            "What time does the restaurant open?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -635,11 +635,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Tell your father about something that has changed in your routine recently.",
         opcoesFala = new List<string>()
         {
-            "I've been trying to organize my routine better lately.\n",
             "I'd like to reserve a table for two.\n",
-            "Could you tell me where the nearest pharmacy is?\n"
+            "Could you tell me where the nearest pharmacy is?\n",
+            "I've been trying to organize my routine better lately.\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -647,11 +647,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Ask your father about the project he is currently working on.",
         opcoesFala = new List<string>()
         {
+            "Would you like me to order something from the menu?\n",
             "What kind of project are you working on at the moment?\n",
-            "How many bedrooms does this house have yesterday?\n",
-            "Would you like me to order something from the menu?\n"
+            "How many bedrooms does this house have yesterday?\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
@@ -665,12 +665,12 @@ else if (nivelAtual == "A2-B1")
         respostaCorreta = "working",
         opcoes = new List<string>()
         {
+            "work",
             "working",
             "sleeping",
             "cooking",
             "travel",
-            "played",
-            "work"
+            "played"
         }
     });
 

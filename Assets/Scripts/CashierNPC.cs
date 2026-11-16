@@ -1281,11 +1281,11 @@ else if (nivelAtual == "A1-A2")
         enunciado = "Respond to the cashier's greeting and confirm that you found everything you needed.",
         opcoesFala = new List<string>()
         {
+            "I'm looking for a clothing store.\r\n",
             cumprimento + " Yes, I found everything I needed, thank you.\r\n",
-            "I would like to reserve a table.\r\n",
-            "I'm looking for a clothing store.\r\n"
+            "I would like to reserve a table.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -1293,12 +1293,12 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The cashier tells you that your total is $12.75. What is the correct amount?",
         alternativas = new List<string>()
         {
-            "Twelve dollars and seventy-five cents.",
             "Twenty dollars and fifty cents.",
             "Twelve dollars and fifteen cents.",
-            "Seventeen dollars and twenty-five cents."
+            "Seventeen dollars and twenty-five cents.",
+            "Twelve dollars and seventy-five cents."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1327,11 +1327,11 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The cashier asks how you would like to pay. Tell them that you would prefer to use your debit card.",
         opcoesFala = new List<string>()
         {
+            "I usually buy cereal on Mondays.\r\n",
             "I'd prefer to pay with my debit card.\r\n",
-            "I'd like to try another size.\r\n",
-            "I usually buy cereal on Mondays.\r\n"
+            "I'd like to try another size.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 1
     });
 
     exerciciosAlternativas.Add(new ExercicioAlternativas()
@@ -1339,12 +1339,12 @@ else if (nivelAtual == "A1-A2")
         enunciado = "The cashier asks whether you would like a printed receipt. What should you say if you want one?",
         alternativas = new List<string>()
         {
-            "Yes, please. I'd like a receipt.",
-            "No, I don't need any milk.",
             "I'd like to change my shopping cart.",
-            "The store closes at nine."
+            "The store closes at nine.",
+            "Yes, please. I'd like a receipt.",
+            "No, I don't need any milk."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 2
     });
 }
 else if (nivelAtual == "A2-B1")
@@ -1372,12 +1372,12 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The cashier says that your total comes to $18.40. Which option correctly expresses this amount?",
         alternativas = new List<string>()
         {
-            "Eighteen dollars and forty cents.",
             "Eighty dollars and eighteen cents.",
             "Eighteen dollars and fourteen cents.",
-            "Fourteen dollars and eighty cents."
+            "Fourteen dollars and eighty cents.",
+            "Eighteen dollars and forty cents."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 3
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -1395,11 +1395,11 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The cashier asks whether you brought your own bag. Explain that you brought a reusable bag and do not need another one.",
         opcoesFala = new List<string>()
         {
-            "I brought my own reusable bag, so I don't need another one.\r\n",
             "I would like to order a sandwich.\r\n",
-            "I need to find the dairy section.\r\n"
+            "I need to find the dairy section.\r\n",
+            "I brought my own reusable bag, so I don't need another one.\r\n"
         },
-        respostaCorreta = 0
+        respostaCorreta = 2
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()
@@ -1419,12 +1419,12 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The cashier offers you a printed or digital receipt. Which response requests a digital receipt?",
         alternativas = new List<string>()
         {
-            "A digital receipt would be great, thank you.",
-            "I'd like to pay in cash.",
             "I brought my own shopping bag.",
-            "Could you show me the cereal aisle?"
+            "Could you show me the cereal aisle?",
+            "A digital receipt would be great, thank you.",
+            "I'd like to pay in cash."
         },
-        alternativaCorreta = 0
+        alternativaCorreta = 2
     });
 
     exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
@@ -1441,9 +1441,9 @@ else if (nivelAtual == "A2-B1")
         respostaCorreta = "debit, receipt",
         opcoes = new List<string>()
         {
-            "debit", "credit", "cash", "receipt",
-            "bag", "money", "paper", "card",
-            "payment", "change", "total"
+            "credit", "cash", "receipt", "bag",
+            "money", "paper", "card", "payment",
+            "change", "total", "debit"
         }
     });
 }
