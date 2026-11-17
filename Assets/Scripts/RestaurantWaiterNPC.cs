@@ -1382,7 +1382,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
             {
                 cumprimento+". Welcome. Here is the menu. Let me know when you're ready to order.",
                 "It comes with a beef patty, cheese, lettuce, tomato, and onion. You can also add bacon for 5 dollars.",
-                "The haburger is our best-seller. Most customers love it.",
+                "The hamburger is our best-seller. Most customers love it.",
                 "Anything else?",
                 "Your order should be ready in about ten minutes. I'll bring it to you as soon as it's ready.",
                 "How was everything? Did you enjoy your meal?",
@@ -1728,7 +1728,6 @@ else if (nivelAtual == "A2-B1")
     {
         cumprimento + " Welcome to our restaurant. Here is the menu.",
         "Our hamburger is very popular. It comes with cheese, lettuce, tomato, and fries.",
-        "Would you like me to recommend something from the menu?",
         "Is there anything else you would like to order?",
         "Your order should be ready in about twenty minutes.",
         "How was your meal? Was everything to your liking?",
@@ -1748,18 +1747,6 @@ else if (nivelAtual == "A2-B1")
             "Could you tell me what comes with the hamburger?\n"
         },
         respostaCorreta = 2
-    });
-
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "Ask the waiter to recommend a dish from the menu.",
-        opcoesFala = new List<string>()
-        {
-            "Could you bring me a hotel key?\n",
-            "Could you recommend a dish for me?\n",
-            "Could you pay my bill for me?\n"
-        },
-        respostaCorreta = 1
     });
 
     exerciciosCriarFrases.Add(new ExercicioBlocos()
@@ -1828,11 +1815,6 @@ else if (nivelAtual == "A2-B1")
     exerciciosWriting.Add(new ExercicioWriting()
     {
         enunciado = "You enjoyed your meal. Write a short message to compliment the waiter on the food and service."
-    });
-
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "You could not finish your meal. Politely ask the waiter to pack the leftovers."
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -2091,6 +2073,8 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
         await PlayAudioETexto(i++); // Order will be ready.
+        exAtual = exerciciosCompletarFrase[0];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
         ConcluirMissao("rest_b1_pedido");
 
         IniciarMissao("rest_b1_cliente", "Converse com o outro cliente", "Talk to the other customer");
@@ -2219,11 +2203,6 @@ private async Task interacaoA2B1()
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
     ConcluirMissao("rest_a2b1_pratos");
 
     IniciarMissao("rest_a2b1_pedido",
@@ -2259,24 +2238,22 @@ private async Task interacaoA2B1()
         "Peça para embalar o restante da refeição",
         "Ask the waiter to pack the rest of your meal");
 
+    exAtual = exerciciosCompletarFrase[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); 
+    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++);
     exAtual = exerciciosWriting[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-    exAtual = exerciciosSpeaking[2];
+    exAtual = exerciciosSpeaking[1];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-    await PlayAudioETexto(i++);
     await PlayAudioETexto(i++);
     ConcluirMissao("rest_a2b1_viagem");
 
     IniciarMissao("rest_a2b1_pagamento",
         "Pague a conta e solicite o recibo",
         "Pay the bill and ask for the receipt");
-
-    exAtual = exerciciosSpeaking[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);

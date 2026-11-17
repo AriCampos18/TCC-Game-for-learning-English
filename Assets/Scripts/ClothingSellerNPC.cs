@@ -1324,7 +1324,7 @@ public class ClothingSellerNPC : InteracaoNPC
                     opcoesFala = new List<string>() {
                         "I would like a car\r\n",
                         "The shirt it's looks good\r\n",
-                        "Yes, plase. Thank you\r\n"
+                        "Yes, please. Thank you\r\n"
                     },
                     respostaCorreta = 2
                 }
@@ -1807,15 +1807,13 @@ public class ClothingSellerNPC : InteracaoNPC
             dialogoAtual = new List<string>()
 {
     cumprimento + " Welcome to our store! Are you looking for something special?",
-    "Is it for everyday use or a special occasion?",
     "Do you prefer casual or formal clothing?",
     "This T-shirt is available in blue, black, and white. What size do you wear?",
     "The medium is twenty-eight dollars. Would you like to try it on?",
     "How does it feel? Is it too tight?",
     "No problem! I can bring you a larger size.",
-    "Here is the larger one. Is it more comfortable?",
-    "Would you like to purchase it?",
-    "Would you like to pay by cash or card?",
+    "Here is the larger one. Would you like to purchase it?",
+    "The total is $144. Would you like to pay by cash or card?",
     "Thank you! Have a nice day!"
 };
 
@@ -1861,21 +1859,6 @@ exerciciosAlternativas.Add(
         }
     );
 
-    // EXERCÍCIO 4 - SPEAKING COM OPÇÕES
-    exerciciosSpeaking.Add(
-        new ExercicioSpeaking()
-        {
-            enunciado = "You like the blue T-shirt, but you would also like to see another option. Ask the salesperson about the available colors.",
-            opcoesFala = new List<string>()
-            {
-                "I would like to pay for my dinner, please.\r\n",
-                "Can I see another color, please? \r\n",
-                "Could you tell me where the airport is?\r\n"
-            },
-            respostaCorreta = 1
-        }
-    );
-
     // EXERCÍCIO 6 - SPEAKING COM OPÇÕES
     exerciciosSpeaking.Add(
         new ExercicioSpeaking()
@@ -1888,14 +1871,6 @@ exerciciosAlternativas.Add(
                 "Yes, I'd like to try it on, please.\r\n"
             },
             respostaCorreta = 2
-        }
-    );
-
-    // EXERCÍCIO 7 - SPEAKING LIVRE
-    exerciciosSpeaking.Add(
-        new ExercicioSpeaking()
-        {
-            enunciado = "You tried on the T-shirt and it feels too tight. Ask for a larger size."
         }
     );
 
@@ -2111,16 +2086,6 @@ exerciciosAlternativas.Add(
             enunciado = "The salesperson offers matching trousers. Ask about their price.",
 opcoesFala = new List<string>() { "Yes, please. Where are the trousers cost?\r\n", "No, thank you. I would like to see the trousers.\r\n", "Yes, please. How much are the trousers?\r\n" },
 respostaCorreta = 2
-        }
-    );
-
-    // EXERCÍCIO 7 - MONTAGEM DE PALAVRAS
-    exerciciosCriarFrases.Add(
-        new ExercicioBlocos()
-        {
-            enunciado = "Arrange the words to form the correct sentence in English: Embora o blazer seja elegante, gostaria de ver outra opção.",
-            blocosPalavras = new List<string>() { "Although", "the", "blazer", "is", "elegant,", "I'd", "like", "to", "see", "another", "option.", "because", "buy", "compare", "one" },
-            respostaCorreta = "Although the blazer is elegant, I'd like to see another option.\n"
         }
     );
 
@@ -2359,7 +2324,6 @@ respostaCorreta = 2
             "Try on the T-shirt and explain how it fits",
             "Experimente a camiseta e explique como ela serviu"
         );
-        await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
@@ -2386,7 +2350,9 @@ respostaCorreta = 2
 
         await PlayAudioETexto(i++);
 
-        await PlayAudioETexto(i++);
+        exAtual = exerciciosSpeaking[3];
+        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+       
         MissionManager.ConcluirMissaoNPC("roupas_a1_4");
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
@@ -2606,6 +2572,21 @@ respostaCorreta = 2
 
     await PlayAudioETexto(i++);
 
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[1];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosWriting[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
     exAtual = exerciciosSpeaking[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
@@ -2620,22 +2601,10 @@ respostaCorreta = 2
 
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosAlternativas[0];
+    exAtual = exerciciosCompletarFrase[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosWriting[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[1];
+    exAtual = exerciciosCriarFrase[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await AndarAteRoupa("blue_tshirt");
@@ -2651,21 +2620,15 @@ respostaCorreta = 2
 
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosSpeaking[2];
+    exAtual = exerciciosSpeaking[1];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosSpeaking[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    exAtual = exerciciosCompletarFrase[0];
+    exAtual = exerciciosAlternativas[2];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await PlayAudioETexto(i++);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a1a2_3");
 
@@ -2675,18 +2638,6 @@ respostaCorreta = 2
         "Choose the T-shirt and complete your purchase",
         "Escolha a camiseta e finalize sua compra"
     );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[4];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
 
     MissionManager.ConcluirMissaoNPC("roupas_a1a2_4");
 
@@ -2732,8 +2683,6 @@ respostaCorreta = 2
     exAtual = exerciciosAlternativas[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-    await PlayAudioETexto(i++);
-
     exAtual = exerciciosWriting[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
@@ -2756,7 +2705,9 @@ respostaCorreta = 2
     exAtual = exerciciosSpeaking[2];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-    exAtual = exerciciosCriarFrases[0];
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosSpeaking[3];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_3");
@@ -2770,19 +2721,22 @@ respostaCorreta = 2
 
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosSpeaking[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
-
     exAtual = exerciciosSpeaking[4];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await PlayAudioETexto(i++);
 
+    exAtual = exerciciosCompletarFrase[0];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosCompletarFrase[0];
+    exAtual = exerciciosAlternativas[2];
+    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+
+    await PlayAudioETexto(i++);
+
+    exAtual = exerciciosAlternativas[3];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_4");
@@ -2795,19 +2749,6 @@ respostaCorreta = 2
     );
 
     await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[5];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[6];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_5");
 

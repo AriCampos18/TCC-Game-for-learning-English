@@ -559,7 +559,7 @@ public class fatherNPC : InteracaoNPC
                     enunciado = "Complete the sentence with the correct words:",
                     partesFrase = new List<string>
                     {
-                        "I’m ",
+                        "I'm ",
                         ", I have to go ",
                         " home early."
                     },
@@ -641,19 +641,7 @@ else if (nivelAtual == "A2-B1")
         },
         respostaCorreta = 2
     });
-
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "Ask your father about the project he is currently working on.",
-        opcoesFala = new List<string>()
-        {
-            "Would you like me to order something from the menu?\n",
-            "What kind of project are you working on at the moment?\n",
-            "How many bedrooms does this house have yesterday?\n"
-        },
-        respostaCorreta = 1
-    });
-
+    
     exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
     {
         enunciado = "Complete the sentence with the correct words:",
@@ -672,6 +660,18 @@ else if (nivelAtual == "A2-B1")
             "travel",
             "played"
         }
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your father about the project he is currently working on.",
+        opcoesFala = new List<string>()
+        {
+            "Would you like me to order something from the menu?\n",
+            "What kind of project are you working on at the moment?\n",
+            "How many bedrooms does this house have yesterday?\n"
+        },
+        respostaCorreta = 1
     });
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
@@ -733,7 +733,7 @@ else if (nivelAtual == "A2-B1")
         LiberarControlePlayer();
     }
 
-    private async Task interacaoA1()
+    /*private async Task interacaoA1()
     {
         int i = 0;
 
@@ -769,7 +769,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
 
         await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
-    }
+    }*/
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

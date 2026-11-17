@@ -1161,11 +1161,6 @@ public class motherNPC : InteracaoNPC
         respostaCorreta = 2
     });
 
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "Respond to your mother and say that you are ready for dinner."
-    });
-
     exerciciosAssociacao.Add(new ExercicioAssociacao()
     {
         enunciado = "Match the Portuguese word or expression with its English equivalent.",
@@ -1229,23 +1224,6 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Write a short message describing what you think about the bathroom renovation. Mention at least two details you liked."
     });
 
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "Ask your mother what motivated the family to renovate the bathroom."
-    });
-
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "Ask your mother how her new responsibilities at work are going.",
-        opcoesFala = new List<string>()
-        {
-            "How much does the bathroom renovation cost yesterday?\n",
-            "Where do you usually buy your dinner?\n",
-            "How have your new responsibilities at work been going?\n"
-        },
-        respostaCorreta = 2
-    });
-
     exerciciosCriarFrases.Add(new ExercicioBlocos()
     {
         enunciado = "Arrange the words to form the correct sentence in English: Parece que vocês fizeram um ótimo trabalho na reforma.",
@@ -1264,6 +1242,18 @@ else if (nivelAtual == "A2-B1")
             "with"
         },
         respostaCorreta = "It looks like you did a great job with the renovation.\n"
+    });
+
+    exerciciosSpeaking.Add(new ExercicioSpeaking()
+    {
+        enunciado = "Ask your mother how her new responsibilities at work are going.",
+        opcoesFala = new List<string>()
+        {
+            "How much does the bathroom renovation cost yesterday?\n",
+            "Where do you usually buy your dinner?\n",
+            "How have your new responsibilities at work been going?\n"
+        },
+        respostaCorreta = 2
     });
 
     exerciciosAssociacao.Add(new ExercicioAssociacao()

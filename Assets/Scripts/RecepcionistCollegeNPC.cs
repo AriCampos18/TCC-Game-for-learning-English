@@ -847,46 +847,6 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             respostaCorreta = 2
         }
     );
-
-    exerciciosAssociacao.Add(
-        new ExercicioAssociacao()
-        {
-            enunciado = "Match the Portuguese word with the English word.",
-            opcoesPort = new List<string>()
-            {
-                "escritório",
-                "secretaria",
-                "andar",
-                "corredor",
-                "recepção",
-                "direções",
-                "matrícula",
-                "ajuda"
-            },
-            opcoesIngles = new List<string>()
-            {
-                "enrollment",
-                "directions",
-                "office",
-                "help",
-                "floor",
-                "reception",
-                "hallway",
-                "secretary"
-            },
-            associacaoCorreta = new List<ParAssociacao>()
-            {
-                new ParAssociacao { palavraPortugues = "escritório", palavraIngles = "office" },
-                new ParAssociacao { palavraPortugues = "secretaria", palavraIngles = "secretary" },
-                new ParAssociacao { palavraPortugues = "andar", palavraIngles = "floor" },
-                new ParAssociacao { palavraPortugues = "corredor", palavraIngles = "hallway" },
-                new ParAssociacao { palavraPortugues = "recepção", palavraIngles = "reception" },
-                new ParAssociacao { palavraPortugues = "direções", palavraIngles = "directions" },
-                new ParAssociacao { palavraPortugues = "matrícula", palavraIngles = "enrollment" },
-                new ParAssociacao { palavraPortugues = "ajuda", palavraIngles = "help" }
-            }
-        }
-    );
 }
 else if (nivelAtual == "A2-B1")
 {
@@ -981,46 +941,6 @@ else if (nivelAtual == "A2-B1")
                 "Thank you for explaining the route. I'll head there now.\n"
             },
             respostaCorreta = 2
-        }
-    );
-
-    exerciciosAssociacao.Add(
-        new ExercicioAssociacao()
-        {
-            enunciado = "Match the Portuguese expression with the English expression.",
-            opcoesPort = new List<string>()
-            {
-                "passar pela recepção",
-                "seguir em frente",
-                "no final do corredor",
-                "virar à direita",
-                "escritório administrativo",
-                "matrícula",
-                "esclarecer",
-                "estar interessado em"
-            },
-            opcoesIngles = new List<string>()
-            {
-                "to clarify",
-                "to be interested in",
-                "to turn right",
-                "administrative office",
-                "to walk past the reception desk",
-                "at the end of the hallway",
-                "enrollment",
-                "to continue straight"
-            },
-            associacaoCorreta = new List<ParAssociacao>()
-            {
-                new ParAssociacao { palavraPortugues = "passar pela recepção", palavraIngles = "to walk past the reception desk" },
-                new ParAssociacao { palavraPortugues = "seguir em frente", palavraIngles = "to continue straight" },
-                new ParAssociacao { palavraPortugues = "no final do corredor", palavraIngles = "at the end of the hallway" },
-                new ParAssociacao { palavraPortugues = "virar à direita", palavraIngles = "to turn right" },
-                new ParAssociacao { palavraPortugues = "escritório administrativo", palavraIngles = "administrative office" },
-                new ParAssociacao { palavraPortugues = "matrícula", palavraIngles = "enrollment" },
-                new ParAssociacao { palavraPortugues = "esclarecer", palavraIngles = "to clarify" },
-                new ParAssociacao { palavraPortugues = "estar interessado em", palavraIngles = "to be interested in" }
-            }
         }
     );
 }
@@ -1228,11 +1148,6 @@ else if (nivelAtual == "A2-B1")
         ObterTipoExercicio(exerciciosSpeaking[2]),
         exerciciosSpeaking[2]
     );
-
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
 }
 
 private async Task interacaoA2B1()
@@ -1272,11 +1187,6 @@ private async Task interacaoA2B1()
     await AbrirExercicio(
         ObterTipoExercicio(exerciciosSpeaking[2]),
         exerciciosSpeaking[2]
-    );
-
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
     );
 }
 

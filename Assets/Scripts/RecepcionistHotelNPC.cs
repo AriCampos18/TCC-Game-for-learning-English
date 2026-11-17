@@ -1662,7 +1662,7 @@ public GameObject cartaoQuarto;
                 }
             );
 
-            exerciciosSpeaking.Add(
+            /*exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
                         enunciado = "The receptionist says you can ask for a late checkout. Your flight is in the evening and you need more time in the room. What do you say?",
@@ -1674,7 +1674,7 @@ public GameObject cartaoQuarto;
                         },
                         respostaCorreta = 1
                     }
-            );
+            );*/
 
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
@@ -1705,7 +1705,7 @@ public GameObject cartaoQuarto;
                 }
             );
 
-            exerciciosSpeaking.Add(
+            /*exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
                         enunciado = "Choose the correct sentence to say you don't need anything else.",
@@ -1717,7 +1717,7 @@ public GameObject cartaoQuarto;
                         },
                         respostaCorreta = 2
                     }
-            );
+            );*/
 
             exerciciosAssociacao.Add(
                     new ExercicioAssociacao()
@@ -2467,12 +2467,6 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicio(
             ObterTipoExercicio(exerciciosSpeaking[3]),
             exerciciosSpeaking[3]
-        );
-
-        // O pedido livre vem antes da resposta da recepcionista sobre disponibilidade.
-        await AbrirExercicio(
-            ObterTipoExercicio(exerciciosSpeaking[4]),
-            exerciciosSpeaking[4]
         );
 
         await PlayAudioETexto(i++);

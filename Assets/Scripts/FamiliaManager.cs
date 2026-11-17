@@ -343,8 +343,8 @@ public class FamiliaManager : MonoBehaviour
         "Talk to your mother about work",
         "Converse com sua mãe sobre o trabalho");
 
-    await mae.ExecutarFala(3);
     await mae.ExecutarExercicio(mae.exerciciosSpeaking[2]);
+    await mae.ExecutarFala(3);
 
     ConcluirMissao("casa_a1a2_trabalho_mae");
 
@@ -402,10 +402,10 @@ private async Task InteracaoA2B1()
         "Cumprimente sua família");
 
     await irmao.ExecutarFala(0);
-    await mae.ExecutarFala(0);
     await pai.ExecutarFala(0);
 
     await pai.ExecutarExercicio(pai.exerciciosSpeaking[0]);
+    await pai.ExecutarExercicio(pai.exerciciosCompletarFrase[0]);
 
     ConcluirMissao("casa_a2b1_chegada");
 
@@ -414,8 +414,8 @@ private async Task InteracaoA2B1()
         "Talk to your father about your recent routine",
         "Converse com seu pai sobre sua rotina recente");
 
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[0]);
-    await pai.ExecutarFala(1);
+    await mae.ExecutarFala(0);
+    await mae.ExecutarExercicio(mae.exerciciosSpeaking[0]);
 
     ConcluirMissao("casa_a2b1_rotina_pai");
 
@@ -426,7 +426,7 @@ private async Task InteracaoA2B1()
 
     await mae.ExecutarFala(1);
     await mae.ExecutarExercicio(mae.exerciciosWriting[0]);
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
+    await mae.ExecutarExercicio(mae.exerciciosCriarFrases[0]);
 
     ConcluirMissao("casa_a2b1_banheiro");
 
@@ -436,8 +436,7 @@ private async Task InteracaoA2B1()
         "Pergunte ao seu pai sobre o projeto atual dele");
 
     await pai.ExecutarExercicio(pai.exerciciosSpeaking[1]);
-    await pai.ExecutarFala(2);
-    await pai.ExecutarExercicio(pai.exerciciosCompletarFrase[0]);
+    await pai.ExecutarFala(1);
 
     ConcluirMissao("casa_a2b1_trabalho_pai");
 
@@ -446,8 +445,8 @@ private async Task InteracaoA2B1()
         "Ask your mother about her work",
         "Pergunte à sua mãe sobre o trabalho dela");
 
+    await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
     await mae.ExecutarFala(2);
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[2]);
 
     ConcluirMissao("casa_a2b1_trabalho_mae");
 
@@ -490,7 +489,6 @@ private async Task InteracaoA2B1()
         "Agradeça à sua família e se despeça");
 
     await mae.ExecutarFala(4);
-    await mae.ExecutarExercicio(mae.exerciciosCriarFrases[0]);
     await mae.ExecutarExercicio(mae.exerciciosAssociacao[0]);
 
     ConcluirMissao("casa_a2b1_despedida");

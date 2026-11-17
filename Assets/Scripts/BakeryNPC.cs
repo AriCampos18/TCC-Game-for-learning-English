@@ -1291,11 +1291,6 @@ public class BakeryNPC : InteracaoNPC
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await PlayAudioETexto(i++);
-
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
 }
 
 private async Task interacaoA2B1()
@@ -1347,11 +1342,6 @@ private async Task interacaoA2B1()
 
     exAtual = exerciciosSpeaking[4];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
 }
 
    private async Task PegarProduto(GameObject produto, bool falar = true)

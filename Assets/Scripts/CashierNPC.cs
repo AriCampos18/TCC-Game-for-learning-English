@@ -1346,7 +1346,45 @@ else if (nivelAtual == "A1-A2")
         },
         alternativaCorreta = 2
     });
-}
+
+        exerciciosAssociacao.Add(new ExercicioAssociacao()
+        {
+            enunciado = "Match the English words with their Portuguese translations:",
+            opcoesPort = new List<string>()
+            {
+                "Embalagem",
+                "Peso",
+                "Carrinho",
+                "Oferta",
+                "Etiqueta",
+                "Produto",
+                "Compra",
+                "Estoque"
+            },
+            opcoesIngles = new List<string>()
+            {
+                "Purchase",
+                "Label",
+                "Stock",
+                "Product",
+                "Weight",
+                "Packaging",
+                "Sale",
+                "Cart"
+            },
+            associacaoCorreta = new List<ParAssociacao>()
+            {
+                new ParAssociacao() { palavraPortugues = "Embalagem", palavraIngles = "Packaging" },
+                new ParAssociacao() { palavraPortugues = "Peso", palavraIngles = "Weight" },
+                new ParAssociacao() { palavraPortugues = "Carrinho", palavraIngles = "Cart" },
+                new ParAssociacao() { palavraPortugues = "Oferta", palavraIngles = "Sale" },
+                new ParAssociacao() { palavraPortugues = "Etiqueta", palavraIngles = "Label" },
+                new ParAssociacao() { palavraPortugues = "Produto", palavraIngles = "Product" },
+                new ParAssociacao() { palavraPortugues = "Compra", palavraIngles = "Purchase" },
+                new ParAssociacao() { palavraPortugues = "Estoque", palavraIngles = "Stock" }
+            }
+        });
+    }
 else if (nivelAtual == "A2-B1")
 {
     valorTotal = 18.40;
@@ -1380,73 +1418,117 @@ else if (nivelAtual == "A2-B1")
         alternativaCorreta = 3
     });
 
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "Say the total amount of your purchase clearly.",
-        opcoesFala = new List<string>()
+        exerciciosSpeaking.Add(new ExercicioSpeaking()
         {
-            "Eighteen dollars and forty cents.\r\n"
-        },
-        respostaCorreta = 0
-    });
+            enunciado = "Say the total amount of your purchase clearly.",
+            opcoesFala = new List<string>()
+            {
+                "Eighteen dollars and forty cents.\r\n"
+            },
+            respostaCorreta = 0
+        });
 
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
-        enunciado = "The cashier asks whether you brought your own bag. Explain that you brought a reusable bag and do not need another one.",
-        opcoesFala = new List<string>()
+        exerciciosSpeaking.Add(new ExercicioSpeaking()
         {
-            "I would like to order a sandwich.\r\n",
-            "I need to find the dairy section.\r\n",
-            "I brought my own reusable bag, so I don't need another one.\r\n"
-        },
-        respostaCorreta = 2
-    });
+            enunciado = "The cashier asks whether you brought your own bag. Explain that you brought a reusable bag and do not need another one.",
+            opcoesFala = new List<string>()
+            {
+                "I would like to order a sandwich.\r\n",
+                "I need to find the dairy section.\r\n",
+                "I brought my own reusable bag, so I don't need another one.\r\n"
+            },
+            respostaCorreta = 2
+        });
 
-    exerciciosCriarFrases.Add(new ExercicioBlocos()
-    {
-        enunciado = "Arrange the words to form the correct sentence in English: Eu prefiro pagar com cartão de débito, se possível.",
-        blocosPalavras = new List<string>()
+        exerciciosCriarFrases.Add(new ExercicioBlocos()
         {
-            "I'd", "prefer", "to", "pay", "with", "my",
-            "debit", "card", "if", "possible", "please",
-            "cash", "instead"
-        },
-        respostaCorreta = "I'd prefer to pay with my debit card, if possible."
-    });
+            enunciado = "Arrange the words to form the correct sentence in English: Eu prefiro pagar com cartão de débito, se possível.",
+            blocosPalavras = new List<string>()
+            {
+                "I'd", "prefer", "to", "pay", "with", "my",
+                "debit", "card", "if", "possible", "please",
+                "cash", "instead"
+            },
+            respostaCorreta = "I'd prefer to pay with my debit card, if possible."
+        });
 
-    exerciciosAlternativas.Add(new ExercicioAlternativas()
-    {
-        enunciado = "The cashier offers you a printed or digital receipt. Which response requests a digital receipt?",
-        alternativas = new List<string>()
+        exerciciosAlternativas.Add(new ExercicioAlternativas()
         {
-            "I brought my own shopping bag.",
-            "Could you show me the cereal aisle?",
-            "A digital receipt would be great, thank you.",
-            "I'd like to pay in cash."
-        },
-        alternativaCorreta = 2
-    });
+            enunciado = "The cashier offers you a printed or digital receipt. Which response requests a digital receipt?",
+            alternativas = new List<string>()
+            {
+                "I brought my own shopping bag.",
+                "Could you show me the cereal aisle?",
+                "A digital receipt would be great, thank you.",
+                "I'd like to pay in cash."
+            },
+            alternativaCorreta = 2
+        });
 
-    exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
-    {
-        enunciado = "Complete the sentence with the correct words:",
-        partesFrase = new List<string>()
+        exerciciosCompletarFrase.Add(new ExercicioCompletarFrase()
         {
-            "I'd prefer to pay with my ",
-            " ",
-            " card, and I'd like a digital ",
-            " ",
-            "."
-        },
-        respostaCorreta = "debit, receipt",
-        opcoes = new List<string>()
+            enunciado = "Complete the sentence with the correct words:",
+            partesFrase = new List<string>()
+            {
+                "I'd prefer to pay with my ",
+                " ",
+                " card, and I'd like a digital ",
+                " ",
+                "."
+            },
+            respostaCorreta = "debit, receipt",
+            opcoes = new List<string>()
+            {
+                "credit", "cash", "receipt", "bag",
+                "money", "paper", "card", "payment",
+                "change", "total", "debit"
+            }
+        });
+
+        exerciciosAssociacao.Add(new ExercicioAssociacao()
         {
-            "credit", "cash", "receipt", "bag",
-            "money", "paper", "card", "payment",
-            "change", "total", "debit"
+                enunciado = "Match the English words with their Portuguese translations:",
+                opcoesPort = new List<string>()
+                {
+                    "Cobrança",
+                    "Recusa",
+                    "Comprovante",
+                    "Valor",
+                    "Parcelamento",
+                    "Conta",
+                    "Taxa",
+                    "Reembolso",
+                    "Pendência",
+                    "Limite"
+                },
+                opcoesIngles = new List<string>()
+                {
+                    "Refund",
+                    "Limit",
+                    "Charge",
+                    "Account",
+                    "Installment",
+                    "Receipt",
+                    "Fee",
+                    "Amount",
+                    "Decline",
+                    "Pending"
+                },
+                associacaoCorreta = new List<ParAssociacao>()
+                {
+                    new ParAssociacao() { palavraPortugues = "Cobrança", palavraIngles = "Charge" },
+                    new ParAssociacao() { palavraPortugues = "Recusa", palavraIngles = "Decline" },
+                    new ParAssociacao() { palavraPortugues = "Comprovante", palavraIngles = "Receipt" },
+                    new ParAssociacao() { palavraPortugues = "Valor", palavraIngles = "Amount" },
+                    new ParAssociacao() { palavraPortugues = "Parcelamento", palavraIngles = "Installment" },
+                    new ParAssociacao() { palavraPortugues = "Conta", palavraIngles = "Account" },
+                    new ParAssociacao() { palavraPortugues = "Taxa", palavraIngles = "Fee" },
+                    new ParAssociacao() { palavraPortugues = "Reembolso", palavraIngles = "Refund" },
+                    new ParAssociacao() { palavraPortugues = "Pendência", palavraIngles = "Pending" },
+                    new ParAssociacao() { palavraPortugues = "Limite", palavraIngles = "Limit" }
+                }
+            });
         }
-    });
-}
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
