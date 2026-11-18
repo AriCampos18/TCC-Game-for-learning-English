@@ -618,6 +618,7 @@ public class fatherNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Answer your father's question and say that you are staying for the night."
     });
 }
@@ -676,6 +677,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Answer your father and explain whether you are staying overnight or going home."
     });
 }
@@ -697,40 +699,6 @@ else if (nivelAtual == "A2-B1")
             return TipoExercicio.Associacao;
 
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
-    }
-
-    protected override async Task IniciarInteracao()
-    {
-        GameProgress.EstaEmDialogo = true;
-        nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
-
-        if (nivelAtual == "A1")
-        {
-            await interacaoA1();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else
-        {
-            await interacaoB1();
-        }
-
-        // Desativa o estado quando a conversa acabar completamente!
-        GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-
-        LiberarControlePlayer();
     }
 
     /*private async Task interacaoA1()

@@ -1469,6 +1469,7 @@ public class ClothingSellerNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "You found a black shirt you like. Ask the salesperson if you can try it on."
                 }
             );
@@ -1594,6 +1595,7 @@ public class ClothingSellerNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "You are attending a work event next week and need an appropriate outfit. Explain to the salesperson what kind of clothing you are looking for."
                 }
             );
@@ -1647,6 +1649,7 @@ public class ClothingSellerNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "You would like to complete your outfit with a pair of trousers. Ask the salesperson about the available styles and their prices."
                 }
             );
@@ -1693,6 +1696,7 @@ public class ClothingSellerNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "The blazer looks good, but the shoulders feel a little tight. Explain the problem to the salesperson and ask if they have a larger size."
                 }
             );
@@ -2020,6 +2024,7 @@ exerciciosAlternativas.Add(
     exerciciosSpeaking.Add(
         new ExercicioSpeaking()
         {
+            modoLivre = true,
             enunciado = "You need an outfit for an upcoming event. Explain to the salesperson what the event is and what kind of clothing you are looking for."
         }
     );
@@ -2108,6 +2113,7 @@ respostaCorreta = 2
     exerciciosSpeaking.Add(
         new ExercicioSpeaking()
         {
+            modoLivre = true,
             enunciado = "After trying on the outfit, you notice that the blazer feels tight around the shoulders. Explain the problem and ask the salesperson whether another size is available."
         }
     );
@@ -2604,7 +2610,7 @@ respostaCorreta = 2
     exAtual = exerciciosCompletarFrase[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
-    exAtual = exerciciosCriarFrase[0];
+    exAtual = exerciciosCriarFrases[0];
     await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
 
     await AndarAteRoupa("blue_tshirt");

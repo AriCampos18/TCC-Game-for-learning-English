@@ -1679,6 +1679,7 @@ public GameObject cartaoQuarto;
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "You have a flight at 5:00 p.m. Ask the recepcionist if you can checkout later. ",
                     }
             );

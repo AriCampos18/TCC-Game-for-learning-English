@@ -811,6 +811,7 @@ public class motherNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "Say something nice about the bathroom"
                     }
             ); 
@@ -832,6 +833,7 @@ public class motherNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "Say goodbye to your family"
                     }
             );
@@ -929,6 +931,7 @@ public class motherNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Describe what you like about the room using a complete sentence."
                 }
             );
@@ -1146,6 +1149,7 @@ public class motherNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Describe one thing you like about the renovated bathroom."
     });
 

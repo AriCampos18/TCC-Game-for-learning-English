@@ -9,6 +9,7 @@ using UnityEngine.UI;
 
 public sealed class AuthenticationUIController : MonoBehaviour
 {
+    public static AuthenticationUIController Instance { get; private set; }
     [SerializeField] private string backendBaseUrl = "http://localhost:5000/";
     [SerializeField] private GameObject errorModal;
     [Tooltip("Texto do modal de erro em português.")]
@@ -49,6 +50,16 @@ public sealed class AuthenticationUIController : MonoBehaviour
     private bool previousUiMode;
     private string missingReferenceDescription;
 
+    public SessionManager Session
+    {
+        get { return sessionManager; }
+    }
+
+    public string BackendBaseUrl
+    {
+        get { return backendBaseUrl; }
+    }
+
     private UnityAction loginClickHandler;
     private UnityAction registerClickHandler;
     private UnityAction openRegisterClickHandler;
@@ -56,19 +67,22 @@ public sealed class AuthenticationUIController : MonoBehaviour
 
     private void Awake()
     {
+        Instance = this;
         BindUiReferences();
         BindButtonHandlers();
-    }
-
-    private async void Start()
-    {
-        await InitializeAuthenticationAsync();
     }
 
     private void OnDestroy()
     {
         RemoveButtonHandlers();
+        if (Instance == this)
+            Instance = null;
         ownedAuthenticationManager?.Dispose();
+    }
+
+    private async void Start()
+    {
+        await InitializeAuthenticationAsync();
     }
 
     public void Initialize(

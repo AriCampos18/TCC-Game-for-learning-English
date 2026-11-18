@@ -163,9 +163,9 @@ public class SpeakingUI : MonoBehaviour
     public void InicializarExercicio(ExercicioSpeaking ex, InteracaoNPC npcQueChamou)
     {
         dadosExercicioAtual = ex;
-        tipoSpeaking = ex.opcoesFala != null && ex.opcoesFala.Count > 0
-            ? TipoSpeaking.ComOpcoes
-            : TipoSpeaking.Livre;
+        tipoSpeaking = ex.modoLivre
+            ? TipoSpeaking.Livre
+            : TipoSpeaking.ComOpcoes;
         npcAtivo = npcQueChamou;
         tentativesRestantes = 3;
         dadosAudioWav = null;

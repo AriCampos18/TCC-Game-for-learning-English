@@ -647,6 +647,7 @@ public class brotherNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "Ask your brother what his dog likes to play with."
                     }
             );
@@ -654,6 +655,7 @@ public class brotherNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "Talk about the pets you have or the animals you would like to have."
                     }
             );
@@ -736,6 +738,7 @@ public class brotherNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Ask your brother what he usually does before playing with the dog."
     });
 
@@ -814,6 +817,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Ask your brother what activities he and the dog have been doing together."
     });
 }

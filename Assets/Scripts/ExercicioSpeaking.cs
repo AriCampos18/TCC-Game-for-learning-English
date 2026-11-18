@@ -6,4 +6,5 @@ public class ExercicioSpeaking : ExercicioBase
 {
     public List<string> opcoesFala;
     public int respostaCorreta;
+    public bool modoLivre;
 }

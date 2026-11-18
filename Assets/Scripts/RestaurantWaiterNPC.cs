@@ -1169,6 +1169,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "Say thank you to the waiter."
                     }
             );  
@@ -1395,6 +1396,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "You are interested in the hambuger. Ask what comes with it.",
                     }
             );
@@ -1508,6 +1510,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "You couldn't finish your hamburger. Ask the waiter to wrap the rest for you."
                 }
             );  
@@ -1515,6 +1518,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Ask the waiter for the bill politely so you can pay for your meal."
                 }
             ); 
@@ -1684,6 +1688,7 @@ public class RestaurantWaiterNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Thank the waiter politely."
     });
 
@@ -1819,6 +1824,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Ask the waiter for the bill and explain that you are ready to pay."
     });
 

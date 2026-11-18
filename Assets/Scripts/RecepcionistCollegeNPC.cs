@@ -697,6 +697,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "The secretary helped you. Thank her and say goodbye"
                     }
             );
@@ -756,6 +757,7 @@ public class RecepcionistCollegeNPC: InteracaoNPC
             exerciciosSpeaking.Add(
                     new ExercicioSpeaking()
                     {
+                        modoLivre = true,
                         enunciado = "The secretary has helped you with everything you needed. Thank her for her help and end the conversation politely."
                     }
             );

@@ -671,6 +671,8 @@ public class BakeryNPC : InteracaoNPC
     [System.NonSerialized] public List<ExercicioBase> exerciciosAssociacao;
     private ExercicioBase exAtual;
     private BackendManager backendManager;
+    private ExerciseLoadResult exerciciosBancoBakery;
+    private string estadoCarregamentoExerciciosBakery;
 
     public GameObject modalLegenda;
 
@@ -688,6 +690,7 @@ public class BakeryNPC : InteracaoNPC
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
         exerciciosCriarFrases = new List<ExercicioBase>();
+        exerciciosWriting = new List<ExercicioBase>();
         nivelAtual = DadosJogador.nivelUsuario;
     }
 
@@ -759,6 +762,7 @@ public class BakeryNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Say a phrase to express gratitude."
                 });
 
@@ -816,6 +820,7 @@ public class BakeryNPC : InteracaoNPC
              exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Say a phrase to express gratitude."
                 }
             );
@@ -832,20 +837,6 @@ public class BakeryNPC : InteracaoNPC
                 }
             );
 
-            // exerciciosCompletarFrase.Add(
-            //     new ExercicioCompletarFrase() 
-            //     { 
-            //         enunciado = "Complete the sentence with the correct word:",
-            //         fraseAntes =  "I'm looking for something sweet for ",
-            //         fraseDepois = ".",
-            //         respostaCorreta = "breakfast",
-            //         blocosPalavras = new List<string>() { 
-            //             "sweet", "thank", "you", "that", "something", "was", "for",
-            //             "same", "for", "hello", "thank", "I'm", "maybe", "ok", "looking", "breakfast"
-            //         },
-            //         respostaCorreta = "I'm looking for something sweet for breakfast.",
-            //     }
-            // );
         }
         else if(nivelAtual=="B1")
         {
@@ -1008,6 +999,7 @@ public class BakeryNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Explain what you are looking for and ask the attendant to recommend something freshly baked."
     });
 
@@ -1026,6 +1018,7 @@ public class BakeryNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "You are interested in the chicken sandwich. Ask what ingredients it contains."
     });
 
@@ -1043,6 +1036,7 @@ public class BakeryNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "You prefer a vegetarian option. Explain this preference and ask whether the cheese sandwich would be suitable."
     });
 
@@ -1061,6 +1055,7 @@ public class BakeryNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "You have chosen a sandwich and a drink. Tell the attendant that you would also like a chocolate croissant."
     });
 
@@ -1078,6 +1073,7 @@ public class BakeryNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "The attendant asks whether you need anything else. Confirm that your order is complete and thank them politely."
     });
         }
@@ -1107,6 +1103,7 @@ public class BakeryNPC : InteracaoNPC
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
         InicializarConteudosPorNivel();
+        await CarregarExerciciosDoBanco();
 
         if (nivelAtual == "A1")
         {
@@ -1158,6 +1155,91 @@ public class BakeryNPC : InteracaoNPC
         LiberarControlePlayer();
     }
 
+    private async Task CarregarExerciciosDoBanco()
+    {
+        exerciciosBancoBakery = null;
+        estadoCarregamentoExerciciosBakery = null;
+        ExerciseManager manager = ExerciseManager.Instance;
+        ExerciseLoadResult result = await manager.LoadForNpcAsync("bakery_npc", nivelAtual);
+        if (!result.Success)
+        {
+            estadoCarregamentoExerciciosBakery = "falha completa de carregamento da API: " + result.Error;
+            Debug.LogWarning("BakeryNPC: exercícios do NeonDB indisponíveis; usando conteúdo local. " + result.Error);
+            return;
+        }
+        if (result.Count == 0)
+        {
+            estadoCarregamentoExerciciosBakery = "API respondeu sem exercícios para o nível " + nivelAtual;
+            Debug.LogWarning("BakeryNPC: a API não retornou exercícios para o nível " + nivelAtual + ". Usando conteúdo local.");
+            return;
+        }
+        exerciciosBancoBakery = result;
+        Debug.Log("BakeryNPC: " + result.Count + " exercícios carregados do backend para " + nivelAtual + ".");
+    }
+
+    private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio expectedType = fallback == null
+            ? (TipoExercicio)(-1)
+            : ObterTipoExercicio(fallback);
+        bool? expectedSpeakingFreeMode = null;
+        ExercicioSpeaking expectedSpeaking = fallback as ExercicioSpeaking;
+        if (expectedSpeaking != null)
+            expectedSpeakingFreeMode = expectedSpeaking.modoLivre;
+
+        ExerciseCatalogItem databaseItem = exerciciosBancoBakery == null
+            ? null
+            : exerciciosBancoBakery.Find(
+                pointKey, nivelAtual, ordem, expectedType, expectedSpeakingFreeMode);
+        if (databaseItem != null)
+        {
+            Debug.Log("BakeryNPC: exercício carregado da API; id_exercise="
+                + databaseItem.Exercise.idExercise
+                + ", point_key=" + pointKey
+                + ", nível=" + nivelAtual
+                + ", modalidade=" + DescreverModalidade(databaseItem.Tipo, databaseItem.Exercise)
+                + ", ordem=" + ordem + ".");
+            await AbrirExercicio(databaseItem.Tipo, databaseItem.Exercise);
+            return;
+        }
+
+        if (fallback == null)
+            throw new InvalidOperationException("Exercício ausente no banco e no fallback local: " + pointKey);
+
+        string fallbackReason = exerciciosBancoBakery == null
+            ? (estadoCarregamentoExerciciosBakery ?? "catálogo da API indisponível")
+            : "não foi encontrado exercício correspondente no catálogo da API";
+        string expectedModality = fallback == null
+            ? "indisponível"
+            : DescreverModalidade(expectedType, fallback);
+        Debug.LogWarning("BakeryNPC: usando fallback local por exercício; motivo="
+            + fallbackReason
+            + ", point_key=" + (string.IsNullOrWhiteSpace(pointKey) ? "indisponível" : pointKey)
+            + ", nível=" + (string.IsNullOrWhiteSpace(nivelAtual) ? "indisponível" : nivelAtual)
+            + ", modalidade esperada=" + expectedModality
+            + ", ordem esperada=" + ordem + ".");
+        await AbrirExercicio(ObterTipoExercicio(fallback), fallback);
+    }
+
+    private string DescreverModalidade(TipoExercicio tipo, ExercicioBase exercicio)
+    {
+        if (tipo == TipoExercicio.Speaking)
+        {
+            ExercicioSpeaking speaking = exercicio as ExercicioSpeaking;
+            return speaking != null && speaking.modoLivre ? "Speaking Livre" : "Speaking";
+        }
+
+        switch (tipo)
+        {
+            case TipoExercicio.Alternativas: return "Alternativas";
+            case TipoExercicio.Blocos: return "Criar Frase (Word Blocks)";
+            case TipoExercicio.Writing: return "Writing";
+            case TipoExercicio.Associacao: return "Associação";
+            case TipoExercicio.CompletarFrase: return "Completar Frase";
+            default: return tipo.ToString();
+        }
+    }
+
     private async Task interacaoA1()
     {
         int i = 0;
@@ -1166,21 +1248,21 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("initial_order", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("product_selection", 1, exAtual);
 
         await PegarProduto(breadLoaf);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("anything_else_response", 1, exAtual);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]); //
+        await AbrirExercicioDoPonto("anything_else_response", 2, exerciciosCriarFrases[0]);
 
         await PlayAudioETexto(i++);
 
@@ -1188,12 +1270,12 @@ public class BakeryNPC : InteracaoNPC
         await PegarProduto(sandwich, falar: false);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("order_completion", 1, exAtual);
 
         await PlayAudioETexto(i++);
     }
@@ -1206,17 +1288,17 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++);
         
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("initial_order", 1, exAtual);
 
         //Yes, we do. Which sandwich would you like, and would you like some juice too?
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("product_selection", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]); //
+        await AbrirExercicioDoPonto("anything_else_response", 1, exerciciosCriarFrases[0]);
 
         await PegarProduto(sandwich, falar: true);
         await PegarProduto(sourdough, falar: false);
@@ -1224,7 +1306,7 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++);
         
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("order_completion", 1, exAtual);
     }
 
     private async Task interacaoB1()
@@ -1234,23 +1316,23 @@ public class BakeryNPC : InteracaoNPC
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("initial_order", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("product_selection", 1, exAtual);
 
         await PegarProduto(sandwich, falar: true);
         await PegarProduto(sourdough, falar: false);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicioDoPonto("order_completion", 1, exAtual);
 
         await PlayAudioETexto(i++);
     }
@@ -1262,25 +1344,25 @@ public class BakeryNPC : InteracaoNPC
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("initial_order", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("product_selection", 1, exAtual);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("product_selection", 2, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("additional_item_request", 1, exAtual);
 
     await PegarProduto(cake, falar: true);
     await PegarProduto(sandwich, falar: false);
@@ -1288,7 +1370,7 @@ public class BakeryNPC : InteracaoNPC
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("anything_else_response", 1, exAtual);
 
     await PlayAudioETexto(i++);
 }
@@ -1300,35 +1382,35 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("initial_order", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("sandwich_details", 1, exAtual);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("sandwich_details", 2, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("dietary_preference", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("drink_details", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("additional_item_request", 1, exAtual);
 
     await PegarProduto(sandwich, falar: true);
     await PegarProduto(sourdough, falar: false);
@@ -1336,12 +1418,12 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("anything_else_response", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[4];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("order_completion", 1, exAtual);
 }
 
    private async Task PegarProduto(GameObject produto, bool falar = true)

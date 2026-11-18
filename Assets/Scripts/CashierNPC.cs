@@ -956,6 +956,7 @@ public class CashierNPC : InteracaoNPC
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Return the greeting from the cashier:"
                 }
             );
@@ -1402,6 +1403,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Respond to the cashier politely. Confirm that you found everything you needed and thank them."
     });
 

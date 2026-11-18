@@ -531,6 +531,7 @@ private async Task interacaoA2B1()
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Ask the supermarket employee if there are any apples available today."
                 }
             );
@@ -582,6 +583,7 @@ private async Task interacaoA2B1()
             exerciciosSpeaking.Add(
                 new ExercicioSpeaking()
                 {
+                    modoLivre = true,
                     enunciado = "Tell the employee whether you usually buy snacks from this aisle or prefer the one near the bakery."
                 }
             );
@@ -730,6 +732,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "Explain to the attendant which products you need and whether you have any particular preferences."
     });
 
@@ -748,6 +751,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "You want to know more about the cereal promotion. Ask the attendant whether the discount applies when buying more than one package."
     });
 
@@ -778,6 +782,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "You are interested in the snack promotion, but you are unsure whether buying multiple packages is worthwhile. Ask the attendant for more details."
     });
 
@@ -795,6 +800,7 @@ else if (nivelAtual == "A2-B1")
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
+        modoLivre = true,
         enunciado = "The attendant asks whether you need anything else. Explain that you have found everything you need and thank them."
     });
 }
