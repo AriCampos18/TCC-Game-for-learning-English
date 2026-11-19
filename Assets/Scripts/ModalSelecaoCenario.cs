@@ -134,6 +134,7 @@
 //     }
 // }
 
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -213,7 +214,25 @@ public class ModalSelecaoCenario : MonoBehaviour
         }
     }
 
-    public void SelecionarCenario(string cenario)
+    private bool selecionandoCenario;
+
+    public async void SelecionarCenario(string cenario)
+    {
+        if (selecionandoCenario)
+            return;
+
+        selecionandoCenario = true;
+        try
+        {
+            await SelecionarCenarioAsync(cenario);
+        }
+        finally
+        {
+            selecionandoCenario = false;
+        }
+    }
+
+    private async Task SelecionarCenarioAsync(string cenario)
     {
         GerenciadorProgressao gerenciador = GerenciadorProgressao.Instance;
 
@@ -251,6 +270,9 @@ public class ModalSelecaoCenario : MonoBehaviour
         // No VR, player deve ser a raiz do XR Origin.
         // Assim, o rig inteiro é deslocado e a posição local da câmera
         // (altura e deslocamento do headset) é preservada.
+        if (cenario == "Airport" && MissionManager.Instance != null)
+            await MissionManager.Instance.PrepararAirportAsync();
+
         TransportarJogador(destino.position);
 
         // Registra somente depois de validar e transportar para o destino.
