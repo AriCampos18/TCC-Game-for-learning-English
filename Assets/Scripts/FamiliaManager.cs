@@ -16,50 +16,44 @@ public class FamiliaManager : MonoBehaviour
             return;
 
         visitaEmAndamento = true;
-        bool fluxoConcluido = false;
 
         try
         {
-            GameProgress.EstaEmDialogo = true;
+            try
+            {
+                GameProgress.EstaEmDialogo = true;
+                string nivel = DadosJogador.nivelUsuario;
+                await Task.WhenAll(
+                    mae.PrepararParaFamilia(nivel),
+                    pai.PrepararParaFamilia(nivel),
+                    irmao.PrepararParaFamilia(nivel));
 
-            // Prepara os conteúdos dos três NPCs.
-            mae.PrepararParaFamilia();
-            pai.PrepararParaFamilia();
-            irmao.PrepararParaFamilia();
+                if (nivel == "A1")
+                    await InteracaoA1();
+                else if (nivel == "A1-A2")
+                    await InteracaoA1A2();
+                else if (nivel == "A2")
+                    await InteracaoA2();
+                else if (nivel == "A2-B1")
+                    await InteracaoA2B1();
+                else
+                    await InteracaoB1();
+            }
+            finally
+            {
+                GameProgress.EstaEmDialogo = false;
+                mae.FinalizarInteracaoFamilia();
+            }
 
-            string nivel = DadosJogador.nivelUsuario;
-
-            if (nivel == "A1")
-                await InteracaoA1();
-            else if (nivel == "A1-A2")
-                await InteracaoA1A2();
-            else if (nivel == "A2")
-                await InteracaoA2();
-            else if (nivel == "A2-B1")
-                await InteracaoA2B1();
-            else
-                await InteracaoB1();
-
-            fluxoConcluido = true;
-        }
-        finally
-        {
-            GameProgress.EstaEmDialogo = false;
-            mae.FinalizarInteracaoFamilia();
-
-            if (!fluxoConcluido)
-                visitaEmAndamento = false;
-        }
-
-        if (fluxoConcluido)
-        {
             if (RevisaoManager.Instance != null)
                 await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(mae);
             else
                 Debug.LogError("RevisaoManager não está disponível para finalizar Home.");
         }
-
-        visitaEmAndamento = false;
+        finally
+        {
+            visitaEmAndamento = false;
+        }
     }
 
     private void IniciarMissao(string id, string texto, string traducao)
@@ -84,7 +78,7 @@ public class FamiliaManager : MonoBehaviour
         await pai.ExecutarFala(0);
         await irmao.ExecutarFala(0);
         await mae.ExecutarFala(0);
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[0]);
+        await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
 
         ConcluirMissao("casa_a1_chegada");
 
@@ -92,7 +86,7 @@ public class FamiliaManager : MonoBehaviour
         IniciarMissao("casa_a1_dia_mae", "Talk to your mother about your day", "Converse com sua mãe sobre seu dia");
 
         await mae.ExecutarFala(1);
-        await mae.ExecutarExercicio(mae.exerciciosAlternativas[0]);
+        await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosAlternativas[0]);
 
         ConcluirMissao("casa_a1_dia_mae");
 
@@ -101,7 +95,7 @@ public class FamiliaManager : MonoBehaviour
 
         await mae.ExecutarFala(2);
         // O deslocamento até o banheiro ainda não é controlado pelo FamiliaManager.
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
+        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosSpeaking[1]);
 
         ConcluirMissao("casa_a1_banheiro");
 
@@ -109,18 +103,18 @@ public class FamiliaManager : MonoBehaviour
         IniciarMissao("casa_a1_trabalho_mae", "Talk to your mother about work", "Converse com sua mãe sobre o trabalho");
 
         await mae.ExecutarFala(3);
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[2]);
+        await mae.ExecutarExercicio("work_conversation", 4, mae.exerciciosSpeaking[2]);
 
         ConcluirMissao("casa_a1_trabalho_mae");
 
         // MISSÃO 5 — Conversar com o irmão sobre a escola e o cachorro.
         IniciarMissao("casa_a1_irmao", "Talk to your brother about school and the dog", "Converse com seu irmão sobre a escola e o cachorro");
 
-        await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[0]);
+        await irmao.ExecutarExercicio("school_and_dog", 5, irmao.exerciciosSpeaking[0]);
         await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio(irmao.exerciciosCompletarFrase[0]);
+        await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosCompletarFrase[0]);
         await irmao.ExecutarFala(2);
-        await irmao.ExecutarExercicio(irmao.exerciciosAlternativas[0]);
+        await irmao.ExecutarExercicio("school_and_dog", 7, irmao.exerciciosAlternativas[0]);
 
         ConcluirMissao("casa_a1_irmao");
 
@@ -136,8 +130,8 @@ public class FamiliaManager : MonoBehaviour
         IniciarMissao("casa_a1_despedida", "Say goodbye to your family", "Despeça-se da sua família");
 
         await pai.ExecutarFala(1);
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[3]);
-        await mae.ExecutarExercicio(mae.exerciciosAssociacao[0]);
+        await mae.ExecutarExercicio("farewell", 8, mae.exerciciosSpeaking[3]);
+        await mae.ExecutarExercicio("farewell", 9, mae.exerciciosAssociacao[0]);
 
         ConcluirMissao("casa_a1_despedida");
     }
@@ -153,7 +147,7 @@ public class FamiliaManager : MonoBehaviour
 
         await irmao.ExecutarFala(0);
         await mae.ExecutarFala(0);
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[0]);
+        await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
 
         ConcluirMissao("casa_a2_chegada");
 
@@ -161,7 +155,7 @@ public class FamiliaManager : MonoBehaviour
         IniciarMissao("casa_a2_dia_mae", "Talk to your mother about your day", "Converse com sua mãe sobre seu dia");
 
         await mae.ExecutarFala(1);
-        await mae.ExecutarExercicio(mae.exerciciosWriting[0]);
+        await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
 
         ConcluirMissao("casa_a2_dia_mae");
 
@@ -170,15 +164,15 @@ public class FamiliaManager : MonoBehaviour
 
         await mae.ExecutarFala(2);
         // O deslocamento até o cômodo e o retorno à sala ainda não são controlados aqui.
-        await mae.ExecutarExercicio(mae.exerciciosAlternativas[0]);
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
+        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
+        await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
 
         ConcluirMissao("casa_a2_comodo");
 
         // MISSÃO 4 — Conversar com o pai sobre o trabalho.
         IniciarMissao("casa_a2_pai_trabalho", "Talk to your father about his work", "Converse com seu pai sobre o trabalho dele");
 
-        await pai.ExecutarExercicio(pai.exerciciosSpeaking[0]);
+        await pai.ExecutarExercicio("work_conversation", 5, pai.exerciciosSpeaking[0]);
         await pai.ExecutarFala(0);
 
         ConcluirMissao("casa_a2_pai_trabalho");
@@ -186,9 +180,9 @@ public class FamiliaManager : MonoBehaviour
         // MISSÃO 5 — Conversar com o irmão sobre escola e cachorro.
         IniciarMissao("casa_a2_irmao", "Talk to your brother about school and the dog", "Converse com seu irmão sobre a escola e o cachorro");
 
-        await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[0]);
+        await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosSpeaking[0]);
         await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[1]);
+        await irmao.ExecutarExercicio("school_and_dog", 7, irmao.exerciciosSpeaking[1]);
         await irmao.ExecutarFala(2);
 
         ConcluirMissao("casa_a2_irmao");
@@ -196,7 +190,7 @@ public class FamiliaManager : MonoBehaviour
         // MISSÃO 6 — Compartilhar experiências com animais de estimação.
         IniciarMissao("casa_a2_animais", "Share your experiences with pets", "Compartilhe suas experiências com animais de estimação");
 
-        await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[2]);
+        await irmao.ExecutarExercicio("pets", 8, irmao.exerciciosSpeaking[2]);
 
         ConcluirMissao("casa_a2_animais");
 
@@ -212,8 +206,8 @@ public class FamiliaManager : MonoBehaviour
         IniciarMissao("casa_a2_despedida", "Thank your family and say goodbye", "Agradeça à sua família e se despeça");
 
         await pai.ExecutarFala(1);
-        await mae.ExecutarExercicio(mae.exerciciosCriarFrases[0]);
-        await mae.ExecutarExercicio(mae.exerciciosAssociacao[0]);
+        await mae.ExecutarExercicio("farewell", 9, mae.exerciciosCriarFrases[0]);
+        await mae.ExecutarExercicio("farewell", 10, mae.exerciciosAssociacao[0]);
 
         ConcluirMissao("casa_a2_despedida");
     }
@@ -230,14 +224,14 @@ public class FamiliaManager : MonoBehaviour
         await irmao.ExecutarFala(0);
         await mae.ExecutarFala(0);
         await pai.ExecutarFala(0);
-        await pai.ExecutarExercicio(pai.exerciciosSpeaking[0]);
+        await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
 
         ConcluirMissao("casa_b1_chegada");
 
         // MISSÃO 2 — Conversar com o pai sobre a rotina.
         IniciarMissao("casa_b1_rotina_pai", "Talk to your father about your recent routine", "Converse com seu pai sobre sua rotina recente");
 
-        await pai.ExecutarExercicio(pai.exerciciosSpeaking[1]);
+        await pai.ExecutarExercicio("routine", 2, pai.exerciciosSpeaking[1]);
 
         ConcluirMissao("casa_b1_rotina_pai");
 
@@ -253,14 +247,14 @@ public class FamiliaManager : MonoBehaviour
 
         await mae.ExecutarFala(1);
         // O deslocamento até a cozinha ainda não é controlado pelo FamiliaManager.
-        await mae.ExecutarExercicio(mae.exerciciosWriting[0]);
+        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosWriting[0]);
 
         ConcluirMissao("casa_b1_cozinha");
 
         // MISSÃO 5 — Conversar com a mãe sobre o trabalho.
         IniciarMissao("casa_b1_trabalho_mae", "Ask your mother about her work", "Pergunte à sua mãe sobre o trabalho dela");
 
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[0]);
+        await mae.ExecutarExercicio("work_conversation", 4, mae.exerciciosSpeaking[0]);
         await mae.ExecutarFala(2);
 
         ConcluirMissao("casa_b1_trabalho_mae");
@@ -268,9 +262,9 @@ public class FamiliaManager : MonoBehaviour
         // MISSÃO 6 — Conversar com o irmão sobre escola e cachorro.
         IniciarMissao("casa_b1_irmao", "Talk to your brother about school and the dog", "Converse com seu irmão sobre a escola e o cachorro");
 
-        await irmao.ExecutarExercicio(irmao.exerciciosCriarFrases[0]);
+        await irmao.ExecutarExercicio("school_and_dog", 5, irmao.exerciciosCriarFrases[0]);
         await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[0]);
+        await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosSpeaking[0]);
         await irmao.ExecutarFala(2);
 
         ConcluirMissao("casa_b1_irmao");
@@ -278,7 +272,7 @@ public class FamiliaManager : MonoBehaviour
         // MISSÃO 7 — Compartilhar experiências com animais.
         IniciarMissao("casa_b1_animais", "Share your experiences with animals", "Compartilhe suas experiências com animais");
 
-        await irmao.ExecutarExercicio(irmao.exerciciosWriting[0]);
+        await irmao.ExecutarExercicio("pets", 7, irmao.exerciciosWriting[0]);
 
         ConcluirMissao("casa_b1_animais");
 
@@ -288,7 +282,7 @@ public class FamiliaManager : MonoBehaviour
         await mae.ExecutarFala(3);
         // O deslocamento até a mesa ainda não é controlado pelo FamiliaManager.
         await pai.ExecutarFala(2);
-        await pai.ExecutarExercicio(pai.exerciciosCompletarFrase[0]);
+        await pai.ExecutarExercicio("dinner_plans", 8, pai.exerciciosCompletarFrase[0]);
 
         ConcluirMissao("casa_b1_jantar_planos");
 
@@ -296,8 +290,8 @@ public class FamiliaManager : MonoBehaviour
         IniciarMissao("casa_b1_despedida", "Thank your family and say goodbye", "Agradeça à sua família e se despeça");
 
         await mae.ExecutarFala(4);
-        await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
-        await mae.ExecutarExercicio(mae.exerciciosAssociacao[0]);
+        await mae.ExecutarExercicio("farewell", 9, mae.exerciciosSpeaking[1]);
+        await mae.ExecutarExercicio("farewell", 10, mae.exerciciosAssociacao[0]);
 
         ConcluirMissao("casa_b1_despedida");
     }
@@ -313,7 +307,7 @@ public class FamiliaManager : MonoBehaviour
     await irmao.ExecutarFala(0);
     await mae.ExecutarFala(0);
 
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[0]);
+    await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
 
     ConcluirMissao("casa_a1a2_chegada");
 
@@ -323,7 +317,7 @@ public class FamiliaManager : MonoBehaviour
         "Converse com sua mãe sobre seu dia");
 
     await mae.ExecutarFala(1);
-    await mae.ExecutarExercicio(mae.exerciciosWriting[0]);
+    await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
 
     ConcluirMissao("casa_a1a2_dia");
 
@@ -333,8 +327,8 @@ public class FamiliaManager : MonoBehaviour
         "Conheça o banheiro reformado");
 
     await mae.ExecutarFala(2);
-    await mae.ExecutarExercicio(mae.exerciciosAlternativas[0]);
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
+    await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
+    await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
 
     ConcluirMissao("casa_a1a2_banheiro");
 
@@ -343,7 +337,7 @@ public class FamiliaManager : MonoBehaviour
         "Talk to your mother about work",
         "Converse com sua mãe sobre o trabalho");
 
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[2]);
+    await mae.ExecutarExercicio("work_conversation", 5, mae.exerciciosSpeaking[2]);
     await mae.ExecutarFala(3);
 
     ConcluirMissao("casa_a1a2_trabalho_mae");
@@ -353,9 +347,9 @@ public class FamiliaManager : MonoBehaviour
         "Talk to your father about his work",
         "Converse com seu pai sobre o trabalho dele");
 
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[0]);
+    await pai.ExecutarExercicio("work_conversation", 6, pai.exerciciosSpeaking[0]);
     await pai.ExecutarFala(1);
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[1]);
+    await pai.ExecutarExercicio("work_conversation", 7, pai.exerciciosSpeaking[1]);
 
     ConcluirMissao("casa_a1a2_pai");
 
@@ -364,12 +358,12 @@ public class FamiliaManager : MonoBehaviour
         "Talk to your brother about school and the dog",
         "Converse com seu irmão sobre a escola e o cachorro");
 
-    await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[0]);
+    await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosSpeaking[0]);
     await irmao.ExecutarFala(1);
-    await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[1]);
+    await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[1]);
     await irmao.ExecutarFala(2);
-    await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[2]);
-    await irmao.ExecutarExercicio(irmao.exerciciosAlternativas[0]);
+    await irmao.ExecutarExercicio("school_and_dog", 10, irmao.exerciciosSpeaking[2]);
+    await irmao.ExecutarExercicio("school_and_dog", 11, irmao.exerciciosAlternativas[0]);
 
     ConcluirMissao("casa_a1a2_irmao");
 
@@ -388,8 +382,8 @@ public class FamiliaManager : MonoBehaviour
         "Say goodbye to your family",
         "Despeça-se da sua família");
 
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[2]);
-    await mae.ExecutarExercicio(mae.exerciciosAssociacao[0]);
+    await pai.ExecutarExercicio("farewell", 12, pai.exerciciosSpeaking[2]);
+    await mae.ExecutarExercicio("farewell", 13, mae.exerciciosAssociacao[0]);
 
     ConcluirMissao("casa_a1a2_despedida");
 }
@@ -404,8 +398,8 @@ private async Task InteracaoA2B1()
     await irmao.ExecutarFala(0);
     await pai.ExecutarFala(0);
 
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[0]);
-    await pai.ExecutarExercicio(pai.exerciciosCompletarFrase[0]);
+    await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
+    await pai.ExecutarExercicio("greeting", 2, pai.exerciciosCompletarFrase[0]);
 
     ConcluirMissao("casa_a2b1_chegada");
 
@@ -415,7 +409,7 @@ private async Task InteracaoA2B1()
         "Converse com seu pai sobre sua rotina recente");
 
     await mae.ExecutarFala(0);
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[0]);
+    await mae.ExecutarExercicio("routine", 3, mae.exerciciosSpeaking[0]);
 
     ConcluirMissao("casa_a2b1_rotina_pai");
 
@@ -425,8 +419,8 @@ private async Task InteracaoA2B1()
         "Converse sobre a reforma do banheiro");
 
     await mae.ExecutarFala(1);
-    await mae.ExecutarExercicio(mae.exerciciosWriting[0]);
-    await mae.ExecutarExercicio(mae.exerciciosCriarFrases[0]);
+    await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosWriting[0]);
+    await mae.ExecutarExercicio("home_changes", 5, mae.exerciciosCriarFrases[0]);
 
     ConcluirMissao("casa_a2b1_banheiro");
 
@@ -435,7 +429,7 @@ private async Task InteracaoA2B1()
         "Ask your father about his current project",
         "Pergunte ao seu pai sobre o projeto atual dele");
 
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[1]);
+    await pai.ExecutarExercicio("work_conversation", 6, pai.exerciciosSpeaking[1]);
     await pai.ExecutarFala(1);
 
     ConcluirMissao("casa_a2b1_trabalho_pai");
@@ -445,7 +439,7 @@ private async Task InteracaoA2B1()
         "Ask your mother about her work",
         "Pergunte à sua mãe sobre o trabalho dela");
 
-    await mae.ExecutarExercicio(mae.exerciciosSpeaking[1]);
+    await mae.ExecutarExercicio("work_conversation", 7, mae.exerciciosSpeaking[1]);
     await mae.ExecutarFala(2);
 
     ConcluirMissao("casa_a2b1_trabalho_mae");
@@ -455,9 +449,9 @@ private async Task InteracaoA2B1()
         "Talk to your brother about school",
         "Converse com seu irmão sobre a escola");
 
-    await irmao.ExecutarExercicio(irmao.exerciciosCriarFrases[0]);
+    await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosCriarFrases[0]);
     await irmao.ExecutarFala(1);
-    await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[0]);
+    await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[0]);
 
     ConcluirMissao("casa_a2b1_irmao");
 
@@ -467,8 +461,8 @@ private async Task InteracaoA2B1()
         "Converse sobre atividades com animais de estimação");
 
     await irmao.ExecutarFala(2);
-    await irmao.ExecutarExercicio(irmao.exerciciosWriting[0]);
-    await irmao.ExecutarExercicio(irmao.exerciciosSpeaking[1]);
+    await irmao.ExecutarExercicio("pets", 10, irmao.exerciciosWriting[0]);
+    await irmao.ExecutarExercicio("pets", 11, irmao.exerciciosSpeaking[1]);
 
     ConcluirMissao("casa_a2b1_animais");
 
@@ -479,7 +473,7 @@ private async Task InteracaoA2B1()
 
     await mae.ExecutarFala(3);
     await pai.ExecutarFala(2);
-    await pai.ExecutarExercicio(pai.exerciciosSpeaking[2]);
+    await pai.ExecutarExercicio("dinner_plans", 12, pai.exerciciosSpeaking[2]);
 
     ConcluirMissao("casa_a2b1_jantar");
 
@@ -489,7 +483,7 @@ private async Task InteracaoA2B1()
         "Agradeça à sua família e se despeça");
 
     await mae.ExecutarFala(4);
-    await mae.ExecutarExercicio(mae.exerciciosAssociacao[0]);
+    await mae.ExecutarExercicio("farewell", 13, mae.exerciciosAssociacao[0]);
 
     ConcluirMissao("casa_a2b1_despedida");
 }

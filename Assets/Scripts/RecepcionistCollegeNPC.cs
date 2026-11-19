@@ -541,6 +541,8 @@ public class RecepcionistCollegeNPC: InteracaoNPC
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
     private bool instrucoesJaApresentadas;
+    private const string NpcKey = "recepcionist_college_npc";
+    private ExerciseLoadResult catalogoExercicios;
     // private AudioSource audioSource;
     // private BackendManager backendManager;
     public ModalExercicio modalExercicio;
@@ -903,9 +905,11 @@ else if (nivelAtual == "A2-B1")
             blocosPalavras = new List<string>()
             {
                 "Continue",
+                "to",
                 "the",
                 "end",
                 "of",
+                "the",
                 "hallway",
                 "and",
                 "turn",
@@ -967,6 +971,9 @@ else if (nivelAtual == "A2-B1")
         {
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("RecepcionistCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
             if (nivelAtual == "A1")
             {
@@ -1063,15 +1070,15 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+        await AbrirExercicioDoPonto("office_location", 1, exerciciosCriarFrases[0]);
         
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+        await AbrirExercicioDoPonto("directions_request", 1, exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+        await AbrirExercicioDoPonto("closing", 1, exerciciosAlternativas[0]);
     }
 
     private async Task interacaoA2()
@@ -1080,16 +1087,16 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+        await AbrirExercicioDoPonto("office_location", 1, exerciciosCriarFrases[0]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+        await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[0]);
 
         // A recepcionista repete as direções após o pedido do usuário.
         await PlayAudioETexto(1);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[1]);
 
         await PlayAudioETexto(i++);
     }
@@ -1100,22 +1107,22 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+        await AbrirExercicioDoPonto("visit_purpose", 1, exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("first_visit", 1, exerciciosSpeaking[1]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+        await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[2]);
 
         // A recepcionista confirma a informação repetindo as direções detalhadas.
         await PlayAudioETexto(2);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[3]), exerciciosSpeaking[3]);
+        await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[3]);
     }
 
     private async Task interacaoA1A2()
@@ -1123,33 +1130,18 @@ else if (nivelAtual == "A2-B1")
     int i = 0;
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[0]),
-        exerciciosSpeaking[0]
-    );
+    await AbrirExercicioDoPonto("visit_purpose", 1, exerciciosSpeaking[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosCriarFrases[0]),
-        exerciciosCriarFrases[0]
-    );
+    await AbrirExercicioDoPonto("office_location", 1, exerciciosCriarFrases[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[1]),
-        exerciciosSpeaking[1]
-    );
+    await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[1]);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAlternativas[0]),
-        exerciciosAlternativas[0]
-    );
+    await AbrirExercicioDoPonto("office_location", 2, exerciciosAlternativas[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[2]),
-        exerciciosSpeaking[2]
-    );
+    await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[2]);
 }
 
 private async Task interacaoA2B1()
@@ -1157,40 +1149,34 @@ private async Task interacaoA2B1()
     int i = 0;
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[0]),
-        exerciciosSpeaking[0]
-    );
+    await AbrirExercicioDoPonto("visit_purpose", 1, exerciciosSpeaking[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosWriting[0]),
-        exerciciosWriting[0]
-    );
+    await AbrirExercicioDoPonto("visit_purpose", 2, exerciciosWriting[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[1]),
-        exerciciosSpeaking[1]
-    );
+    await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[1]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosCriarFrases[0]),
-        exerciciosCriarFrases[0]
-    );
+    await AbrirExercicioDoPonto("route_confirmation", 1, exerciciosCriarFrases[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAlternativas[0]),
-        exerciciosAlternativas[0]
-    );
+    await AbrirExercicioDoPonto("secretary_services", 1, exerciciosAlternativas[0]);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[2]),
-        exerciciosSpeaking[2]
-    );
+    await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[2]);
 }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"RecepcionistCollegeNPC: usando exerc?cio local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

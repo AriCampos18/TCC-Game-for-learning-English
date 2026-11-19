@@ -365,6 +365,8 @@ public class RestaurantClient : InteracaoNPC
     List<string> dialogoAtual;
     private AudioSource audioSource;
     private BackendManager backendManager;
+    private const string NpcKey = "restaurant_client";
+    private ExerciseLoadResult catalogoExercicios;
     public ModalExercicio modalExercicio;
     public GameObject modalLegenda;
     public TextMeshProUGUI textoPularDialogo;
@@ -540,34 +542,53 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    public override bool PodeInteragir()
+    {
+        return base.PodeInteragir() && garcom != null
+            && garcom.PodeReceberConversaDoCliente(DadosJogador.nivelUsuario);
+    }
+
     protected override async Task IniciarInteracao()
     {
-        GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
+        if (garcom == null || !garcom.PodeReceberConversaDoCliente(nivelAtual))
+        {
+            LiberarControlePlayer();
+            return;
+        }
 
-        if (nivelAtual == "A2-B1")
-            await InteracaoA2B1();
-        else
-            await interacaoB1(); // B1 existente
+        GameProgress.EstaEmDialogo = true;
+        try
+        {
+            InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("RestaurantClient: usando exercícios locais. " + catalogoExercicios.Error);
 
-        // A missão é criada pelo garçom antes de aguardar esta conversa.
-        MissionManager.ConcluirMissaoNPC(
-            nivelAtual == "A1-A2" ? "rest_a1a2_cliente" :
-            nivelAtual == "A2-B1" ? "rest_a2b1_cliente" :
-            "rest_b1_cliente"
-        );
+            if (nivelAtual == "A2-B1")
+                await InteracaoA2B1();
+            else
+                await interacaoB1();
+
+            MissionManager.ConcluirMissaoNPC(
+                nivelAtual == "A1-A2" ? "rest_a1a2_cliente" :
+                nivelAtual == "A2-B1" ? "rest_a2b1_cliente" :
+                "rest_b1_cliente"
+            );
+        }
+        finally
+        {
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
+
+            GameProgress.EstaEmDialogo = false;
+            LiberarControlePlayer();
+        }
 
         garcom.FinalizarConversaComCliente();
-        GameProgress.EstaEmDialogo = false;
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        LiberarControlePlayer();
     }
 
     private async Task interacaoB1()
@@ -577,17 +598,17 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);//
+        await AbrirExercicioDoPonto("first_visit", 1, exAtual);//
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("menu_experience", 1, exAtual); //
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("meal_comment", 1, exAtual); //
 
         await PlayAudioETexto(i++);
     }
@@ -599,19 +620,31 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("menu_experience", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("meal_comment", 1, exAtual);
 
         await PlayAudioETexto(i++);
+    }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"RestaurantClient: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

@@ -886,6 +886,10 @@ public class CashierNPC : InteracaoNPC
     private AudioSource audioSource;
     public ModalExercicio modalExercicio;
     private BackendManager backendManager;
+    private const string NpcKey = "cashier_npc";
+    private const string GreetingToken = "{{greeting}}";
+    private const string TotalToken = "{{total}}";
+    private ExerciseLoadResult catalogoExercicios;
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
     [System.NonSerialized] public List<ExercicioBase> exerciciosCriarFrases;
@@ -941,6 +945,13 @@ public class CashierNPC : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         if (nivelAtual == "A1")
         {
             valorTotal = 10.00;
@@ -1072,7 +1083,7 @@ public class CashierNPC : InteracaoNPC
                     {
                         "today", "bags", "he", "usually", "my", "need",
                         "bring", "but", "own", "one", "always", "I",
-                        "don't", "need", "yesterday", "your"
+                        "don't", "need", "yesterday", "your", "I"
                     },
                     respostaCorreta = "I usually bring my own bags, but I need one today."
                 }
@@ -1195,12 +1206,10 @@ public class CashierNPC : InteracaoNPC
                     partesFrase = new List<string>
                     {
                         "I would like to pay with my ",
-                        " ",
-                        " card, and I would also like a printed",
-                        " ",
+                        " card, and I would also like a printed ",
                         "."
-                    }, 
-                    respostaCorreta = "debit, receipt",                   
+                    },
+                    respostasCorretas = new List<string> { "debit", "receipt" },
                     opcoes = new List<string>()
                     {
                         "receipt", "debit", "cash", "my",
@@ -1473,12 +1482,10 @@ else if (nivelAtual == "A2-B1")
             partesFrase = new List<string>()
             {
                 "I'd prefer to pay with my ",
-                " ",
                 " card, and I'd like a digital ",
-                " ",
                 "."
             },
-            respostaCorreta = "debit, receipt",
+            respostasCorretas = new List<string> { "debit", "receipt" },
             opcoes = new List<string>()
             {
                 "credit", "cash", "receipt", "bag",
@@ -1562,6 +1569,10 @@ else if (nivelAtual == "A2-B1")
 
             await MostrarProdutosNoBalcao();
 
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("CashierNPC: usando exerc?cios locais. " + catalogoExercicios.Error);
+
             if (nivelAtual == "A1")
                 await interacaoA1();
             else if(nivelAtual=="A1-A2")
@@ -1622,27 +1633,27 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++, mostrarLegenda: false); 
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("greeting", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);  
         
         // Abre o exercício de blocos ("Yes, I want some chocolate")
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);  //
+        await AbrirExercicioDoPonto("additional_item", 1, exerciciosCriarFrases[0]);  //
 
         await PegarChocolate();
 
         await PlayAudioETexto(i++);  
         
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("purchase_total", 1, exAtual); //
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosWriting[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("payment_method", 1, exAtual);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA2() 
@@ -1653,34 +1664,34 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++, mostrarLegenda: false); 
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("greeting", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("purchase_total", 1, exAtual); //
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("purchase_total", 2, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("bag_choice", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("anything_else", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosAlternativas[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("payment_method", 1, exAtual);
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -1690,29 +1701,29 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("greeting", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("purchase_total", 1, exAtual); //
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("purchase_total", 2, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("bag_choice", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
         exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("payment_and_receipt", 1, exAtual); //
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
@@ -1722,35 +1733,32 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("greeting", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("purchase_total", 1, exAtual);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("purchase_total", 2, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("bag_choice", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("payment_method", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("receipt_choice", 1, exAtual);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
 private async Task interacaoA2B1()
@@ -1760,40 +1768,37 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("greeting", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("purchase_total", 1, exAtual);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("purchase_total", 2, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("bag_choice", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("payment_method", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("receipt_choice", 1, exAtual);
 
     await PlayAudioETexto(i++, mostrarLegenda: true);
 
     exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("payment_and_receipt", 1, exAtual);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
     private async Task PegarChocolate()
@@ -1804,6 +1809,44 @@ private async Task interacaoA2B1()
         {
             produtoChocolate.SetActive(false);
         }
+    }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+        {
+            var speaking = item.Exercise as ExercicioSpeaking;
+            return AbrirExercicio(item.Tipo, speaking == null ? item.Exercise : PreencherSpeaking(speaking));
+        }
+
+        Debug.LogWarning($"CashierNPC: usando exerc?cio local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
+
+    private ExercicioSpeaking PreencherSpeaking(ExercicioSpeaking speaking)
+    {
+        string total = valorTotal.ToString();
+        string Preencher(string texto) => texto?.Replace(GreetingToken, cumprimento).Replace(TotalToken, total);
+
+        // O cat?logo ? compartilhado pelo cache. O texto preenchido pertence apenas ? intera??o atual.
+        return new ExercicioSpeaking
+        {
+            idExercise = speaking.idExercise,
+            idTipoBanco = speaking.idTipoBanco,
+            nomeTipoBanco = speaking.nomeTipoBanco,
+            nivelBanco = speaking.nivelBanco,
+            pointKey = speaking.pointKey,
+            ordemBanco = speaking.ordemBanco,
+            enunciado = Preencher(speaking.enunciado),
+            feedback = speaking.feedback,
+            respostasEsperadas = speaking.respostasEsperadas,
+            modoLivre = speaking.modoLivre,
+            opcoesFala = speaking.opcoesFala?.ConvertAll(Preencher),
+            respostaCorreta = speaking.respostaCorreta
+        };
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)

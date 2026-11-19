@@ -956,6 +956,8 @@ public class checkinNPC : InteracaoNPC
 
     private bool aguardandoChegadaPortao;
     private bool fluxoCheckinConcluido;
+    private const string NpcKey = "checkin_npc";
+    private ExerciseLoadResult catalogoExercicios;
     private bool finalizacaoIniciada;
     private string idMissaoChegadaPortao;
     private Transform pontoChegadaPortaoAtual;
@@ -1730,6 +1732,9 @@ else if (nivelAtual == "A2-B1")
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
         InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+        if (!catalogoExercicios.Success)
+            Debug.LogWarning("checkinNPC: usando exerc?cios locais. " + catalogoExercicios.Error);
 
         if (nivelAtual == "A1")
         {
@@ -1778,7 +1783,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Can I see your passport, please?
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
 
         ConcluirMissao("aeroporto_a1_3");
         IniciarMissao("aeroporto_a1_4", "Consulte seu cartão de embarque", "Check your boarding pass");
@@ -1786,7 +1791,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Boarding pass and gate number
 
         exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("gate_number", 1, exAtual);
 
         ConcluirMissao("aeroporto_a1_4");
         IniciarMissaoChegadaPortao(
@@ -1797,7 +1802,7 @@ else if (nivelAtual == "A2-B1")
             marcadorPortao12
         );
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA2()
@@ -1809,7 +1814,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Where are you flying today?
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("destination", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_2");
         IniciarMissao("aeroporto_a2_3", "Apresente seu passaporte e confirmação da reserva", "Present your passport and booking confirmation");
@@ -1817,7 +1822,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Passport and booking confirmation
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_3");
         IniciarMissao("aeroporto_a2_4", "Informe sua bagagem para despacho", "Tell the employee about the luggage you need to check in");
@@ -1825,7 +1830,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Bags to check in
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("checked_baggage", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_4");
         IniciarMissao("aeroporto_a2_5", "Descubra o horário de embarque", "Find out the boarding time");
@@ -1833,12 +1838,12 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Gate and boarding time
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("boarding_time", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_5");
 
         exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("gate_number", 1, exAtual);
 
         IniciarMissaoChegadaPortao(
             "aeroporto_a2_6",
@@ -1848,7 +1853,7 @@ else if (nivelAtual == "A2-B1")
             marcadorPortao18
         );
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -1863,14 +1868,14 @@ else if (nivelAtual == "A2-B1")
         IniciarMissao("aeroporto_b1_4", "Informe seu destino e os detalhes do voo de conexão", "Provide your destination and connecting-flight details");
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("destination", 1, exAtual);
 
         ConcluirMissao("aeroporto_b1_4");
         IniciarMissao("aeroporto_b1_5", "Apresente seus documentos de viagem", "Present your travel documents");
 
         await PlayAudioETexto(i++); // Passport and booking confirmation
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("travel_documents", 1, exerciciosSpeaking[1]);
 
         ConcluirMissao("aeroporto_b1_5");
         IniciarMissao("aeroporto_b1_6", "Confirme as informações sobre a bagagem despachada", "Confirm the checked-baggage information");
@@ -1881,7 +1886,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Checked bag transfer and gate 24
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("baggage_transfer", 1, exAtual);
 
         ConcluirMissao("aeroporto_b1_6");
         IniciarMissao("aeroporto_b1_7", "Consulte os painéis de partida", "Check the departure screens");
@@ -1889,7 +1894,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Check departure screens
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("departure_screens", 1, exAtual);
 
         ConcluirMissao("aeroporto_b1_7");
         IniciarMissaoChegadaPortao(
@@ -1900,7 +1905,7 @@ else if (nivelAtual == "A2-B1")
             marcadorPortao24
         );
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
@@ -1916,7 +1921,7 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("destination", 1, exAtual);
 
     ConcluirMissao("aeroporto_a1a2_3");
 
@@ -1929,7 +1934,7 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
 
     ConcluirMissao("aeroporto_a1a2_4");
 
@@ -1942,12 +1947,9 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("gate_number", 1, exAtual);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
 
     IniciarMissaoChegadaPortao(
         "aeroporto_a1a2_6",
@@ -1971,7 +1973,7 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("destination", 1, exAtual);
 
     ConcluirMissao("aeroporto_a2b1_3");
 
@@ -1984,7 +1986,7 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
 
     ConcluirMissao("aeroporto_a2b1_4");
 
@@ -1997,7 +1999,7 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("baggage_transfer", 1, exAtual);
 
     ConcluirMissao("aeroporto_a2b1_5");
 
@@ -2010,12 +2012,9 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("departure_screens", 1, exAtual);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
 
     IniciarMissaoChegadaPortao(
         "aeroporto_a2b1_7",
@@ -2025,6 +2024,18 @@ private async Task interacaoA2B1()
         marcadorPortao24
     );
 }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"checkinNPC: usando exerc?cio local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

@@ -66,17 +66,17 @@ public class ProdutoManager : MonoBehaviour
 
     public void LiberarProdutos(string nivel)
     {
-        nivelAtual = nivel;
+        nivelAtual = nivel == "A1-A2" || nivel == "A2-B1" ? "A2" : nivel;
         produtosPegos.Clear();
 
         DesativarTodos();
 
-        if (nivel == "A1")
+        if (nivelAtual == "A1")
         {
             AtivarGrupo(grupoLeites);
             AtivarGrupo(grupoFrutas);
         }
-        else if (nivel == "A2")
+        else if (nivelAtual == "A2")
         {
             AtivarGrupo(grupoLeites);
             AtivarGrupo(grupoCereais);

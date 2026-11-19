@@ -901,6 +901,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
 {
     string nivelAtual;
     string cumprimento;
+    private const string NpcKey = "secretary_college_npc";
+    private ExerciseLoadResult catalogoExercicios;
     int horaAtual = DateTime.Now.Hour;
     public TextMeshProUGUI textoPularDialogo;
     public ModalExercicio modalExercicio;
@@ -947,6 +949,13 @@ public class SecretaryCollegeNPC: InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -1201,7 +1210,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
                         "February 5th\r\n", 
                         "February 10th\r\n", 
                         "February 20th\r\n" },
-                    alternativaCorreta = 2
+                    alternativaCorreta = 1
                 }
             );
 
@@ -1284,8 +1293,8 @@ public class SecretaryCollegeNPC: InteracaoNPC
                 "Could you also give me your date of birth?",
                 "Thank you. I just need to confirm a few details. You are enrolling in Computer Science, correct?",
                 "Your enrollment is complete. Your tuition will be 500 dollars per month.",
-                "Classes start on February fifteenth in room three hundred twenty-five.",
-                "Room 325 is on the third floor, just go up the stairs. Good luck with your classes!"
+                "Classes start on February fifteenth in room four hundred twenty.",
+                "Room 420 is on the third floor, just go up the stairs. Good luck with your classes!"
             };
 
             exerciciosSpeaking.Add(
@@ -1326,7 +1335,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
                         " ",
                         " correct."
                     },
-                    respostaCorreta = "that, is",
+                    respostasCorretas = new List<string> { "that", "is" },
                     opcoes = new List<string>
                     {
                         "that",
@@ -1365,7 +1374,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
                         "Room 102\r\n", 
                         "Room 204\r\n", 
                         "Room 305\r\n", 
-                        "Room 325\r\n" },
+                        "Room 420\r\n" },
                     alternativaCorreta = 3
                 }
             );
@@ -1373,7 +1382,7 @@ public class SecretaryCollegeNPC: InteracaoNPC
             exerciciosWriting.Add(
                 new ExercicioWriting()
                 {
-                    enunciado = "You received your schedule, and your first class is in room 305. You don't know where it is. Write a question to ask the secretary."
+                    enunciado = "You received your schedule, and your first class is in room 420. You don't know where it is. Write a question to ask the secretary."
                 }
             );
 
@@ -1632,7 +1641,7 @@ else if (nivelAtual == "A2-B1")
                 " ",
                 " all your information is correct."
             },
-            respostaCorreta = "to confirm, that",
+            respostasCorretas = new List<string> { "to confirm", "that" },
             opcoes = new List<string>()
             {
                 "where",
@@ -1771,6 +1780,9 @@ else if (nivelAtual == "A2-B1")
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
         InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+        if (!catalogoExercicios.Success)
+            Debug.LogWarning("SecretaryCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
         if (nivelAtual == "A1")
         {
@@ -1863,36 +1875,36 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+        await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
+        await AbrirExercicioDoPonto("course_choice", 1, exerciciosWriting[1]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[2]), exerciciosWriting[2]);
+        await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[2]);
 
         await PlayAudioETexto(i++);
         MissionManager.ConcluirMissaoNPC("universidade_a1_matricula");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+        await AbrirExercicioDoPonto("tuition", 1, exerciciosCriarFrases[0]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[1]), exerciciosCriarFrases[1]);
+        await AbrirExercicioDoPonto("class_start", 1, exerciciosCriarFrases[1]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[1]);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA2()
@@ -1900,16 +1912,16 @@ else if (nivelAtual == "A2-B1")
         int i = 0;
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[0]), exerciciosCriarFrases[0]);
+        await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosCriarFrases[0]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+        await AbrirExercicioDoPonto("course_choice", 1, exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
+        await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[1]);
 
         // Confirmação de matrícula.
         await PlayAudioETexto(i++);
@@ -1920,22 +1932,22 @@ else if (nivelAtual == "A2-B1")
             "Check your class schedule");
 
         // Pergunta sobre a mensalidade e recebe a resposta.
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[2]), exerciciosWriting[2]);
+        await AbrirExercicioDoPonto("tuition", 1, exerciciosWriting[2]);
         await PlayAudioETexto(i++);
 
         // Pergunta quando as aulas começam e confere a data.
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[1]);
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+        await AbrirExercicioDoPonto("class_start", 2, exerciciosAlternativas[0]);
 
         // Pergunta onde fica a sala e confere o número no cronograma.
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[2]), exerciciosSpeaking[2]);
+        await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[2]);
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[1]), exerciciosAlternativas[1]);
+        await AbrirExercicioDoPonto("classroom", 2, exerciciosAlternativas[1]);
 
         MissionManager.ConcluirMissaoNPC("universidade_a2_cronograma");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -1943,16 +1955,16 @@ else if (nivelAtual == "A2-B1")
         int i = 0;
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[0]), exerciciosSpeaking[0]);
+        await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[1]), exerciciosWriting[1]);
+        await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[1]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+        await AbrirExercicioDoPonto("enrollment_confirmation", 1, exerciciosCompletarFrase[0]);
 
         // Confirmação de matrícula concluída.
         await PlayAudioETexto(i++);
@@ -1962,18 +1974,18 @@ else if (nivelAtual == "A2-B1")
             "Consulte o cronograma, identifique a sala da primeira aula e pergunte como chegar até ela",
             "Check your schedule, identify the room for your first class, and ask how to get there");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[1]);
 
         await PlayAudioETexto(i++);
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+        await AbrirExercicioDoPonto("classroom", 1, exerciciosAlternativas[0]);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[2]), exerciciosWriting[2]);
+        await AbrirExercicioDoPonto("classroom", 2, exerciciosWriting[2]);
 
         await PlayAudioETexto(i++);
 
         MissionManager.ConcluirMissaoNPC("universidade_b1_cronograma");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
@@ -1981,57 +1993,30 @@ else if (nivelAtual == "A2-B1")
     int i = 0;
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[0]),
-        exerciciosSpeaking[0]
-    );
+    await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosWriting[0]),
-        exerciciosWriting[0]
-    );
+    await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[1]),
-        exerciciosSpeaking[1]
-    );
+    await AbrirExercicioDoPonto("course_choice", 1, exerciciosSpeaking[1]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosWriting[1]),
-        exerciciosWriting[1]
-    );
+    await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[1]);
 
     await PlayAudioETexto(i++);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAlternativas[0]),
-        exerciciosAlternativas[0]
-    );
+    await AbrirExercicioDoPonto("tuition", 1, exerciciosAlternativas[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[2]),
-        exerciciosSpeaking[2]
-    );
+    await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[2]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAlternativas[1]),
-        exerciciosAlternativas[1]
-    );
+    await AbrirExercicioDoPonto("class_start", 2, exerciciosAlternativas[1]);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[3]),
-        exerciciosSpeaking[3]
-    );
+    await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[3]);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
 private async Task interacaoA2B1()
@@ -2039,69 +2024,48 @@ private async Task interacaoA2B1()
     int i = 0;
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[0]),
-        exerciciosSpeaking[0]
-    );
+    await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosWriting[0]),
-        exerciciosWriting[0]
-    );
+    await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[1]),
-        exerciciosSpeaking[1]
-    );
+    await AbrirExercicioDoPonto("course_choice", 1, exerciciosSpeaking[1]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosCompletarFrase[0]),
-        exerciciosCompletarFrase[0]
-    );
+    await AbrirExercicioDoPonto("enrollment_confirmation", 1, exerciciosCompletarFrase[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosWriting[1]),
-        exerciciosWriting[1]
-    );
+    await AbrirExercicioDoPonto("enrollment_confirmation", 2, exerciciosWriting[1]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAlternativas[0]),
-        exerciciosAlternativas[0]
-    );
+    await AbrirExercicioDoPonto("tuition", 1, exerciciosAlternativas[0]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[2]),
-        exerciciosSpeaking[2]
-    );
+    await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[2]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAlternativas[1]),
-        exerciciosAlternativas[1]
-    );
+    await AbrirExercicioDoPonto("classroom", 1, exerciciosAlternativas[1]);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosWriting[2]),
-        exerciciosWriting[2]
-    );
+    await AbrirExercicioDoPonto("classroom", 2, exerciciosWriting[2]);
 
     await PlayAudioETexto(i++);
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosSpeaking[3]),
-        exerciciosSpeaking[3]
-    );
+    await AbrirExercicioDoPonto("classroom", 3, exerciciosSpeaking[3]);
 
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
 }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"SecretaryCollegeNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

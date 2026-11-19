@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 [Serializable]
@@ -44,6 +45,8 @@ public class ExerciseApiAssociationPairDTO
     public int id;
     public string portugues;
     public string ingles;
+    [JsonProperty("ordem_portugues")] public int? ordemPortugues;
+    [JsonProperty("ordem_ingles")] public int? ordemIngles;
 }
 
 [Serializable]
@@ -231,11 +234,12 @@ public class ExerciseApiDTO
         if (associationPairs == null)
             return result;
 
-        foreach (ExerciseApiAssociationPairDTO item in associationPairs)
+        var pairs = associationPairs.Where(item => item != null).ToList();
+        // OrderBy preserves the received order when positions are absent.
+        result.opcoesPort.AddRange(pairs.OrderBy(item => item.ordemPortugues).Select(item => item.portugues));
+        result.opcoesIngles.AddRange(pairs.OrderBy(item => item.ordemIngles).Select(item => item.ingles));
+        foreach (ExerciseApiAssociationPairDTO item in pairs)
         {
-            if (item == null) continue;
-            result.opcoesPort.Add(item.portugues);
-            result.opcoesIngles.Add(item.ingles);
             result.associacaoCorreta.Add(new ParAssociacao
             {
                 palavraPortugues = item.portugues,

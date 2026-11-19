@@ -1168,6 +1168,8 @@ public class ClothingSellerNPC : InteracaoNPC
 {
     string nivelAtual;
     string cumprimento;
+    private const string NpcKey = "clothing_seller_npc";
+    private ExerciseLoadResult catalogoExercicios;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
     private AudioSource audioSource;
@@ -1216,6 +1218,13 @@ public class ClothingSellerNPC : InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
+        exerciciosCompletarFrase.Clear();
+        exerciciosCriarFrases.Clear();
+        exerciciosSpeaking.Clear();
+        exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
+        exerciciosAssociacao.Clear();
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -2246,6 +2255,9 @@ respostaCorreta = 2
         nivelAtual = DadosJogador.nivelUsuario;
 
         InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+        if (!catalogoExercicios.Success)
+            Debug.LogWarning("ClothingSellerNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
         if (nivelAtual == "A1")
         {
@@ -2298,7 +2310,7 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_a1_1");
 
         // Missão 2: informar tamanho e cor e escolher a camiseta.
@@ -2310,12 +2322,12 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("size_choice", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosWriting[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("color_choice", 1, exAtual);
 
         await AndarAteRoupa("blue_tshirt");
         await PlayAudioETexto(i++);
@@ -2332,12 +2344,12 @@ respostaCorreta = 2
         );
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fitting", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_a1_3");
 
         // O vendedor avisa que vai buscar uma camiseta maior.
@@ -2352,16 +2364,16 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("purchase", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("bag_choice", 1, exAtual);
        
         MissionManager.ConcluirMissaoNPC("roupas_a1_4");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA2()
@@ -2379,7 +2391,7 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_a2_1");
 
         // Missão 2: conhecer as opções, pedir outra cor e verificar tamanho/preço.
@@ -2391,22 +2403,22 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("style_preference", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("color_choice", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("size_choice", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("price", 1, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_a2_2");
 
         // Missão 3: começa quando o usuário decide experimentar a camisa.
@@ -2418,7 +2430,7 @@ respostaCorreta = 2
 
         // O usuário pede para experimentar a camisa antes da resposta do vendedor.
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fitting", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
@@ -2426,11 +2438,11 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosWriting[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCompletarFrase[0]), exerciciosCompletarFrase[0]);
+        await AbrirExercicioDoPonto("fit_feedback", 2, exerciciosCompletarFrase[0]);
         MissionManager.ConcluirMissaoNPC("roupas_a2_3");
 
         // Missão 4: começa quando o vendedor pergunta se o usuário deseja comprar.
@@ -2442,17 +2454,17 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("purchase", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("payment", 1, exAtual);
 
         await PlayAudioETexto(i++);
         MissionManager.ConcluirMissaoNPC("roupas_a2_4");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -2470,7 +2482,7 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_b1_1");
 
         // Missão 2: começa quando o vendedor pergunta sobre preferências.
@@ -2482,20 +2494,20 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("style_preference", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("product_recommendation", 1, exAtual);
 
         exAtual = exerciciosWriting[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("garment_care", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("garment_care", 2, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_b1_2");
 
         // Missão 3: começa quando o vendedor oferece calças para combinar com o blazer.
@@ -2507,12 +2519,12 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("price", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("purchase", 1, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_b1_3");
 
         // Missão 4: começa quando o vendedor pergunta se o usuário quer experimentar as peças.
@@ -2524,19 +2536,19 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[3];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fitting", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[4];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("fit_feedback", 2, exAtual);
         MissionManager.ConcluirMissaoNPC("roupas_b1_4");
 
         // Missão 5: começa quando o vendedor pergunta se o usuário deseja comprar as peças.
@@ -2548,21 +2560,21 @@ respostaCorreta = 2
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[5];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("purchase", 2, exAtual);
 
         await PlayAudioETexto(i++);
 
         // Primeiro, o usuário informa o valor total; depois, escolhe a forma de pagamento.
         exAtual = exerciciosSpeaking[6];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("price", 2, exAtual);
 
         exAtual = exerciciosAlternativas[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("payment", 1, exAtual);
 
         await PlayAudioETexto(i++);
         MissionManager.ConcluirMissaoNPC("roupas_b1_5");
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAssociacao[0]), exerciciosAssociacao[0]);
+        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
@@ -2579,22 +2591,22 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("style_preference", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosWriting[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("size_choice", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("fitting", 1, exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a1a2_1");
 
@@ -2608,10 +2620,10 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("fit_feedback", 2, exAtual);
 
     await AndarAteRoupa("blue_tshirt");
 
@@ -2627,12 +2639,12 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("purchase", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("payment", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
@@ -2648,10 +2660,7 @@ respostaCorreta = 2
     MissionManager.ConcluirMissaoNPC("roupas_a1a2_4");
 
     // Associação sempre ao final.
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
     private async Task interacaoA2B1()
@@ -2668,7 +2677,7 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_1");
 
@@ -2682,20 +2691,20 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("style_preference", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("product_recommendation", 1, exAtual);
 
     exAtual = exerciciosWriting[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("garment_care", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("garment_care", 2, exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_2");
 
@@ -2709,12 +2718,12 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("price", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("fitting", 1, exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_3");
 
@@ -2728,22 +2737,22 @@ respostaCorreta = 2
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[4];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("fit_feedback", 2, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("purchase", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosAlternativas[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    exAtual = exerciciosSpeaking[5];
+    await AbrirExercicioDoPonto("payment", 1, exAtual);
 
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_4");
 
@@ -2759,11 +2768,20 @@ respostaCorreta = 2
     MissionManager.ConcluirMissaoNPC("roupas_a2b1_5");
 
     // Associação sempre ao final.
-    await AbrirExercicio(
-        ObterTipoExercicio(exerciciosAssociacao[0]),
-        exerciciosAssociacao[0]
-    );
+    await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
 }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"ClothingSellerNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

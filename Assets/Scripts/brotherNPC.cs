@@ -532,6 +532,8 @@ public class brotherNPC : InteracaoNPC
     List<string> dialogoAtual;
     private AudioSource audioSource;
     private BackendManager backendManager;
+    private const string NpcKey = "brother_npc";
+    private ExerciseLoadResult catalogoExercicios;
     public ModalExercicio modalExercicio;
     public GameObject modalLegenda;
     public TextMeshProUGUI textoPularDialogo;
@@ -790,6 +792,7 @@ else if (nivelAtual == "A2-B1")
             "free",
             "time",
             "and",
+            "time",
             "been",
             "trying",
             "to",
@@ -841,38 +844,12 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    protected override async Task IniciarInteracao()
+    public override bool PodeInteragir() => false;
+
+    protected override Task IniciarInteracao()
     {
-        GameProgress.EstaEmDialogo = true;
-        nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
-
-        if (nivelAtual == "A1")
-        {
-            await interacaoA1();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else
-        {
-            await interacaoB1();
-        }
-
-        // Desativa o estado quando a conversa acabar completamente!
-        GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-
         LiberarControlePlayer();
+        return Task.CompletedTask;
     }
 
     private async Task interacaoA1()
@@ -976,9 +953,9 @@ else if (nivelAtual == "A2-B1")
         }
     }
     
-    public void PrepararParaFamilia()
+    public async Task PrepararParaFamilia(string nivel)
     {
-        nivelAtual = DadosJogador.nivelUsuario;
+        nivelAtual = nivel;
 
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
         exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
@@ -995,6 +972,9 @@ else if (nivelAtual == "A2-B1")
         exerciciosAssociacao.Clear();
 
         InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+        if (!catalogoExercicios.Success)
+            Debug.LogWarning("brotherNPC: usando exercícios locais. " + catalogoExercicios.Error);
     }
 
     public async Task ExecutarFala(int indice)
@@ -1002,9 +982,16 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(indice);
     }
 
-    public async Task ExecutarExercicio(ExercicioBase exercicio)
+    public Task ExecutarExercicio(string pointKey, int ordem, ExercicioBase fallback)
     {
-        await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"brotherNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
     }
 
     public void FinalizarInteracaoFamilia()

@@ -24,17 +24,14 @@ public class ShelfNPC : InteracaoNPC
     public List<Transform> pontosPrateleiraA2;
     public List<Transform> pontosPrateleiraB1;
 
-    // Contadores para saber em qual parada o NPC está em cada nível
-    private int indiceDestinoA1 = 0;
-    private int indiceDestinoA2 = 0;
-    private int indiceDestinoB1 = 0;
-
-    private Transform pontoDestinoEscolhido;
+    private int indiceDestinoPrateleira;
     private bool podeInteragirCenario = true;
     public TextMeshProUGUI textoPularDialogo;
 
     public string idNpcParaVoz = "shelf"; 
     private BackendManager backendManager;
+    private const string NpcKey = "shelf_npc";
+    private ExerciseLoadResult catalogoExercicios;
     private MissionManager missaoManager; 
 
     [System.NonSerialized] public List<ExercicioBase> exerciciosCompletarFrase;
@@ -60,6 +57,7 @@ public class ShelfNPC : InteracaoNPC
         exerciciosCriarFrases = new List<ExercicioBase>();
         exerciciosSpeaking = new List<ExercicioBase>();
         exerciciosAlternativas = new List<ExercicioBase>();
+        exerciciosWriting = new List<ExercicioBase>();
 
         if (agent == null) 
         {
@@ -91,7 +89,11 @@ public class ShelfNPC : InteracaoNPC
         
         nivelAtual = DadosJogador.nivelUsuario;
 
+        indiceDestinoPrateleira = 0;
         InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+        if (!catalogoExercicios.Success)
+            Debug.LogWarning("ShelfNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
         if (nivelAtual == "A1")
         {
@@ -137,7 +139,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Hi. Are you looking for anything today?"
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("product_location", 1, exAtual);
 
         await PlayAudioETexto(i++); // "Follow me."
 
@@ -148,17 +150,17 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "The milk is here. Do you need anything else?"
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("additional_product", 1, exAtual);
 
         await PlayAudioETexto(i++); // "Ok, I will show you"
         crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); // ✨ Volta a mostrar a mira após o "siga-me"
         await PlayAudioETexto(i++); // "The fruits are here. Can I do anything else for you?"
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        await AbrirExercicioDoPonto("additional_product", 2, exerciciosWriting[0]);
 
         await PlayAudioETexto(i++); // "Yes, we have apples too."
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+        await AbrirExercicioDoPonto("shopping_complete", 1, exerciciosAlternativas[0]);
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
@@ -175,7 +177,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Hi! What are you looking for..."
 
         exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("product_location", 1, exAtual); //
 
         await PlayAudioETexto(i++); // "Sure. Follow me, please."
 
@@ -186,18 +188,18 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "The milk is on this shelf..."
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual); //
+        await AbrirExercicioDoPonto("additional_product", 1, exAtual); //
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosCriarFrases[1]), exerciciosCriarFrases[1]); //
+        await AbrirExercicioDoPonto("discounts", 1, exerciciosCriarFrases[1]); //
 
         await PlayAudioETexto(i++); // "Do you often buy snacks from this aisle..."
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]);
+        await AbrirExercicioDoPonto("snack_preference", 1, exerciciosSpeaking[1]);
 
         crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
         await FluxoSeguirNPCAtelarPrateleira();
         crosshair.SetActive(false); 
         await PlayAudioETexto(i++); // "I see. Is there anything else you need?"
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+        await AbrirExercicioDoPonto("shopping_complete", 1, exerciciosAlternativas[0]);
 
         missaoManager.AdicionarMissao(
             "interagir_produtos",
@@ -214,10 +216,10 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Hi! What are you searching for..."
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("discounts", 1, exAtual);
 
         await PlayAudioETexto(i++); // "Yes, there are still some discounts..."
-        await AbrirExercicio(ObterTipoExercicio(exerciciosSpeaking[1]), exerciciosSpeaking[1]); //
+        await AbrirExercicioDoPonto("shopping_request", 1, exerciciosSpeaking[1]); //
 
         await PlayAudioETexto(i++);
 
@@ -228,7 +230,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "The soda is on this shelf..."
 
         exAtual = exerciciosCriarFrases[0]; 
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
         await PlayAudioETexto(i++); // "Enjoy the discounts. Happy shopping!"
 
         missaoManager.AdicionarMissao(
@@ -247,13 +249,14 @@ public class ShelfNPC : InteracaoNPC
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("product_location", 1, exAtual);
 
+    await PlayAudioETexto(i++); // Convite para seguir até a seção de leite.
     crosshair.SetActive(true);
     await FluxoSeguirNPCAtelarPrateleira();
     crosshair.SetActive(false);
@@ -261,17 +264,17 @@ public class ShelfNPC : InteracaoNPC
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("milk_preference", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("cereal_preference", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("discounts", 1, exAtual);
 
     crosshair.SetActive(true);
     await FluxoSeguirNPCAtelarPrateleira();
@@ -280,7 +283,8 @@ public class ShelfNPC : InteracaoNPC
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
+    await PlayAudioETexto(i++); // Despedida.
 
     missaoManager.AdicionarMissao(
         "interagir_produtos",
@@ -298,31 +302,31 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
-
-    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++); // Convite para seguir até os laticínios.
 
     crosshair.SetActive(true);
     await FluxoSeguirNPCAtelarPrateleira();
     crosshair.SetActive(false);
 
-    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++); // Opções de leite.
+    exAtual = exerciciosAlternativas[0];
+    await AbrirExercicioDoPonto("milk_preference", 1, exAtual);
 
+    await PlayAudioETexto(i++); // Promoção de cereais.
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("discounts", 1, exAtual);
 
     exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("cereal_preference", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("cereal_preference", 2, exAtual);
 
     await PlayAudioETexto(i++);
 
@@ -333,15 +337,16 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[2];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("discounts", 2, exAtual);
 
     exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("discounts", 3, exAtual);
 
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[3];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
+    await PlayAudioETexto(i++); // Despedida.
 
     missaoManager.AdicionarMissao(
         "interagir_produtos",
@@ -356,37 +361,17 @@ private async Task interacaoA2B1()
     {
         if (agent != null)
         {
-            switch (nivelAtual)
+        var rota = nivelAtual switch
         {
-            case "A1":
-                if (pontosPrateleiraA1 != null && indiceDestinoA1 < pontosPrateleiraA1.Count)
-                {
-                    pontoDestinoEscolhido = pontosPrateleiraA1[indiceDestinoA1];
-                    indiceDestinoA1++; // Avança para o próximo ponto na próxima vez que chamar
-                }
-                break;
+            "A1" => pontosPrateleiraA1,
+            "A1-A2" or "A2" or "A2-B1" => pontosPrateleiraA2,
+            "B1" => pontosPrateleiraB1,
+            _ => null
+        };
 
-            case "A2":
-                if (pontosPrateleiraA2 != null && indiceDestinoA2 < pontosPrateleiraA2.Count)
-                {
-                    pontoDestinoEscolhido = pontosPrateleiraA2[indiceDestinoA2];
-                    indiceDestinoA2++;
-                }
-                break;
-
-            case "B1":
-                if (pontosPrateleiraB1 != null && indiceDestinoB1 < pontosPrateleiraB1.Count)
-                {
-                    pontoDestinoEscolhido = pontosPrateleiraB1[indiceDestinoB1];
-                    indiceDestinoB1++;
-                }
-                break;
-
-            default:
-                break;
-        }
-
-        // Validação de segurança
+        Transform pontoDestinoEscolhido = rota != null && indiceDestinoPrateleira < rota.Count
+            ? rota[indiceDestinoPrateleira++]
+            : null;
         if (pontoDestinoEscolhido == null)
         {
             Debug.LogError($"Não há um ponto de destino válido configurado para o nível {nivelAtual} no índice atual!");
@@ -508,6 +493,7 @@ private async Task interacaoA2B1()
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
         exerciciosAlternativas.Clear();
+        exerciciosWriting.Clear();
 
         if (nivelAtual == "A1")
         {
@@ -940,6 +926,18 @@ else if (nivelAtual == "A2-B1")
             }
         }
     }
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"ShelfNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
+
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {
         Debug.Log("Abrindo exercício: " + tipo);

@@ -457,6 +457,8 @@ public class fatherNPC : InteracaoNPC
     List<string> dialogoAtual;
     private AudioSource audioSource;
     private BackendManager backendManager;
+    private const string NpcKey = "father_npc";
+    private ExerciseLoadResult catalogoExercicios;
     public ModalExercicio modalExercicio;
     public GameObject modalLegenda;
     public TextMeshProUGUI textoPularDialogo;
@@ -563,7 +565,7 @@ public class fatherNPC : InteracaoNPC
                         ", I have to go ",
                         " home early."
                     },
-                    respostaCorreta = "not, back",
+                    respostaCorreta = "not|back",
                     opcoes = new List<string>
                     {
                         "not",
@@ -782,9 +784,17 @@ else if (nivelAtual == "A2-B1")
         }
     }
     
-    public void PrepararParaFamilia()
+    public override bool PodeInteragir() => false;
+
+    protected override Task IniciarInteracao()
     {
-        nivelAtual = DadosJogador.nivelUsuario;
+        LiberarControlePlayer();
+        return Task.CompletedTask;
+    }
+
+    public async Task PrepararParaFamilia(string nivel)
+    {
+        nivelAtual = nivel;
 
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
         exerciciosCriarFrases = GarantirListaExercicios(exerciciosCriarFrases);
@@ -801,6 +811,9 @@ else if (nivelAtual == "A2-B1")
         exerciciosAssociacao.Clear();
 
         InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+        if (!catalogoExercicios.Success)
+            Debug.LogWarning("fatherNPC: usando exercícios locais. " + catalogoExercicios.Error);
     }
 
     public async Task ExecutarFala(int indice)
@@ -808,9 +821,16 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(indice);
     }
 
-    public async Task ExecutarExercicio(ExercicioBase exercicio)
+    public Task ExecutarExercicio(string pointKey, int ordem, ExercicioBase fallback)
     {
-        await AbrirExercicio(ObterTipoExercicio(exercicio), exercicio);
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"fatherNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
     }
 
     public void FinalizarInteracaoFamilia()
