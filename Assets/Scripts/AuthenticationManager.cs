@@ -113,7 +113,7 @@ public sealed class AuthenticationManager : IDisposable
             "api/auth/refresh",
             new RefreshRequest { refresh_token = refreshToken },
             AuthenticationFailureType.InvalidSession,
-            false,
+            true,
             cancellationToken);
     }
 
@@ -394,6 +394,7 @@ public sealed class AuthenticationManager : IDisposable
         }
 
         JToken idToken;
+        JToken roleToken;
         if (!((JObject)userToken).TryGetValue("id", StringComparison.Ordinal, out idToken) ||
             idToken.Type != JTokenType.Integer)
         {
@@ -418,7 +419,29 @@ public sealed class AuthenticationManager : IDisposable
                 "O ID do usuário autenticado está fora do intervalo permitido.");
         }
 
-        return AuthenticationResult<AuthenticatedUser>.Success(new AuthenticatedUser((int)idValue));
+        AccountRole role = AccountRole.Player;
+        if (((JObject)userToken).TryGetValue("role", StringComparison.Ordinal, out roleToken))
+        {
+            if (roleToken.Type != JTokenType.String)
+            {
+                return UnexpectedResponse<AuthenticatedUser>(
+                    "O papel do usuario autenticado tem formato invalido.");
+            }
+
+            string roleValue = roleToken.Value<string>();
+            if (roleValue == "admin")
+            {
+                role = AccountRole.Admin;
+            }
+            else if (roleValue != "player")
+            {
+                return UnexpectedResponse<AuthenticatedUser>(
+                    "O papel do usuario autenticado nao e reconhecido.");
+            }
+        }
+
+        return AuthenticationResult<AuthenticatedUser>.Success(
+            new AuthenticatedUser((int)idValue, role));
     }
 
     private static AuthenticationError CreateHttpError(
@@ -546,11 +569,18 @@ public sealed class AuthenticationTokens
     }
 }
 
+public enum AccountRole
+{
+    Player,
+    Admin
+}
+
 public sealed class AuthenticatedUser
 {
     public int Id { get; private set; }
+    public AccountRole Role { get; private set; }
 
-    public AuthenticatedUser(int id)
+    public AuthenticatedUser(int id, AccountRole role)
     {
         if (id <= 0)
         {
@@ -558,6 +588,7 @@ public sealed class AuthenticatedUser
         }
 
         Id = id;
+        Role = role;
     }
 }
 

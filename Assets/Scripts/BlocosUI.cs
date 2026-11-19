@@ -54,8 +54,22 @@ public class BlocosUI : MonoBehaviour
 
         List<string> respostaCorreta = SepararPalavras(exAtual.respostaCorreta);
 
-        float porcentagem = CalcularPorcentagemAcerto(palavrasEscolhidas, respostaCorreta);
-        bool acertou = porcentagem >= 100f;
+        List<string> selecionadas = SepararPalavras(string.Join(" ", palavrasEscolhidas));
+        float porcentagem = CalcularPorcentagemAcerto(selecionadas, respostaCorreta);
+        bool acertou = selecionadas.Count == respostaCorreta.Count && porcentagem >= 100f;
+        if (!acertou && exAtual.respostasEsperadas != null)
+        {
+            foreach (string esperada in exAtual.respostasEsperadas)
+            {
+                var palavrasEsperadas = SepararPalavras(esperada);
+                if (selecionadas.Count == palavrasEsperadas.Count &&
+                    CalcularPorcentagemAcerto(selecionadas, palavrasEsperadas) >= 100f)
+                {
+                    acertou = true;
+                    break;
+                }
+            }
+        }
 
         if (acertou)
         {
@@ -108,7 +122,7 @@ public class BlocosUI : MonoBehaviour
     private List<string> SepararPalavras(string frase)
     {
         string fraseLimpa = NormalizarFrase(frase);
-        string[] partes = fraseLimpa.Split(' ');
+        string[] partes = fraseLimpa.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries);
 
         List<string> palavras = new List<string>();
 
@@ -123,15 +137,13 @@ public class BlocosUI : MonoBehaviour
 
     private string NormalizarFrase(string frase)
     {
-        return frase
+        return (frase ?? string.Empty)
             .Trim()
-            .ToLower()
+            .ToLowerInvariant()
             .Replace(".", "")
             .Replace("?", "")
             .Replace("!", "")
-            .Replace(",", "")
-            .Replace("\n", "")
-            .Replace("\r", "");
+            .Replace(",", "");
     }
 
     private float CalcularPorcentagemAcerto(List<string> jogador, List<string> correta)

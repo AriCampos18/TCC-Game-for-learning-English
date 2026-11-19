@@ -75,7 +75,11 @@ public class CompletarFraseUI : MonoBehaviour
     {
         // Para uma lacuna, use respostaCorreta normalmente.
         // Para várias lacunas, separe as respostas com | na mesma ordem das lacunas.
-        if (exercicio.partesFrase != null && exercicio.partesFrase.Count > 1)
+        if (exercicio.respostasCorretas != null && exercicio.respostasCorretas.Count > 0)
+        {
+            respostasCorretas.AddRange(exercicio.respostasCorretas);
+        }
+        else if (exercicio.partesFrase != null && exercicio.partesFrase.Count > 1)
         {
             respostasCorretas.AddRange(
                 (exercicio.respostaCorreta ?? string.Empty)
@@ -253,13 +257,19 @@ public class CompletarFraseUI : MonoBehaviour
         for (int i = 0; i < respostasSelecionadas.Count; i++)
         {
             if (!string.Equals(
-                respostasSelecionadas[i].Trim(),
-                respostasCorretas[i].Trim(),
+                NormalizarResposta(respostasSelecionadas[i]),
+                NormalizarResposta(respostasCorretas[i]),
                 System.StringComparison.OrdinalIgnoreCase))
                 return false;
         }
 
         return true;
+    }
+
+    private static string NormalizarResposta(string resposta)
+    {
+        return string.Join(" ", (resposta ?? string.Empty)
+            .Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries));
     }
 
     public void ReduzirTentativa()

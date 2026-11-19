@@ -7,5 +7,6 @@ public class ExercicioCompletarFrase : ExercicioBase
     public string fraseDepois;
     public List<string> partesFrase;
     public string respostaCorreta;
+    public List<string> respostasCorretas;
     public List<string> opcoes;
 }

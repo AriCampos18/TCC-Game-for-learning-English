@@ -34,6 +34,8 @@ public class ExerciseApiPhraseCompletionDTO
     [JsonProperty("frase_antes")] public string fraseAntes;
     [JsonProperty("frase_depois")] public string fraseDepois;
     [JsonProperty("resposta_correta")] public string respostaCorreta;
+    [JsonProperty("partes_frase")] public List<string> partesFrase;
+    [JsonProperty("respostas_corretas")] public List<string> respostasCorretas;
 }
 
 [Serializable]
@@ -188,6 +190,8 @@ public class ExerciseApiDTO
             foreach (ExerciseApiWordBlockDTO item in orderedBlocks)
                 if (item != null) result.blocosPalavras.Add(item.texto);
         }
+        if (string.IsNullOrEmpty(result.respostaCorreta))
+            result.respostaCorreta = string.Join(" ", result.blocosPalavras);
         return result;
     }
 
@@ -197,8 +201,13 @@ public class ExerciseApiDTO
         var options = new List<string>();
         foreach (ExerciseApiAlternativeDTO item in OrderedAlternatives())
             options.Add(item.description);
-        if (options.Count == 0 && !string.IsNullOrWhiteSpace(answer))
-            options.Add(answer);
+        var answers = phraseCompletion?.respostasCorretas ?? new List<string> { answer };
+        foreach (string correct in answers)
+        {
+            if (!string.IsNullOrWhiteSpace(correct) &&
+                !options.Exists(option => string.Equals(option?.Trim(), correct.Trim(), StringComparison.OrdinalIgnoreCase)))
+                options.Add(correct);
+        }
 
         return new ExercicioCompletarFrase
         {
@@ -206,7 +215,8 @@ public class ExerciseApiDTO
             fraseDepois = phraseCompletion == null ? string.Empty : phraseCompletion.fraseDepois,
             respostaCorreta = answer,
             opcoes = options,
-            partesFrase = null
+            partesFrase = phraseCompletion?.partesFrase,
+            respostasCorretas = answers
         };
     }
 
@@ -256,9 +266,6 @@ public class ExerciseApiDTO
         if (expectedAnswers != null)
             foreach (ExerciseApiExpectedAnswerDTO item in expectedAnswers)
                 if (item != null && item.resposta != null) result.Add(item.resposta);
-        if (phraseCompletion != null && !string.IsNullOrEmpty(phraseCompletion.respostaCorreta)
-            && !result.Contains(phraseCompletion.respostaCorreta))
-            result.Add(phraseCompletion.respostaCorreta);
         return result;
     }
 

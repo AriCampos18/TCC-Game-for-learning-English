@@ -553,6 +553,8 @@ public class AirportInfoNPC : InteracaoNPC
     private Animator animator;
 
     private bool instrucoesJaApresentadas;
+    private const string NpcKey = "airport_info_npc";
+    private ExerciseLoadResult catalogoExercicios;
 
     private BackendManager backendManager;
     private MissionManager missaoManager;
@@ -897,6 +899,9 @@ else if (nivelAtual == "A2-B1")
         {
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("AirportInfoNPC: usando exerc?cios locais. " + catalogoExercicios.Error);
 
             if (nivelAtual == "A1")
             {
@@ -941,7 +946,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
 
         ConcluirMissao("aeroporto_a1_1");
         IniciarMissao("aeroporto_a1_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
@@ -949,7 +954,7 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosAlternativas[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("travel_document", 1, exAtual);
 
         ConcluirMissao("aeroporto_a1_2");
     }
@@ -963,14 +968,14 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("checkin_directions", 1, exAtual);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosWriting[0]), exerciciosWriting[0]);
+        await AbrirExercicioDoPonto("walking_time", 1, exerciciosWriting[0]);
 
         await PlayAudioETexto(i++);
 
@@ -986,26 +991,26 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[0];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
 
         ConcluirMissao("aeroporto_b1_1");
         IniciarMissao("aeroporto_b1_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicio(ObterTipoExercicio(exerciciosAlternativas[0]), exerciciosAlternativas[0]);
+        await AbrirExercicioDoPonto("checkin_directions", 1, exerciciosAlternativas[0]);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("walking_time", 1, exAtual);
 
         await PlayAudioETexto(i++);
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[2];
-        await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+        await AbrirExercicioDoPonto("further_assistance", 1, exAtual);
 
         ConcluirMissao("aeroporto_b1_2");
     }
@@ -1023,7 +1028,7 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
 
     ConcluirMissao("aeroporto_a1a2_1");
 
@@ -1036,7 +1041,7 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("checkin_directions", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
@@ -1056,7 +1061,7 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
 
     ConcluirMissao("aeroporto_a2b1_1");
 
@@ -1069,7 +1074,7 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosAlternativas[0];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("checkin_directions", 1, exAtual);
 
     ConcluirMissao("aeroporto_a2b1_2");
 
@@ -1082,12 +1087,24 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
 
     exAtual = exerciciosSpeaking[1];
-    await AbrirExercicio(ObterTipoExercicio(exAtual), exAtual);
+    await AbrirExercicioDoPonto("walking_time", 1, exAtual);
 
     await PlayAudioETexto(i++);
 
     ConcluirMissao("aeroporto_a2b1_3");
 }
+
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    {
+        TipoExercicio tipo = ObterTipoExercicio(fallback);
+        bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
+        ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
+        if (item != null)
+            return AbrirExercicio(item.Tipo, item.Exercise);
+
+        Debug.LogWarning($"AirportInfoNPC: usando exerc?cio local em {nivelAtual}/{pointKey}/{ordem}.");
+        return AbrirExercicio(tipo, fallback);
+    }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
     {

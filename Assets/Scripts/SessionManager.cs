@@ -13,6 +13,7 @@ public sealed class SessionManager
     private DateTimeOffset accessTokenExpiresAtUtc;
     private bool rememberMe;
     private int? authenticatedUserId;
+    private AuthenticatedUser authenticatedUser;
 
     public string AccessToken
     {
@@ -40,6 +41,26 @@ public sealed class SessionManager
     public int? AuthenticatedUserId
     {
         get { return authenticatedUserId; }
+    }
+
+    public AuthenticatedUser AuthenticatedUser
+    {
+        get { return authenticatedUser; }
+    }
+
+    public AccountRole? CurrentRole
+    {
+        get
+        {
+            return authenticatedUser == null
+                ? (AccountRole?)null
+                : authenticatedUser.Role;
+        }
+    }
+
+    public bool IsAdmin
+    {
+        get { return CurrentRole == AccountRole.Admin; }
     }
 
     public SessionManager(AuthenticationManager authenticationManager, IRefreshTokenStore refreshTokenStore)
@@ -275,10 +296,12 @@ public sealed class SessionManager
         CancellationToken cancellationToken)
     {
         authenticatedUserId = null;
+        authenticatedUser = null;
         AuthenticationResult<AuthenticatedUser> userResult =
             await authenticationManager.GetCurrentUserAsync(AccessToken, cancellationToken);
         if (userResult.IsSuccess)
         {
+            authenticatedUser = userResult.Value;
             authenticatedUserId = userResult.Value.Id;
             return AuthenticationResult<bool>.Success(true);
         }
@@ -373,7 +396,8 @@ public sealed class SessionManager
         refreshToken = tokens.RefreshToken;
         accessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc;
         rememberMe = isRemembered;
-        authenticatedUserId = userId;
+        authenticatedUser = tokens.User;
+        authenticatedUserId = userId ?? (tokens.User == null ? (int?)null : tokens.User.Id);
     }
 
     private void ClearInMemorySession()
@@ -383,5 +407,6 @@ public sealed class SessionManager
         accessTokenExpiresAtUtc = default(DateTimeOffset);
         rememberMe = false;
         authenticatedUserId = null;
+        authenticatedUser = null;
     }
 }
