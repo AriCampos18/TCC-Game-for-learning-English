@@ -155,7 +155,7 @@
 //             finalizacaoConcluida =
 //                 await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
 //         else
-//             Debug.LogError("RevisaoManager não está disponível para finalizar Tourist Information Center.");
+//             Debug.LogError("RevisaoManager não está disponível para finalizar Visitor Center.");
 
 //         if (!finalizacaoConcluida)
 //         {
@@ -1001,7 +1001,14 @@ public class VisitorCenterNPC: InteracaoNPC
     public Transform pontoChegadaCityPark;
     public GameObject marcadorCityPark;
 
-    private const string NpcKey = "visitor_center_npc";
+    private const string NpcKey = MissoesVisitorCenter.NpcKey;
+    private int visitaAtendida;
+    private int VisitaAtual => MissionManager.Instance?.VisitaVisitorCenter ?? 0;
+
+    protected override bool PermitirReinteracaoAposConclusao =>
+        VisitaAtual != 0 && VisitaAtual != visitaAtendida;
+
+    public override bool PodeInteragir() => VisitaAtual != 0 && base.PodeInteragir();
     private const string ArrivalAssociationPoint = "arrival_vocabulary";
     private ExerciseLoadResult catalogoExercicios;
     private bool atendimentoConcluido;
@@ -1059,6 +1066,14 @@ public class VisitorCenterNPC: InteracaoNPC
         if (!atendimentoConcluido || !aguardandoChegadaCityPark || finalizacaoIniciada)
             return;
 
+        if (VisitaAtual != visitaAtendida)
+        {
+            aguardandoChegadaCityPark = false;
+            if (marcadorCityPark != null)
+                marcadorCityPark.SetActive(false);
+            return;
+        }
+
         if (GameProgress.EstaEmDialogo)
         {
             tempoParadoCityPark = 0f;
@@ -1100,7 +1115,8 @@ public class VisitorCenterNPC: InteracaoNPC
             // Conclui a missão após 3 segundos parado.
             if (tempoParadoCityPark >= TempoNecessarioCityPark)
             {
-                MissionManager.ConcluirMissaoNPC(idMissaoChegadaCityPark);
+                if (MissionManager.Instance?.MissaoConcluida(idMissaoChegadaCityPark) != true)
+                    Emitir("permanencia_confirmada", MissoesVisitorCenter.CityPark);
 
                 if (MissionManager.Instance == null
                     || !MissionManager.Instance.MissaoConcluida(idMissaoChegadaCityPark))
@@ -1161,7 +1177,7 @@ public class VisitorCenterNPC: InteracaoNPC
                 finalizacaoConcluida =
                     await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
             else
-                Debug.LogError("RevisaoManager não está disponível para finalizar Tourist Information Center.");
+                Debug.LogError("RevisaoManager não está disponível para finalizar Visitor Center.");
         }
         catch (Exception erro)
         {
@@ -1169,7 +1185,7 @@ public class VisitorCenterNPC: InteracaoNPC
         }
         finally
         {
-            if (!finalizacaoConcluida)
+            if (!finalizacaoConcluida && VisitaAtual == visitaAtendida)
             {
                 finalizacaoIniciada = false;
                 aguardandoChegadaCityPark = true;
@@ -1888,95 +1904,84 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
+    private static void Emitir(string tipo, string alvo) =>
+        MissionManager.Instance?.RegistrarEventoVisitorCenter(tipo, alvo);
+
+    protected override void AoIniciarInteracao()
+    {
+        atendimentoConcluido = false;
+        visitaAtendida = VisitaAtual;
+        Emitir("npc_interagido", NpcKey);
+    }
+
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
         atendimentoConcluido = false;
         associacaoChegadaConcluida = false;
+        finalizacaoIniciada = false;
         aguardandoChegadaCityPark = false;
         if (marcadorCityPark != null)
             marcadorCityPark.SetActive(false);
 
-        InicializarConteudosPorNivel();
-        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
-        if (!catalogoExercicios.Success)
-            Debug.LogWarning("VisitorCenterNPC: usando exercícios locais. " + catalogoExercicios.Error);
-
-        if (nivelAtual == "A1")
+        try
         {
-            await interacaoA1();
+            InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("VisitorCenterNPC: usando exercícios locais. " + catalogoExercicios.Error);
+
+            switch (nivelAtual)
+            {
+                case "A1":
+                    await interacaoA1();
+                    Emitir("conversa_encerrada", NpcKey);
+                    break;
+                case "A1-A2": await interacaoA1A2(); break;
+                case "A2": await interacaoA2(); break;
+                case "A2-B1": await interacaoA2B1(); break;
+                default: await interacaoB1(); break;
+            }
         }
-        else if(nivelAtual == "A1-A2")
+        finally
         {
-            await interacaoA1A2();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else if(nivelAtual == "A2-B1")
-        {
-            await interacaoA2B1();
-        }
-        else
-        {
-            await interacaoB1();
+            GameProgress.EstaEmDialogo = false;
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
+
+            LiberarControlePlayer();
         }
 
-        // Desativa o estado quando a conversa acabar completamente!
-        GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-
-        LiberarControlePlayer();
-
-        if (movimentoPlayer != null)
-            ultimaPosicaoPlayer = movimentoPlayer.transform.position;
-        atendimentoConcluido = true;
+        if (VisitaAtual == visitaAtendida)
+            LiberarChegadaCityPark();
     }
 
-    private void IniciarMissao(string id, string texto, string traducao)
+    private void LiberarChegadaCityPark()
     {
-        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
-    }
+        if (pontoChegadaCityPark == null || movimentoPlayer == null)
+        {
+            Debug.LogWarning("VisitorCenterNPC: atribua o ponto de chegada do City Park e o jogador no Inspector.", this);
+            return;
+        }
 
-    private void IniciarMissaoChegadaCityPark(string id, string texto, string traducao)
-    {
-        IniciarMissao(id, texto, traducao);
+        idMissaoChegadaCityPark = MissoesVisitorCenter.ChaveChegada(nivelAtual);
+        if (idMissaoChegadaCityPark == null)
+            return;
 
-        idMissaoChegadaCityPark = id;
-        aguardandoChegadaCityPark = true;
-
-        // Reinicia o contador de permanência
         tempoParadoCityPark = 0f;
-
-        // Registra a posição inicial do jogador
-        if (movimentoPlayer != null)
-            ultimaPosicaoPlayer = movimentoPlayer.transform.position;
-
-        // Exibe o marcador
+        ultimaPosicaoPlayer = movimentoPlayer.transform.position;
+        atendimentoConcluido = true;
+        aguardandoChegadaCityPark = true;
         if (marcadorCityPark != null)
             marcadorCityPark.SetActive(true);
-        else
-            Debug.LogWarning("VisitorCenterNPC: atribua o marcador do City Park no Inspector.");
-
-        if (pontoChegadaCityPark == null)
-            Debug.LogWarning("VisitorCenterNPC: atribua o ponto de chegada do City Park no Inspector.");
     }
 
     private async Task interacaoA1()
     {
         int i = 0;
-
-        IniciarMissao("visitor_center_a1_conversa", "Start a conversation with the employee", "Inicie uma conversa com a funcionária");
 
         await PlayAudioETexto(i++);
 
@@ -1988,10 +1993,6 @@ else if (nivelAtual == "A2-B1")
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicioDoPonto("first_visit", 1, exAtual);
 
-        MissionManager.ConcluirMissaoNPC("visitor_center_a1_conversa");
-
-        IniciarMissao("visitor_center_a1_atracoes", "Learn about the city's tourist attractions", "Conheça os pontos turísticos da cidade");
-
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicioDoPonto("destination_choice", 1, exAtual);
 
@@ -2000,53 +2001,31 @@ else if (nivelAtual == "A2-B1")
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicioDoPonto("directions_request", 1, exAtual);
 
-        MissionManager.ConcluirMissaoNPC("visitor_center_a1_atracoes");
-
-        IniciarMissaoChegadaCityPark(
-            "visitor_center_a1_city_park",
-            "Find the City Park",
-            "Encontre o City Park"
-        );
-
         await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
-
     }
 
     private async Task interacaoA2()
     {
         int i = 0;
 
-        IniciarMissao("visitor_center_a2_conversa", "Talk to the employee", "Converse com a funcionária");
-
         await PlayAudioETexto(i++);
-        
+
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicioDoPonto("city_information", 1, exAtual);
 
         await PlayAudioETexto(i++);
-        
+
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicioDoPonto("first_visit", 1, exAtual);
-
-        MissionManager.ConcluirMissaoNPC("visitor_center_a2_conversa");
-
-        IniciarMissao("visitor_center_a2_atracoes", "Explore the attractions in the brochure", "Conheça as atrações disponíveis no panfleto");
 
         await PlayAudioETexto(i++);
 
         await AbrirExercicioDoPonto("destination_choice", 1, exerciciosSpeaking[1]);
-
-        MissionManager.ConcluirMissaoNPC("visitor_center_a2_atracoes");
+        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("destination_choice", 1));
 
         await PlayAudioETexto(i++);
 
         await AbrirExercicioDoPonto("directions_request", 1, exerciciosSpeaking[2]);
-
-        IniciarMissaoChegadaCityPark(
-            "visitor_center_a2_destino",
-            "Follow the directions to the destination",
-            "Siga as instruções até o destino"
-        );
 
         await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
 
@@ -2058,14 +2037,12 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
 
         await AbrirExercicioDoPonto("walking_time", 2, exerciciosCompletarFrase[0]);
-
+        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 2));
     }
 
     private async Task interacaoB1()
     {
         int i = 0;
-
-        IniciarMissao("visitor_center_b1_conversa", "Talk to the visitor center employee", "Converse com a funcionária do visitor center");
 
         await PlayAudioETexto(i++);
 
@@ -2073,25 +2050,14 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("city_information", 1, exAtual);
 
         await PlayAudioETexto(i++);
+        Emitir("marco_fluxo", MissoesVisitorCenter.FalaB1);
 
         await AbrirExercicioDoPonto("first_visit", 1, exerciciosCriarFrases[0]);
-
-        MissionManager.ConcluirMissaoNPC("visitor_center_b1_conversa");
-
-        IniciarMissao("visitor_center_b1_escolher_city_park", "Choose the City Park as your destination", "Escolha o City Park como destino");
 
         await PlayAudioETexto(i++);
 
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicioDoPonto("directions_request", 1, exAtual);
-
-        MissionManager.ConcluirMissaoNPC("visitor_center_b1_escolher_city_park");
-
-        IniciarMissaoChegadaCityPark(
-            "visitor_center_b1_percorrer_trajeto",
-            "Understand the detailed directions and follow the route to the City Park",
-            "Interprete as instruções detalhadas e percorra o trajeto até chegar ao City Park"
-        );
 
         await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
 
@@ -2106,114 +2072,70 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Informações adicionais sobre transporte e visita.
 
         await PlayAudioETexto(i++); // Recomendação sobre o melhor horário para visitar.
-
     }
 
     private async Task interacaoA1A2()
-{
-    int i = 0;
+    {
+        int i = 0;
 
-    IniciarMissao(
-        "visitor_center_a1a2_conversa",
-        "Converse com o funcionário do centro de informações turísticas",
-        "Talk to the visitor center employee"
-    );
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicioDoPonto("city_information", 1, exAtual);
 
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("city_information", 1, exAtual);
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
 
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("first_visit", 1, exAtual);
+        await PlayAudioETexto(i++);
 
-    MissionManager.ConcluirMissaoNPC("visitor_center_a1a2_conversa");
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicioDoPonto("park_location", 1, exAtual);
 
-    IniciarMissao(
-        "visitor_center_a1a2_atracoes",
-        "Escolha o City Park como ponto turístico para visitar",
-        "Choose the City Park as the tourist attraction to visit"
-    );
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicioDoPonto("walking_time", 1, exAtual);
+        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 1));
+    }
 
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("park_location", 1, exAtual);
+    private async Task interacaoA2B1()
+    {
+        int i = 0;
 
-    MissionManager.ConcluirMissaoNPC("visitor_center_a1a2_atracoes");
+        await PlayAudioETexto(i++);
 
-    IniciarMissaoChegadaCityPark(
-        "visitor_center_a1a2_city_park",
-        "Siga as orientações e encontre o City Park",
-        "Follow the directions and find the City Park"
-    );
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicioDoPonto("city_information", 1, exAtual);
 
-    await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("walking_time", 1, exAtual);
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
+        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("first_visit", 1));
 
-}
+        await PlayAudioETexto(i++);
 
-private async Task interacaoA2B1()
-{
-    int i = 0;
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicioDoPonto("directions_request", 1, exAtual);
 
-    IniciarMissao(
-        "visitor_center_a2b1_conversa",
-        "Converse com o funcionário e peça recomendações de atrações turísticas",
-        "Talk to the employee and ask for recommendations about tourist attractions"
-    );
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicioDoPonto("directions_confirmation", 1, exAtual);
 
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("city_information", 1, exAtual);
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicioDoPonto("directions_confirmation", 2, exAtual);
 
-    await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("first_visit", 1, exAtual);
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicioDoPonto("transportation", 1, exAtual);
+        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("transportation", 1));
 
-    MissionManager.ConcluirMissaoNPC("visitor_center_a2b1_conversa");
-
-    IniciarMissao(
-        "visitor_center_a2b1_escolher_destino",
-        "Escolha o City Park e peça orientações para chegar até lá",
-        "Choose the City Park and ask for directions to get there"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("directions_request", 1, exAtual);
-
-    MissionManager.ConcluirMissaoNPC("visitor_center_a2b1_escolher_destino");
-
-    IniciarMissaoChegadaCityPark(
-        "visitor_center_a2b1_percorrer_trajeto",
-        "Interprete as orientações e siga o trajeto até o City Park",
-        "Understand the directions and follow the route to the City Park"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosWriting[0];
-    await AbrirExercicioDoPonto("directions_confirmation", 1, exAtual);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("directions_confirmation", 2, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("transportation", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-}
+        await PlayAudioETexto(i++);
+    }
 
     private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {

@@ -101,7 +101,7 @@
 //                     + "com o garçom.";
 //                 break;
 
-//             case "Tourist Information Center":
+//             case "Visitor Center":
 //                 nome = "Visitor Center";
 //                 ingles = "Practice asking about tourist "
 //                     + "attractions, directions, and local places.";
@@ -408,7 +408,13 @@ public class ModalFinalManager : MonoBehaviour
                     + "com o garçom.";
                 break;
 
-            case "Tourist Information Center":
+            case MissoesClothingStore.Cenario:
+                nome = "the Clothing Store";
+                ingles = "Practice choosing, trying on, and buying clothes.";
+                portugues = "Pratique como escolher, experimentar e comprar roupas.";
+                break;
+
+            case MissoesVisitorCenter.Cenario:
                 nome = "Visitor Center";
                 ingles = "Practice asking about tourist "
                     + "attractions, directions, and local places.";

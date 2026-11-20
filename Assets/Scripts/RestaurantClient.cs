@@ -363,9 +363,12 @@ public class RestaurantClient : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
-    private AudioSource audioSource;
-    private BackendManager backendManager;
-    private const string NpcKey = "restaurant_client";
+    private const string NpcKey = MissoesRestaurant.Cliente;
+    private int ultimaVisita;
+    private int VisitaAtual => MissionManager.Instance?.VisitaRestaurant ?? 0;
+
+    protected override bool PermitirReinteracaoAposConclusao =>
+        VisitaAtual != 0 && VisitaAtual != ultimaVisita;
     private ExerciseLoadResult catalogoExercicios;
     public ModalExercicio modalExercicio;
     public GameObject modalLegenda;
@@ -385,6 +388,12 @@ public class RestaurantClient : InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        if (audioSourceComum == null)
+        {
+            audioSourceComum = gameObject.AddComponent<AudioSource>();
+            audioSourceComum.playOnAwake = false;
+        }
+
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Restaurant Client";
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
@@ -407,56 +416,56 @@ public class RestaurantClient : InteracaoNPC
         if(nivelAtual== "A2-B1")
         {
             dialogoAtual = new List<string>()
-{
-    "Hi! Is this your first time at this restaurant?",
-    "Have you tried the hamburger here before?",
-    "I come here quite often. The hamburgers are really good, and the portions are quite large.",
-    "I agree! The fries are delicious, too."
-};
+            {
+                "Hi! Is this your first time at this restaurant?",
+                "Have you tried the hamburger here before?",
+                "I come here quite often. The hamburgers are really good, and the portions are quite large.",
+                "I agree! The fries are delicious, too."
+            };
 
-exerciciosSpeaking.Add(new ExercicioSpeaking()
-{
-    enunciado = "Respond to the customer and explain whether this is your first visit.",
-    opcoesFala = new List<string>()
-    {
-        "Yes, this is my first time here. I'm enjoying it so far.\n",
-        "Yes, I'd like to pay the bill now.\n",
-        "No, I need to book a hotel room.\n"
-    },
-    respostaCorreta = 0
-});
+            exerciciosSpeaking.Add(new ExercicioSpeaking()
+            {
+                enunciado = "Respond to the customer and explain whether this is your first visit.",
+                opcoesFala = new List<string>()
+                {
+                    "Yes, this is my first time here. I'm enjoying it so far.\n",
+                    "Yes, I'd like to pay the bill now.\n",
+                    "No, I need to book a hotel room.\n"
+                },
+                respostaCorreta = 0
+            });
 
-exerciciosSpeaking.Add(new ExercicioSpeaking()
-{
-    enunciado = "The customer asks if you have tried the hamburger before. Answer appropriately.",
-    opcoesFala = new List<string>()
-    {
-        "No, I haven't, but I'm looking forward to trying it.\n",
-        "Yes, could you bring me the bill?\n",
-        "No, I'd like to reserve a table for tomorrow.\n"
-    },
-    respostaCorreta = 0
-});
+            exerciciosSpeaking.Add(new ExercicioSpeaking()
+            {
+                enunciado = "The customer asks if you have tried the hamburger before. Answer appropriately.",
+                opcoesFala = new List<string>()
+                {
+                    "No, I haven't, but I'm looking forward to trying it.\n",
+                    "Yes, could you bring me the bill?\n",
+                    "No, I'd like to reserve a table for tomorrow.\n"
+                },
+                respostaCorreta = 0
+            });
 
-exerciciosCriarFrases.Add(new ExercicioBlocos()
-{
-    enunciado = "Arrange the words to form the correct sentence in English: Você recomendaria experimentar o hambúrguer daqui?",
-    blocosPalavras = new List<string>()
-    {
-        "recommend",
-        "Would",
-        "here",
-        "trying",
-        "the",
-        "you",
-        "hamburger",
-        "recommendation",
-        "try",
-        "a",
-        "to"
-    },
-    respostaCorreta = "Would you recommend trying the hamburger here?\n"
-});
+            exerciciosCriarFrases.Add(new ExercicioBlocos()
+            {
+                enunciado = "Arrange the words to form the correct sentence in English: Você recomendaria experimentar o hambúrguer daqui?",
+                blocosPalavras = new List<string>()
+                {
+                    "recommend",
+                    "Would",
+                    "here",
+                    "trying",
+                    "the",
+                    "you",
+                    "hamburger",
+                    "recommendation",
+                    "try",
+                    "a",
+                    "to"
+                },
+                respostaCorreta = "Would you recommend trying the hamburger here?\n"
+            });
         }
         else if(nivelAtual== "B1")
         {
@@ -557,6 +566,7 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
             return;
         }
 
+        ultimaVisita = VisitaAtual;
         GameProgress.EstaEmDialogo = true;
         try
         {
@@ -570,11 +580,6 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
             else
                 await interacaoB1();
 
-            MissionManager.ConcluirMissaoNPC(
-                nivelAtual == "A1-A2" ? "rest_a1a2_cliente" :
-                nivelAtual == "A2-B1" ? "rest_a2b1_cliente" :
-                "rest_b1_cliente"
-            );
         }
         finally
         {
@@ -694,7 +699,7 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
     {
         ultimaFraseDita = dialogoAtual[i];
         // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[i], idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -709,14 +714,14 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
 
             if (textoPularDialogo != null)
                 textoPularDialogo.gameObject.SetActive(false);
 
             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSource.Play();
-            while (audioSource.isPlaying)
+            audioSourceComum.Play();
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }
@@ -755,7 +760,7 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -769,7 +774,7 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
             if (modalLegenda != null)
             {
                 modalLegenda.SetActive(true);
@@ -781,9 +786,9 @@ exerciciosCriarFrases.Add(new ExercicioBlocos()
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
+            audioSourceComum.Play();
             
-            while (audioSource.isPlaying)
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }

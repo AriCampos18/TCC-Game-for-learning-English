@@ -1140,11 +1140,13 @@ public class RecepcionistHotelNPC: InteracaoNPC
     string nivelAtual;
     string cumprimento, periodo, periodoIng;
     [Header("Objeto do Hotel")]
-public GameObject cartaoQuarto;
+    public GameObject cartaoQuarto;
     List<string> dialogoAtual;
-    private AudioSource audioSource;
-    private BackendManager backendManager;
-    private const string NpcKey = "recepcionist_hotel_npc";
+    private const string NpcKey = MissoesHotel.Recepcao;
+    private int ultimaVisitaHotel;
+    private int VisitaAtual => MissionManager.Instance?.VisitaHotel ?? 0;
+    protected override bool PermitirReinteracaoAposConclusao =>
+        VisitaAtual != 0 && VisitaAtual != ultimaVisitaHotel;
     private const string PeriodoToken = "{{periodo}}";
     private const string PeriodoIngToken = "{{periodo_ing}}";
     private ExerciseLoadResult catalogoExercicios;
@@ -1166,6 +1168,15 @@ public GameObject cartaoQuarto;
     protected override void Start()
     {
         base.Start();
+        if (audioSourceComum == null)
+        {
+            audioSourceComum = gameObject.AddComponent<AudioSource>();
+            audioSourceComum.playOnAwake = false;
+        }
+
+        if (cartaoQuarto != null)
+            cartaoQuarto.SetActive(false);
+
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Hotel Recepcionist";
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
@@ -2210,87 +2221,88 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    private void IniciarMissao(string id, string texto, string traducao)
+    protected override void AoIniciarInteracao()
     {
-        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+        ultimaVisitaHotel = VisitaAtual;
+        MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.InicioConversa, NpcKey);
     }
 
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
-        AtualizarPeriodoDoDia();
-        InicializarConteudosPorNivel();
-        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
-        if (!catalogoExercicios.Success)
-            Debug.LogWarning("RecepcionistHotelNPC: usando exercícios locais. " + catalogoExercicios.Error);
-
-        if (nivelAtual == "A1")
+        CartaoQuartoHotel cartao = cartaoQuarto != null ? cartaoQuarto.GetComponent<CartaoQuartoHotel>() : null;
+        try
         {
-            IniciarMissao(
-                "hotel_a1_conversar",
-                "Fale com o recepcionista do hotel",
-                "Talk to the hotel receptionist"
-            );
+            if (cartao != null)
+                cartao.Resetar();
+            AtualizarPeriodoDoDia();
+            InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("RecepcionistHotelNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            await interacaoA1();
+            switch (nivelAtual)
+            {
+                case "A1": await interacaoA1(); break;
+                case "A1-A2": await interacaoA1A2(); break;
+                case "A2": await interacaoA2(); break;
+                case "A2-B1": await interacaoA2B1(); break;
+                default: await interacaoB1(); break;
+            }
+
+            MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.FimConversa, NpcKey);
+            if (MissoesHotel.UsaCartao(nivelAtual))
+            {
+                if (!await AguardarRecolherCartao(cartao))
+                    return;
+
+                await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
+            }
         }
-        else if(nivelAtual == "A1-A2")
+        finally
         {
-            IniciarMissao(
-                "hotel_a1a2_checkin",
-                "Realize seu check-in e confirme os dados da hospedagem",
-                "Complete your check-in and confirm your stay details"
-            );
-
-            await interacaoA1A2();
+            if (cartao != null)
+                cartao.Resetar();
+            GameProgress.EstaEmDialogo = false;
+            OcultarInterfaceDaConversa();
+            LiberarControlePlayer();
         }
-        else if (nivelAtual == "A2")
-        {
-            IniciarMissao(
-                "hotel_a2_checkin",
-                "Fale com o recepcionista do hotel e realize seu check-in",
-                "Talk to the hotel receptionist and check in"
-            );
-
-            await interacaoA2();
-        }
-        else if(nivelAtual == "A2-B1")
-        {
-            IniciarMissao(
-                "hotel_a2b1_checkin",
-                "Confirme sua reserva e realize o check-in",
-                "Confirm your reservation and complete your check-in"
-            );
-
-            await interacaoA2B1();
-        }
-        else
-        {
-            IniciarMissao(
-                "hotel_b1_checkin",
-                "Informe seus dados e confirme as informações da reserva",
-                "Provide your details and confirm your reservation information"
-            );
-
-            await interacaoB1();
-        }
-
-        GameProgress.EstaEmDialogo = false;
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-        LiberarControlePlayer();
 
         if (RevisaoManager.Instance != null)
             await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
         else
             Debug.LogError("RevisaoManager não está disponível para finalizar Hotel.");
+    }
+
+    private void OcultarInterfaceDaConversa()
+    {
+        if (modalLegenda != null)
+            modalLegenda.SetActive(false);
+        if (textoPularDialogo != null)
+            textoPularDialogo.gameObject.SetActive(false);
+    }
+
+    private async Task<bool> AguardarRecolherCartao(CartaoQuartoHotel cartao)
+    {
+        OcultarInterfaceDaConversa();
+        if (cartao == null || !cartao.Disponibilizar())
+        {
+            Debug.LogError("RecepcionistHotelNPC: vincule um cartão com CartaoQuartoHotel e Collider ativo.", this);
+            return false;
+        }
+
+        // O raio aceita somente o cartão durante esta etapa, com o movimento liberado para alcançá-lo.
+        LiberarControlePlayer();
+        while (cartao != null && CartaoQuartoHotel.Disponivel == cartao)
+            await Task.Yield();
+
+        if (cartao == null || !cartao.Recolhido)
+            return false;
+
+        MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.Marco, MissoesHotel.CartaoRecolhido);
+        TravarControlePlayer();
+        return true;
     }
 
     private async Task interacaoA1()
@@ -2306,18 +2318,9 @@ else if (nivelAtual == "A2-B1")
         exAtual = exerciciosWriting[0];
         await AbrirExercicioDoPonto("guest_name", 1, exAtual);
 
-        // Pagamento: finaliza a missão de conversar com a recepção.
         await PlayAudioETexto(i++);
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        MissionManager.ConcluirMissaoNPC("hotel_a1_conversar");
-
-        IniciarMissao(
-            "hotel_a1_servicos",
-            "Conheça os serviços do hotel durante a conversa",
-            "Learn about the hotel's services during the conversation"
-        );
 
         // Informações do quarto, café da manhã e checkout.
         await PlayAudioETexto(i++);
@@ -2335,8 +2338,6 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicioDoPonto("farewell", 1, exAtual);
-
-        MissionManager.ConcluirMissaoNPC("hotel_a1_servicos");
 
         await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
     }
@@ -2360,17 +2361,7 @@ else if (nivelAtual == "A2-B1")
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicioDoPonto("payment", 1, exAtual);
 
-        // Check-in concluído após a escolha da forma de pagamento.
-        MissionManager.ConcluirMissaoNPC("hotel_a2_checkin");
-
-        IniciarMissao(
-            "hotel_a2_cartao_quarto",
-            "Pegue o cartão do quarto",
-            "Collect your room card"
-        );
-
         await PlayAudioETexto(i++);
-        MissionManager.ConcluirMissaoNPC("hotel_a2_cartao_quarto");
 
         // Informações sobre café da manhã e checkout.
         exAtual = exerciciosWriting[1];
@@ -2390,7 +2381,6 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++);
 
-        await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -2413,14 +2403,6 @@ else if (nivelAtual == "A2-B1")
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicioDoPonto("payment", 1, exAtual);
 
-        MissionManager.ConcluirMissaoNPC("hotel_b1_checkin");
-
-        IniciarMissao(
-            "hotel_b1_servicos",
-            "Conheça os serviços do hotel e obtenha informações sobre o quarto e o café da manhã",
-            "Learn about the hotel services and get information about your room and breakfast"
-        );
-
         // Cartão do quarto, elevador e café da manhã.
         await PlayAudioETexto(i++);
         exAtual = exerciciosCriarFrases[0];
@@ -2432,14 +2414,6 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++);
         exAtual = exerciciosAlternativas[1];
         await AbrirExercicioDoPonto("breakfast", 2, exAtual);
-
-        MissionManager.ConcluirMissaoNPC("hotel_b1_servicos");
-
-        IniciarMissao(
-            "hotel_b1_late_checkout",
-            "Consulte o horário do checkout e solicite um checkout tardio, se necessário",
-            "Check the checkout time and request a late checkout if needed"
-        );
 
         // Checkout: primeiro pergunta o horário; depois solicita a saída tardia.
         await PlayAudioETexto(i++);
@@ -2453,129 +2427,86 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++);
 
-        MissionManager.ConcluirMissaoNPC("hotel_b1_late_checkout");
-
         await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("reservation", 1, exerciciosSpeaking[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("stay_duration", 1, exerciciosSpeaking[1]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[0]);
-
-    MissionManager.ConcluirMissaoNPC("hotel_a1a2_checkin");
-
-    IniciarMissao(
-        "hotel_a1a2_cartao",
-        "Pegue o cartão do quarto no balcão",
-        "Pick up your room key card from the counter"
-    );
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("room_key", 1, exerciciosSpeaking[2]);
-
-    await AguardarPegarCartao();
-
-    MissionManager.ConcluirMissaoNPC("hotel_a1a2_cartao");
-
-    // Informações sobre o café da manhã.
-    await AbrirExercicioDoPonto("breakfast", 1, exerciciosCriarFrases[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
-
-    // Checkout e encerramento.
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("farewell", 1, exerciciosSpeaking[3]);
-
-    await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    // Reserva e confirmação dos dados.
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("reservation", 1, exerciciosSpeaking[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("reservation", 2, exerciciosSpeaking[1]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[0]);
-
-    MissionManager.ConcluirMissaoNPC("hotel_a2b1_checkin");
-
-    // Cartão do quarto.
-    IniciarMissao(
-        "hotel_a2b1_cartao",
-        "Pegue o cartão do quarto no balcão",
-        "Pick up your room key card from the counter"
-    );
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("room_key", 1, exerciciosSpeaking[2]);
-
-    await AguardarPegarCartao();
-
-    MissionManager.ConcluirMissaoNPC("hotel_a2b1_cartao");
-
-    // Orientações sobre o hotel.
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("wifi", 1, exerciciosCriarFrases[0]);
-
-    await AbrirExercicioDoPonto("elevator", 1, exerciciosSpeaking[3]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("breakfast", 1, exerciciosWriting[1]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
-
-    // Checkout e solicitação de saída tardia.
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("checkout", 1, exerciciosWriting[2]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("checkout", 2, exerciciosSpeaking[4]);
-
-    await AbrirExercicioDoPonto("checkout", 3, exerciciosCompletarFrase[0]);
-
-    await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
-}
-
-    private async Task AguardarPegarCartao()
-{
-    if (cartaoQuarto == null)
     {
-        Debug.LogError("O objeto cartaoQuarto não foi configurado no Inspector.");
-        return;
+        int i = 0;
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("reservation", 1, exerciciosSpeaking[0]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("stay_duration", 1, exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[0]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("room_key", 1, exerciciosSpeaking[2]);
+
+        // Informações sobre o café da manhã.
+        await AbrirExercicioDoPonto("breakfast", 1, exerciciosCriarFrases[0]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
+
+        // Checkout e encerramento.
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("farewell", 1, exerciciosSpeaking[3]);
+
     }
 
-    cartaoQuarto.SetActive(true);
-
-    while (cartaoQuarto != null && cartaoQuarto.activeSelf)
+    private async Task interacaoA2B1()
     {
-        await Task.Yield();
-    }
-}
+        int i = 0;
 
-    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+        // Reserva e confirmação dos dados.
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("reservation", 1, exerciciosSpeaking[0]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("reservation", 2, exerciciosSpeaking[1]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[0]);
+
+        // Cartão do quarto.
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("room_key", 1, exerciciosSpeaking[2]);
+
+        // Orientações sobre o hotel.
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("wifi", 1, exerciciosCriarFrases[0]);
+
+        await AbrirExercicioDoPonto("elevator", 1, exerciciosSpeaking[3]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("breakfast", 1, exerciciosWriting[1]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
+
+        // Checkout e solicitação de saída tardia.
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("checkout", 1, exerciciosWriting[2]);
+
+        await PlayAudioETexto(i++);
+        await AbrirExercicioDoPonto("checkout", 2, exerciciosSpeaking[4]);
+
+        await AbrirExercicioDoPonto("checkout", 3, exerciciosCompletarFrase[0]);
+
+    }
+
+    private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
@@ -2590,11 +2521,19 @@ private async Task interacaoA2B1()
                 exercicio = PreencherPeriodo(blocos);
             }
 
-            return AbrirExercicio(item.Tipo, exercicio);
+            await AbrirExercicio(item.Tipo, exercicio);
+        }
+        else
+        {
+            Debug.LogWarning($"RecepcionistHotelNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+            await AbrirExercicio(tipo, fallback);
         }
 
-        Debug.LogWarning($"RecepcionistHotelNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
-        return AbrirExercicio(tipo, fallback);
+        if (nivelAtual == "B1")
+        {
+            string alvo = MissoesHotel.AlvoExercicio(item?.Exercise.pointKey ?? pointKey, item?.Exercise.ordemBanco ?? ordem);
+            MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.ExercicioEncerrado, alvo);
+        }
     }
 
     private ExercicioBlocos PreencherPeriodo(ExercicioBlocos blocos)
@@ -2665,7 +2604,7 @@ private async Task interacaoA2B1()
     {
         ultimaFraseDita = dialogoAtual[i];
         // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[i], idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2680,14 +2619,14 @@ private async Task interacaoA2B1()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
 
             if (textoPularDialogo != null)
                 textoPularDialogo.gameObject.SetActive(false);
 
             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSource.Play();
-            while (audioSource.isPlaying)
+            audioSourceComum.Play();
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }
@@ -2726,7 +2665,7 @@ private async Task interacaoA2B1()
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2740,7 +2679,7 @@ private async Task interacaoA2B1()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
             if (modalLegenda != null)
             {
                 modalLegenda.SetActive(true);
@@ -2752,9 +2691,9 @@ private async Task interacaoA2B1()
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
+            audioSourceComum.Play();
             
-            while (audioSource.isPlaying)
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }

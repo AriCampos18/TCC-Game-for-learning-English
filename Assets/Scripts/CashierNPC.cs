@@ -1591,13 +1591,6 @@ else if (nivelAtual == "A2-B1")
             if (!intermediario)
                 MissionManager.Instance.ConcluirMissaoMarket("falar_caixa", "conversa_encerrada", "cashier_npc");
 
-            if (!await FazerRevisao())
-            {
-                GameProgress.EstaEmDialogo = false;
-                LiberarControlePlayer();
-                return;
-            }
-
             if (intermediario)
             {
                 bool iniciante = nivelAtual == "A1-A2";
@@ -1670,7 +1663,6 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA2() 
@@ -1708,7 +1700,6 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoB1()
@@ -1740,7 +1731,6 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++, mostrarLegenda: true);
 
-        await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
@@ -1775,7 +1765,6 @@ else if (nivelAtual == "A2-B1")
     exAtual = exerciciosAlternativas[1];
     await AbrirExercicioDoPonto("receipt_choice", 1, exAtual);
 
-    await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
 private async Task interacaoA2B1()
@@ -1815,7 +1804,6 @@ private async Task interacaoA2B1()
     exAtual = exerciciosCompletarFrase[0];
     await AbrirExercicioDoPonto("payment_and_receipt", 1, exAtual);
 
-    await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
     private async Task PegarChocolate()
@@ -1828,7 +1816,7 @@ private async Task interacaoA2B1()
         }
     }
 
-    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback, bool faseAssociacao = false)
     {
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
@@ -1836,11 +1824,11 @@ private async Task interacaoA2B1()
         if (item != null)
         {
             var speaking = item.Exercise as ExercicioSpeaking;
-            return AbrirExercicio(item.Tipo, speaking == null ? item.Exercise : PreencherSpeaking(speaking));
+            return AbrirExercicio(item.Tipo, speaking == null ? item.Exercise : PreencherSpeaking(speaking), faseAssociacao);
         }
 
         Debug.LogWarning($"CashierNPC: usando exerc?cio local em {nivelAtual}/{pointKey}/{ordem}.");
-        return AbrirExercicio(tipo, fallback);
+        return AbrirExercicio(tipo, fallback, faseAssociacao);
     }
 
     private ExercicioSpeaking PreencherSpeaking(ExercicioSpeaking speaking)
@@ -1866,7 +1854,7 @@ private async Task interacaoA2B1()
         };
     }
 
-    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
+    public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex, bool faseAssociacao = false)
     {
         Debug.Log("Abrindo exercício: " + tipo);
 
@@ -1885,7 +1873,7 @@ private async Task interacaoA2B1()
 
         DefinirCursorDesktop(true);
 
-        modalExercicio.Abrir(tipo, ex, this);
+        modalExercicio.Abrir(tipo, ex, this, faseAssociacao: faseAssociacao);
 
         if (legenda != null)
             legenda.AjustarPosicaoPeloEstadoDoJogo();
@@ -1907,6 +1895,24 @@ private async Task interacaoA2B1()
         if (legenda != null)
             legenda.AjustarPosicaoPeloEstadoDoJogo();
     }
+    public async Task<bool> ExecutarAtividadesAposSaida()
+    {
+        if (!sacolaFoiPega || MissionManager.Instance?.MissaoConcluida("pegar_sacola") != true)
+            return false;
+
+        GameProgress.EstaEmDialogo = true;
+        TravarControlePlayer();
+        try
+        {
+            await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0], faseAssociacao: true);
+            return await FazerRevisao();
+        }
+        finally
+        {
+            GameProgress.EstaEmDialogo = false;
+        }
+    }
+
     private Task<bool> FazerRevisao()
     {
         if (RevisaoManager.Instance == null)

@@ -305602,11 +305602,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1687428383701663186, guid: f7f14e660bf653a41bf3fe1c7fbda8ef, type: 3}
       propertyPath: m_text
-      value: Tourist Information Center
+      value: Visitor Center
       objectReference: {fileID: 0}
     - target: {fileID: 3916094829129485331, guid: f7f14e660bf653a41bf3fe1c7fbda8ef, type: 3}
       propertyPath: m_text
-      value: 'Tourist Information Center
+      value: 'Visitor Center
 
 '
       objectReference: {fileID: 0}
@@ -305751,7 +305751,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cae2307a8e33b440867283438f7538f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardCenarioManager
-  nomeCenario: Tourist Information Center
+  nomeCenario: Visitor Center
   textoNome: {fileID: 0}
   botao: {fileID: 2089864204}
 --- !u!114 &2089864212

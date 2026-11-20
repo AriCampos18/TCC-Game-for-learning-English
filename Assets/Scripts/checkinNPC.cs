@@ -954,6 +954,14 @@ public class checkinNPC : InteracaoNPC
     public GameObject marcadorPortao18;
     public GameObject marcadorPortao24;
 
+    [Header("Consulta ao cartão de embarque")]
+    [SerializeField] private GameObject painelCartaoEmbarque;
+    [SerializeField] private TMP_Text textoCartaoEmbarque;
+    [SerializeField] private TMP_Text instrucoesCartaoEmbarque;
+
+    private bool botaoCartaoVRPressionado;
+    private bool cartaoEmbarqueAberto;
+
     private bool aguardandoChegadaPortao;
     private bool fluxoCheckinConcluido;
     private const string NpcKey = "checkin_npc";
@@ -973,6 +981,10 @@ public class checkinNPC : InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        if (painelCartaoEmbarque != null && !transform.IsChildOf(painelCartaoEmbarque.transform))
+            painelCartaoEmbarque.SetActive(false);
+        if (instrucoesCartaoEmbarque != null)
+            instrucoesCartaoEmbarque.enabled = false;
         DesativarMarcadoresPortoes();
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Airport Employee";
@@ -999,7 +1011,8 @@ public class checkinNPC : InteracaoNPC
 
     private void Update()
     {
-        if (!fluxoCheckinConcluido || !aguardandoChegadaPortao || chegadaPortaoConfirmada)
+        AtualizarConsultaCartaoEmbarque();
+        if (cartaoEmbarqueAberto || !fluxoCheckinConcluido || !aguardandoChegadaPortao || chegadaPortaoConfirmada)
             return;
 
         if (MissionManager.Instance?.MissaoAtiva(idMissaoChegadaPortao) != true
@@ -1031,11 +1044,85 @@ public class checkinNPC : InteracaoNPC
         }
     }
 
-    // Ponto de integração para a futura interação com o cartão de embarque.
-    // Exercícios do check-in não chamam este método.
-    public void RegistrarConsultaCartaoEmbarque()
+    private string MissaoConsultaCartao()
     {
-        if (!fluxoCheckinConcluido || cartaoEmbarqueConsultado)
+        switch (nivelAtual)
+        {
+            case "A1": return "aeroporto_a1_4";
+            case "A1-A2": return "aeroporto_a1a2_5";
+            case "A2-B1": return "aeroporto_a2b1_6";
+            default: return null;
+        }
+    }
+
+    private void AtualizarConsultaCartaoEmbarque()
+    {
+        bool acionado = !ModoVR && Input.GetKeyDown(KeyCode.B);
+        if (ModoVR)
+        {
+            var controle = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.RightHand);
+            bool pressionado = controle.TryGetFeatureValue(UnityEngine.XR.CommonUsages.secondaryButton, out bool valor) && valor;
+            acionado = pressionado && !botaoCartaoVRPressionado;
+            botaoCartaoVRPressionado = pressionado;
+        }
+
+        if (!acionado || !fluxoCheckinConcluido)
+            return;
+
+        if (cartaoEmbarqueAberto)
+        {
+            if (painelCartaoEmbarque != null)
+                painelCartaoEmbarque.SetActive(false);
+            cartaoEmbarqueAberto = false;
+            GameProgress.EstaEmDialogo = false;
+            LiberarControlePlayer();
+            TentarConcluirMissaoPortao();
+            return;
+        }
+
+        string missao = MissaoConsultaCartao();
+        if (cartaoEmbarqueConsultado || GameProgress.EstaEmDialogo || missao == null
+            || MissionManager.Instance?.MissaoAtiva(missao) != true)
+            return;
+
+        if (!CartaoEmbarqueConfigurado())
+        {
+            Debug.LogError("Airport: vincule um painel de cartão de embarque e um texto TMP dentro dele ao checkinNPC.", this);
+            return;
+        }
+
+        string dadosEmbarque = nivelAtual == "A1" ? "Gate: 12"
+            : nivelAtual == "A1-A2" ? "Gate: 18\nBoarding: 2:30 p.m."
+            : "Connecting flight — Gate: 24\nBoarding: 2:30 p.m.";
+        textoCartaoEmbarque.text = $"Boarding pass\n{dadosEmbarque}\n\n{(ModoVR ? "Secondary button" : "B")}: Close";
+        painelCartaoEmbarque.SetActive(true);
+        if (!textoCartaoEmbarque.isActiveAndEnabled)
+        {
+            painelCartaoEmbarque.SetActive(false);
+            Debug.LogError("Airport: o texto do cartão permanece inativo quando o painel é aberto.", this);
+            return;
+        }
+
+        cartaoEmbarqueAberto = true;
+        GameProgress.EstaEmDialogo = true;
+        TravarControlePlayer();
+        RegistrarConsultaCartaoEmbarque();
+        if (instrucoesCartaoEmbarque != null)
+            instrucoesCartaoEmbarque.enabled = false;
+    }
+
+    private bool CartaoEmbarqueConfigurado()
+    {
+        return painelCartaoEmbarque != null && textoCartaoEmbarque != null
+            && !transform.IsChildOf(painelCartaoEmbarque.transform)
+            && textoCartaoEmbarque.transform.IsChildOf(painelCartaoEmbarque.transform)
+            && (painelCartaoEmbarque.transform.parent == null
+                || painelCartaoEmbarque.transform.parent.gameObject.activeInHierarchy);
+    }
+
+    private void RegistrarConsultaCartaoEmbarque()
+    {
+        if (!fluxoCheckinConcluido || !cartaoEmbarqueAberto || cartaoEmbarqueConsultado)
             return;
 
         switch (nivelAtual)
@@ -1111,7 +1198,7 @@ public class checkinNPC : InteracaoNPC
 
     private void TentarConcluirMissaoPortao()
     {
-        if (!aguardandoChegadaPortao || !chegadaPortaoConfirmada)
+        if (cartaoEmbarqueAberto || !aguardandoChegadaPortao || !chegadaPortaoConfirmada)
             return;
 
         MissionManager missoes = MissionManager.Instance;
@@ -1844,6 +1931,17 @@ else if (nivelAtual == "A2-B1")
         {
             EmitirEventoMissao("conversa_encerrada", "checkin_npc");
             IniciarMissao("aeroporto_a1_4", "Check your boarding pass", "Consulte seu cartão de embarque");
+        }
+
+        if (MissaoConsultaCartao() != null)
+        {
+            if (!CartaoEmbarqueConfigurado())
+                Debug.LogError("Airport: configure Painel Cartao Embarque e Texto Cartao Embarque para permitir a consulta.", this);
+            else if (instrucoesCartaoEmbarque != null)
+            {
+                instrucoesCartaoEmbarque.text = ModoVR ? "Secondary button: View boarding pass" : "B: View boarding pass";
+                instrucoesCartaoEmbarque.enabled = true;
+            }
         }
     }
 

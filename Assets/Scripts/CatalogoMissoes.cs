@@ -36,11 +36,12 @@ internal sealed class CatalogoMissoes
 
     public IReadOnlyList<Definicao> Definicoes { get; }
 
-    public CatalogoMissoes(List<Definicao> definicoes, string nivel, string nomeCenario = "Airport")
+    public CatalogoMissoes(List<Definicao> definicoes, string nivel, string nomeCenario = "Airport",
+        bool catalogoLocal = false)
     {
         var chaves = ChavesEsperadas(nomeCenario, nivel);
-        if (definicoes == null || definicoes.Count != chaves.Count
-            || !definicoes.All(d => d != null && d.nivel == nivel && d.id_cenario > 0
+        if (definicoes == null || definicoes.Count == 0 || definicoes.Count != chaves.Count
+            || !definicoes.All(d => d != null && d.nivel == nivel && (catalogoLocal || d.id_cenario > 0)
                 && !string.IsNullOrWhiteSpace(d.texto) && !string.IsNullOrWhiteSpace(d.traducao)
                 && chaves.Remove(d.mission_key)))
             throw new InvalidOperationException("Catálogo incompleto ou inválido.");
@@ -60,6 +61,24 @@ internal sealed class CatalogoMissoes
 
     private static HashSet<string> ChavesEsperadas(string nomeCenario, string nivel)
     {
+        if (nomeCenario == MissoesVisitorCenter.Cenario)
+            return MissoesVisitorCenter.ChavesEsperadas(nivel);
+
+        if (nomeCenario == MissoesRestaurant.Cenario)
+            return MissoesRestaurant.ChavesEsperadas(nivel);
+
+        if (nomeCenario == MissoesHome.Cenario)
+            return MissoesHome.ChavesEsperadas(nivel);
+
+        if (nomeCenario == MissoesHotel.Cenario)
+            return MissoesHotel.ChavesEsperadas(nivel);
+
+        if (nomeCenario == MissoesCollege.Cenario)
+            return MissoesCollege.ChavesEsperadas(nivel);
+
+        if (nomeCenario == MissoesClothingStore.Cenario)
+            return MissoesClothingStore.ChavesEsperadas(nivel);
+
         if (nomeCenario == "Market")
             return new HashSet<string> { "pegar_cesta", "falar_padaria", "falar_atendente",
                 "seguir_atendente", "interagir_produtos", "falar_caixa", "pegar_sacola" };
@@ -110,6 +129,48 @@ internal sealed class CatalogoMissoes
             if (nomeCenario == "Market" && e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
             {
                 if (!ValidaAlvoMarket(e))
+                    return false;
+                continue;
+            }
+            if (nomeCenario == MissoesClothingStore.Cenario &&
+                e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!MissoesClothingStore.ValidaEvento(e))
+                    return false;
+                continue;
+            }
+            if (nomeCenario == MissoesCollege.Cenario &&
+                e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!MissoesCollege.ValidaEvento(e))
+                    return false;
+                continue;
+            }
+            if (nomeCenario == MissoesHotel.Cenario &&
+                e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!MissoesHotel.ValidaEvento(e))
+                    return false;
+                continue;
+            }
+            if (nomeCenario == MissoesHome.Cenario &&
+                e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!MissoesHome.ValidaEvento(e))
+                    return false;
+                continue;
+            }
+            if (nomeCenario == MissoesRestaurant.Cenario &&
+                e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!MissoesRestaurant.ValidaEvento(e))
+                    return false;
+                continue;
+            }
+            if (nomeCenario == MissoesVisitorCenter.Cenario &&
+                e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!MissoesVisitorCenter.ValidaEvento(e))
                     return false;
                 continue;
             }

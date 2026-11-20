@@ -541,7 +541,8 @@ public class RecepcionistCollegeNPC: InteracaoNPC
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
     private bool instrucoesJaApresentadas;
-    private const string NpcKey = "recepcionist_college_npc";
+    private const string NpcKey = MissoesCollege.Recepcao;
+    private int ultimaVisitaCollege;
     private ExerciseLoadResult catalogoExercicios;
     // private AudioSource audioSource;
     // private BackendManager backendManager;
@@ -952,98 +953,54 @@ else if (nivelAtual == "A2-B1")
 }
     }
 
-    private void IniciarMissao(string id, string texto, string traducao)
-    {
-        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
-    }
-
     protected override bool PermitirReinteracaoAposConclusao => true;
 
     protected override async Task IniciarInteracao()
     {
         GameProgress.EstaEmDialogo = true;
-
-        if (instrucoesJaApresentadas)
+        int visita = MissionManager.Instance?.VisitaCollege ?? 0;
+        if (visita != 0 && visita != ultimaVisitaCollege)
         {
-            await RepetirInstrucoesAsync();
+            instrucoesJaApresentadas = false;
+            ultimaVisitaCollege = visita;
         }
-        else
+
+        try
         {
+            if (instrucoesJaApresentadas)
+            {
+                await RepetirInstrucoesAsync();
+                return;
+            }
+
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
             catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("RecepcionistCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            if (nivelAtual == "A1")
+            switch (nivelAtual)
             {
-                IniciarMissao("universidade_a1_recepcao",
-                    "Converse com o recepcionista e descubra como chegar ao escritório da secretaria",
-                    "Talk to the receptionist and find out how to get to the secretary's office");
-                await interacaoA1();
-                MissionManager.ConcluirMissaoNPC("universidade_a1_recepcao");
-            }
-            else if (nivelAtual == "A2")
-            {
-                IniciarMissao("universidade_a2_recepcao",
-                    "Converse com a recepcionista",
-                    "Talk to the receptionist");
-                await interacaoA2();
-                MissionManager.ConcluirMissaoNPC("universidade_a2_recepcao");
-
-                IniciarMissao("universidade_a2_encontrar_secretaria",
-                    "Encontre o escritório da secretaria",
-                    "Find the secretary's office");
-            }
-            else if (nivelAtual == "A1-A2")
-            {
-                IniciarMissao(
-                    "universidade_a1a2_recepcao",
-                    "Converse com o recepcionista e descubra como chegar ao escritório da secretaria",
-                    "Talk to the receptionist and find out how to get to the secretary's office"
-                );
-
-                await interacaoA1A2();
-
-                MissionManager.ConcluirMissaoNPC("universidade_a1a2_recepcao");
-            }
-            else if (nivelAtual == "A2-B1")
-            {
-                IniciarMissao(
-                    "universidade_a2b1_orientacoes",
-                    "Peça orientações detalhadas para chegar ao escritório da secretaria",
-                    "Ask for detailed directions to the secretary's office"
-                );
-
-                await interacaoA2B1();
-
-                MissionManager.ConcluirMissaoNPC("universidade_a2b1_orientacoes");
-            }
-            else
-            {
-                IniciarMissao("universidade_b1_orientacoes",
-                    "Peça orientações detalhadas ao recepcionista e esclareça dúvidas sobre a localização do escritório",
-                    "Ask the receptionist for detailed directions and clarify the location of the office");
-                await interacaoB1();
-                MissionManager.ConcluirMissaoNPC("universidade_b1_orientacoes");
+                case "A1": await interacaoA1(); break;
+                case "A2": await interacaoA2(); break;
+                case "A1-A2": await interacaoA1A2(); break;
+                case "A2-B1": await interacaoA2B1(); break;
+                default: await interacaoB1(); break;
             }
 
             instrucoesJaApresentadas = true;
+            MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.FimConversa, NpcKey);
         }
+        finally
+        {
+            GameProgress.EstaEmDialogo = false;
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
 
-        // Desativa o estado quando a conversa acabar completamente!
-        GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-
-        LiberarControlePlayer();
+            LiberarControlePlayer();
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

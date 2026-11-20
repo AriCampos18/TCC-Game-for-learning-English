@@ -893,6 +893,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.XR;
 using System.IO;
 using TMPro;
 using System;
@@ -901,13 +902,19 @@ public class SecretaryCollegeNPC: InteracaoNPC
 {
     string nivelAtual;
     string cumprimento;
-    private const string NpcKey = "secretary_college_npc";
+    private const string NpcKey = MissoesCollege.Secretaria;
+    [SerializeField] private DocumentoCursoCollege documentoCurso;
+    private int ultimaVisitaCollege;
+    private int VisitaAtual => MissionManager.Instance?.VisitaCollege ?? 0;
+    protected override bool PermitirReinteracaoAposConclusao =>
+        VisitaAtual != 0 && ultimaVisitaCollege != VisitaAtual;
+
+    public override bool PodeInteragir() =>
+        base.PodeInteragir() && MissionManager.Instance?.PodeAtenderSecretariaCollege == true;
     private ExerciseLoadResult catalogoExercicios;
     int horaAtual = DateTime.Now.Hour;
     public TextMeshProUGUI textoPularDialogo;
     public ModalExercicio modalExercicio;
-    private BackendManager backendManager;
-    private AudioSource audioSource;
     List<string> dialogoAtual;
 
     public string idNpcParaVoz = "secretaryCollege";
@@ -924,6 +931,12 @@ public class SecretaryCollegeNPC: InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        if (audioSourceComum == null)
+        {
+            audioSourceComum = gameObject.AddComponent<AudioSource>();
+            audioSourceComum.playOnAwake = false;
+        }
+
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "College Secretary";
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
@@ -1770,80 +1783,50 @@ else if (nivelAtual == "A2-B1")
 }
     }
 
-    private void IniciarMissao(string id, string texto, string traducao)
-    {
-        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
-    }
-
     protected override async Task IniciarInteracao()
     {
+        ultimaVisitaCollege = VisitaAtual;
         GameProgress.EstaEmDialogo = true;
-        nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
-        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
-        if (!catalogoExercicios.Success)
-            Debug.LogWarning("SecretaryCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-        if (nivelAtual == "A1")
+        try
         {
-            IniciarMissao("universidade_a1_matricula",
-                "Realize sua matrícula",
-                "Complete your enrollment");
-            await interacaoA1();
+            documentoCurso?.Resetar();
+            MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.InicioConversa, NpcKey);
+            nivelAtual = DadosJogador.nivelUsuario;
+            InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("SecretaryCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
+
+            switch (nivelAtual)
+            {
+                case "A1": await interacaoA1(); break;
+                case "A2": await interacaoA2(); break;
+                case "A1-A2": await interacaoA1A2(); break;
+                case "A2-B1": await interacaoA2B1(); break;
+                default: await interacaoB1(); break;
+            }
+
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
+
+            MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.FimConversa, NpcKey);
+            if ((nivelAtual == "A1-A2" || nivelAtual == "A2-B1") && !await ConfirmarConsultaDoDocumento())
+                return;
         }
-        else if (nivelAtual == "A2")
+        finally
         {
-            MissionManager.ConcluirMissaoNPC("universidade_a2_encontrar_secretaria");
-            IniciarMissao("universidade_a2_matricula",
-                "Faça sua matrícula",
-                "Complete your enrollment");
-            await interacaoA2();
+            documentoCurso?.Resetar();
+            GameProgress.EstaEmDialogo = false;
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
+
+            LiberarControlePlayer();
         }
-        else if (nivelAtual == "A1-A2")
-        {
-            IniciarMissao(
-                "universidade_a1a2_matricula",
-                "Realize sua matrícula e consulte as informações do curso",
-                "Complete your enrollment and check the course information"
-            );
-
-            await interacaoA1A2();
-
-            MissionManager.ConcluirMissaoNPC("universidade_a1a2_matricula");
-        }
-        else if (nivelAtual == "A2-B1")
-        {
-            IniciarMissao(
-                "universidade_a2b1_matricula",
-                "Confirme seus dados, conclua a matrícula e consulte as informações da primeira aula",
-                "Confirm your details, complete your enrollment, and check the first class information"
-            );
-
-            await interacaoA2B1();
-
-            MissionManager.ConcluirMissaoNPC("universidade_a2b1_matricula");
-        }
-        else
-        {
-            IniciarMissao("universidade_b1_matricula",
-                "Informe seus dados, confirme as informações do curso e conclua o processo de matrícula",
-                "Provide your details, confirm the course information, and complete your enrollment");
-            await interacaoB1();
-        }
-
-        // Desativa o estado quando a conversa acabar completamente!
-        GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-
-        LiberarControlePlayer();
 
         if (RevisaoManager.Instance != null)
             await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
@@ -1890,7 +1873,6 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[2]);
 
         await PlayAudioETexto(i++);
-        MissionManager.ConcluirMissaoNPC("universidade_a1_matricula");
 
         await AbrirExercicioDoPonto("tuition", 1, exerciciosCriarFrases[0]);
 
@@ -1925,11 +1907,6 @@ else if (nivelAtual == "A2-B1")
 
         // Confirmação de matrícula.
         await PlayAudioETexto(i++);
-        MissionManager.ConcluirMissaoNPC("universidade_a2_matricula");
-
-        IniciarMissao("universidade_a2_cronograma",
-            "Consulte seu cronograma",
-            "Check your class schedule");
 
         // Pergunta sobre a mensalidade e recebe a resposta.
         await AbrirExercicioDoPonto("tuition", 1, exerciciosWriting[2]);
@@ -1944,8 +1921,6 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[2]);
         await PlayAudioETexto(i++);
         await AbrirExercicioDoPonto("classroom", 2, exerciciosAlternativas[1]);
-
-        MissionManager.ConcluirMissaoNPC("universidade_a2_cronograma");
 
         await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
     }
@@ -1968,11 +1943,6 @@ else if (nivelAtual == "A2-B1")
 
         // Confirmação de matrícula concluída.
         await PlayAudioETexto(i++);
-        MissionManager.ConcluirMissaoNPC("universidade_b1_matricula");
-
-        IniciarMissao("universidade_b1_cronograma",
-            "Consulte o cronograma, identifique a sala da primeira aula e pergunte como chegar até ela",
-            "Check your schedule, identify the room for your first class, and ask how to get there");
 
         await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[1]);
 
@@ -1982,8 +1952,6 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("classroom", 2, exerciciosWriting[2]);
 
         await PlayAudioETexto(i++);
-
-        MissionManager.ConcluirMissaoNPC("universidade_b1_cronograma");
 
         await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
     }
@@ -2011,7 +1979,7 @@ else if (nivelAtual == "A2-B1")
     await PlayAudioETexto(i++);
     await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[2]);
 
-    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++, apresentarDocumento: true);
     await AbrirExercicioDoPonto("class_start", 2, exerciciosAlternativas[1]);
 
     await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[3]);
@@ -2038,7 +2006,7 @@ private async Task interacaoA2B1()
     await PlayAudioETexto(i++);
     await AbrirExercicioDoPonto("enrollment_confirmation", 2, exerciciosWriting[1]);
 
-    await PlayAudioETexto(i++);
+    await PlayAudioETexto(i++, apresentarDocumento: true);
     await AbrirExercicioDoPonto("tuition", 1, exerciciosAlternativas[0]);
 
     await PlayAudioETexto(i++);
@@ -2055,16 +2023,106 @@ private async Task interacaoA2B1()
     await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
 }
 
-    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
         if (item != null)
-            return AbrirExercicio(item.Tipo, item.Exercise);
+            await AbrirExercicio(item.Tipo, item.Exercise);
+        else
+        {
+            Debug.LogWarning($"SecretaryCollegeNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+            await AbrirExercicio(tipo, fallback);
+        }
 
-        Debug.LogWarning($"SecretaryCollegeNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
-        return AbrirExercicio(tipo, fallback);
+        if (nivelAtual == "B1" && pointKey == "class_start" && ordem == 1)
+            MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.ExercicioEncerrado, MissoesCollege.InicioAulas);
+    }
+
+    private async Task<bool> ConfirmarConsultaDoDocumento()
+    {
+        if (UnityEngine.EventSystems.EventSystem.current == null)
+        {
+            Debug.LogError($"College ({nivelAtual}): a interface do documento precisa de um EventSystem ativo. Revisão bloqueada.", this);
+            return false;
+        }
+
+        if (documentoCurso != null && documentoCurso.Disponivel)
+        {
+            DefinirCursorDesktop(true);
+            documentoCurso.MostrarBotao(true);
+            while (documentoCurso != null && documentoCurso.PodeAguardarConsulta
+                && (!documentoCurso.Consultado || documentoCurso.Aberto))
+                await Task.Yield();
+
+            if (documentoCurso != null && documentoCurso.Consultado && !documentoCurso.Aberto)
+            {
+                string missao = nivelAtual == "A1-A2" ? "universidade_a1a2_matricula" : "universidade_a2b1_matricula";
+                if (MissionManager.Instance?.MissaoConcluida(missao) == true)
+                    return true;
+
+                Debug.LogError($"College ({nivelAtual}): documento aberto, mas a missão {missao} continua pendente. Revisão bloqueada.", this);
+                return false;
+            }
+        }
+
+        Debug.LogError($"College ({nivelAtual}): configure o DocumentoCursoCollege ativo com botão de abertura, painel, texto e botão de fechamento utilizáveis. Revisão bloqueada sem a consulta.", this);
+        return false;
+    }
+
+    private bool AvancoPressionado()
+    {
+        if (!ModoVR)
+            return Input.GetMouseButton(0);
+
+        var controle = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+        return controle.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressionado) && pressionado;
+    }
+
+    private async Task AguardarAvancoComDocumento(bool apresentarDocumento)
+    {
+        if (apresentarDocumento && (documentoCurso == null || !documentoCurso.Disponibilizar(nivelAtual)))
+            Debug.LogWarning("SecretaryCollegeNPC: configure o documento do curso para completar esta missão.", this);
+
+        if (documentoCurso == null || !documentoCurso.Disponivel)
+        {
+            await AguardarAvancoDialogo();
+            return;
+        }
+
+        DefinirCursorDesktop(true);
+        documentoCurso.MostrarBotao(true);
+        try
+        {
+            while (AvancoPressionado())
+                await Task.Yield();
+
+            while (true)
+            {
+                while (!AvancoPressionado())
+                    await Task.Yield();
+
+                int quadroPressionado = Time.frameCount;
+                bool painelEstavaAberto = documentoCurso.Aberto;
+                while (AvancoPressionado())
+                    await Task.Yield();
+
+                // O EventSystem pode abrir ou fechar o painel ao soltar o botão.
+                await Task.Yield();
+                if (!painelEstavaAberto && !documentoCurso.Aberto
+                    && documentoCurso.UltimoQuadroInteracao < quadroPressionado)
+                    return;
+
+                while (AvancoPressionado())
+                    await Task.Yield();
+            }
+        }
+        finally
+        {
+            if (documentoCurso != null)
+                documentoCurso.MostrarBotao(false);
+        }
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
@@ -2110,11 +2168,11 @@ private async Task interacaoA2B1()
         }
     }
 
-    private async Task PlayAudioETexto(int i)
+    private async Task PlayAudioETexto(int i, bool apresentarDocumento = false)
     {
         ultimaFraseDita = dialogoAtual[i];
         // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[i], idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2129,14 +2187,14 @@ private async Task interacaoA2B1()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
 
             if (textoPularDialogo != null)
                 textoPularDialogo.gameObject.SetActive(false);
 
             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSource.Play();
-            while (audioSource.isPlaying)
+            audioSourceComum.Play();
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }
@@ -2150,7 +2208,7 @@ private async Task interacaoA2B1()
 
             await Task.Yield();
 
-            await AguardarAvancoDialogo();
+            await AguardarAvancoComDocumento(apresentarDocumento);
 
 
             if (textoPularDialogo != null)
@@ -2168,6 +2226,8 @@ private async Task interacaoA2B1()
         {
             Debug.LogError("O servidor retornou um array de bytes vazio.");
             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
+            if (apresentarDocumento && documentoCurso != null && documentoCurso.Disponibilizar(nivelAtual))
+                await AguardarAvancoComDocumento(false);
         }
     }
 
@@ -2175,7 +2235,7 @@ private async Task interacaoA2B1()
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2189,7 +2249,7 @@ private async Task interacaoA2B1()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
             if (modalLegenda != null)
             {
                 modalLegenda.SetActive(true);
@@ -2201,9 +2261,9 @@ private async Task interacaoA2B1()
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
+            audioSourceComum.Play();
             
-            while (audioSource.isPlaying)
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }

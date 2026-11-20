@@ -123,7 +123,7 @@
 //             player.position = pontoAirport.position;
 //         else if(cenario == "Restaurant")
 //             player.position = pontoRestaurant.position;
-//         else if(cenario == "Tourist Information Center")
+//         else if(cenario == "Visitor Center")
 //             player.position = pontoInfoCenter.position;
         
 //         // Registra somente quando a escolha é válida e o destino está configurado.
@@ -152,6 +152,7 @@ public class ModalSelecaoCenario : MonoBehaviour
     public Transform pontoAirport;
     public Transform pontoRestaurant;
     public Transform pontoInfoCenter;
+    public Transform pontoClothingStore;
 
     private CardCenarioManager[] cardsCenarios;
 
@@ -270,8 +271,16 @@ public class ModalSelecaoCenario : MonoBehaviour
         // No VR, player deve ser a raiz do XR Origin.
         // Assim, o rig inteiro é deslocado e a posição local da câmera
         // (altura e deslocamento do headset) é preservada.
-        if ((cenario == "Airport" || cenario == "Market") && MissionManager.Instance != null)
+        if (MissionManager.Instance != null
+            && (cenario == "Airport" || cenario == "Market" || cenario == MissoesClothingStore.Cenario
+                || cenario == MissoesCollege.Cenario || cenario == MissoesHotel.Cenario || cenario == MissoesHome.Cenario
+                || cenario == MissoesRestaurant.Cenario || cenario == MissoesVisitorCenter.Cenario))
             await MissionManager.Instance.PrepararCatalogoAsync(cenario);
+        else if (MissionManager.Instance != null
+            && (MissionManager.Instance.UsaCatalogoClothingStore || MissionManager.Instance.UsaCatalogoCollege
+                || MissionManager.Instance.UsaCatalogoHotel || MissionManager.Instance.UsaCatalogoHome
+                || MissionManager.Instance.UsaCatalogoRestaurant || MissionManager.Instance.UsaCatalogoVisitorCenter))
+            MissionManager.Instance.ConfigurarCenario(cenario);
 
         TransportarJogador(destino.position);
 
@@ -308,8 +317,10 @@ public class ModalSelecaoCenario : MonoBehaviour
                 return pontoAirport;
             case "Restaurant":
                 return pontoRestaurant;
-            case "Tourist Information Center":
+            case MissoesVisitorCenter.Cenario:
                 return pontoInfoCenter;
+            case MissoesClothingStore.Cenario:
+                return pontoClothingStore;
             default:
                 Debug.LogWarning("Cenário sem ponto de destino configurado: " + cenario);
                 return null;

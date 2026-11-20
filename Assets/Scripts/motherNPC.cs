@@ -739,6 +739,10 @@ public class motherNPC : InteracaoNPC
     private AudioSource audioSource;
     private BackendManager backendManager;
     private const string NpcKey = "mother_npc";
+    private int ultimaVisitaHome;
+    private int VisitaAtualHome => MissionManager.Instance?.VisitaHome ?? 0;
+    protected override bool PermitirReinteracaoAposConclusao =>
+        VisitaAtualHome != 0 && VisitaAtualHome != ultimaVisitaHome;
     private ExerciseLoadResult catalogoExercicios;
     public ModalExercicio modalExercicio;
     public GameObject modalLegenda;
@@ -1329,6 +1333,7 @@ else if (nivelAtual == "A2-B1")
             return;
         }
 
+        ultimaVisitaHome = VisitaAtualHome;
         await familiaManager.IniciarVisita();
     }
 

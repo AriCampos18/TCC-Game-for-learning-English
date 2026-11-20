@@ -25,6 +25,68 @@ public class MissionManager : MonoBehaviour
 
     private string cenarioCatalogo;
 
+    private int visitasVisitorCenter;
+    internal bool UsaCatalogoVisitorCenter => cenarioCatalogo == MissoesVisitorCenter.Cenario;
+    internal int VisitaVisitorCenter => UsaCatalogoVisitorCenter ? visitasVisitorCenter : 0;
+
+    internal void RegistrarEventoVisitorCenter(string tipo, string alvo)
+    {
+        if (UsaCatalogoVisitorCenter)
+            AvaliarEvento(tipo, alvo);
+    }
+
+    private int visitasRestaurant;
+    internal bool UsaCatalogoRestaurant => cenarioCatalogo == MissoesRestaurant.Cenario;
+    internal int VisitaRestaurant => UsaCatalogoRestaurant ? visitasRestaurant : 0;
+
+    internal void RegistrarEventoRestaurant(string tipo, string alvo)
+    {
+        if (UsaCatalogoRestaurant)
+            AvaliarEvento(tipo, alvo);
+    }
+
+    private int visitasHome;
+    internal bool UsaCatalogoHome => cenarioCatalogo == MissoesHome.Cenario;
+    internal int VisitaHome => UsaCatalogoHome ? visitasHome : 0;
+
+    internal void RegistrarEventoHome(string tipo, string alvo)
+    {
+        if (UsaCatalogoHome)
+            AvaliarEvento(tipo, alvo);
+    }
+
+    private int visitasHotel;
+    internal bool UsaCatalogoHotel => cenarioCatalogo == MissoesHotel.Cenario;
+    internal int VisitaHotel => UsaCatalogoHotel ? visitasHotel : 0;
+
+    internal void RegistrarEventoHotel(string tipo, string alvo)
+    {
+        if (UsaCatalogoHotel)
+            AvaliarEvento(tipo, alvo);
+    }
+
+    private int visitasCollege;
+    internal bool UsaCatalogoCollege => cenarioCatalogo == MissoesCollege.Cenario;
+    internal int VisitaCollege => UsaCatalogoCollege ? visitasCollege : 0;
+    internal bool PodeAtenderSecretariaCollege => UsaCatalogoCollege && catalogoMissoes != null
+        && MissaoConcluida(catalogoMissoes.Definicoes[0].mission_key);
+
+    internal void RegistrarEventoCollege(string tipo, string alvo)
+    {
+        if (UsaCatalogoCollege)
+            AvaliarEvento(tipo, alvo);
+    }
+
+    private int visitasClothingStore;
+    internal bool UsaCatalogoClothingStore => cenarioCatalogo == MissoesClothingStore.Cenario;
+    internal int VisitaClothingStore => UsaCatalogoClothingStore ? visitasClothingStore : 0;
+
+    internal void RegistrarEventoClothingStore(string tipo, string alvo)
+    {
+        if (UsaCatalogoClothingStore)
+            AvaliarEvento(tipo, alvo);
+    }
+
     public bool UsaCatalogoAirport => cenarioCatalogo == "Airport";
     public bool UsaCatalogoMarket => cenarioCatalogo == "Market";
 
@@ -57,6 +119,18 @@ public class MissionManager : MonoBehaviour
         LimparMissoes();
         catalogoMissoes = novoCatalogo;
         cenarioCatalogo = cenario;
+        if (UsaCatalogoClothingStore)
+            visitasClothingStore++;
+        if (UsaCatalogoCollege)
+            visitasCollege++;
+        if (UsaCatalogoHotel)
+            visitasHotel++;
+        if (UsaCatalogoHome)
+            visitasHome++;
+        if (UsaCatalogoRestaurant)
+            visitasRestaurant++;
+        if (UsaCatalogoVisitorCenter)
+            visitasVisitorCenter++;
         AvaliarEvento("cenario_iniciado", cenario);
     }
 
@@ -118,6 +192,60 @@ public class MissionManager : MonoBehaviour
         LimparMissoes();
         catalogoMissoes = null;
         cenarioCatalogo = null;
+
+        if (cenario == MissoesVisitorCenter.Cenario)
+        {
+            visitasVisitorCenter++;
+            catalogoMissoes = MissoesVisitorCenter.Criar(DadosJogador.nivelUsuario);
+            cenarioCatalogo = cenario;
+            AvaliarEvento("cenario_iniciado", cenario);
+            return;
+        }
+
+        if (cenario == MissoesRestaurant.Cenario)
+        {
+            visitasRestaurant++;
+            catalogoMissoes = MissoesRestaurant.Criar(DadosJogador.nivelUsuario);
+            cenarioCatalogo = cenario;
+            AvaliarEvento("cenario_iniciado", cenario);
+            return;
+        }
+
+        if (cenario == MissoesHome.Cenario)
+        {
+            visitasHome++;
+            catalogoMissoes = MissoesHome.Criar(DadosJogador.nivelUsuario);
+            cenarioCatalogo = cenario;
+            AvaliarEvento("cenario_iniciado", cenario);
+            return;
+        }
+
+        if (cenario == MissoesHotel.Cenario)
+        {
+            visitasHotel++;
+            catalogoMissoes = MissoesHotel.Criar(DadosJogador.nivelUsuario);
+            cenarioCatalogo = cenario;
+            AvaliarEvento("cenario_iniciado", cenario);
+            return;
+        }
+
+        if (cenario == MissoesCollege.Cenario)
+        {
+            visitasCollege++;
+            catalogoMissoes = MissoesCollege.Criar(DadosJogador.nivelUsuario);
+            cenarioCatalogo = cenario;
+            AvaliarEvento("cenario_iniciado", cenario);
+            return;
+        }
+
+        if (cenario == MissoesClothingStore.Cenario)
+        {
+            visitasClothingStore++;
+            catalogoMissoes = MissoesClothingStore.Criar(DadosJogador.nivelUsuario);
+            cenarioCatalogo = cenario;
+            AvaliarEvento("cenario_iniciado", cenario);
+            return;
+        }
 
         if (cenario == "Airport")
         {

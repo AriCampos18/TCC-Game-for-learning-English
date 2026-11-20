@@ -25,7 +25,10 @@ public class RaioCentralInteracao : MonoBehaviour
     private void Update()
     {
         // Enquanto houver diálogo/exercício ativo, não permite novas interações.
-        if (GameProgress.EstaEmDialogo)
+        CartaoQuartoHotel cartaoHotel = CartaoQuartoHotel.Disponivel;
+        InteracaoHome mesaHome = InteracaoHome.MesaDisponivel;
+        InteracaoRestaurant etapaRestaurant = InteracaoRestaurant.Pendente;
+        if (GameProgress.EstaEmDialogo && cartaoHotel == null && mesaHome == null && etapaRestaurant == null)
         {
             if (modalAvisoMouse != null)
                 modalAvisoMouse.SetActive(false);
@@ -69,6 +72,66 @@ public class RaioCentralInteracao : MonoBehaviour
             distance,
             interactLayer
         ); //guarda um bool que indica se houve colisão com algum objeto na layer de interação
+
+        // No PC: F interage com NPC.
+        // No VR: botão A interage com NPC ou pega objetos.
+        bool solicitouInteracaoVR =
+            ModoVR &&
+            vrInteractAction != null &&
+            vrInteractAction.action != null &&
+            vrInteractAction.action.WasPressedThisFrame();
+
+        if (cartaoHotel != null)
+        {
+            ClearLast();
+            if (modalAvisoMouse != null)
+                modalAvisoMouse.SetActive(false);
+
+            bool solicitouColeta = ModoVR ? solicitouInteracaoVR : Input.GetMouseButtonDown(1);
+            if (solicitouColeta && hitSomething && hit.collider.GetComponentInParent<CartaoQuartoHotel>() == cartaoHotel)
+                cartaoHotel.TentarRecolher();
+
+            return;
+        }
+
+        if (mesaHome != null)
+        {
+            ClearLast();
+            if (modalAvisoMouse != null)
+                modalAvisoMouse.SetActive(false);
+
+            if (hitSomething && (ModoVR ? solicitouInteracaoVR : Input.GetMouseButtonDown(0)))
+                mesaHome.TentarInteragirComMesa(hit.collider);
+
+            return;
+        }
+
+        if (etapaRestaurant != null)
+        {
+            ClearLast();
+            if (modalAvisoMouse != null)
+                modalAvisoMouse.SetActive(false);
+
+            if (hitSomething && (ModoVR ? solicitouInteracaoVR : Input.GetMouseButtonDown(0)))
+                etapaRestaurant.TentarConfirmar(hit.collider);
+            return;
+        }
+
+        if (!GameProgress.EstaEmDialogo && hitSomething && MissionManager.Instance?.UsaCatalogoRestaurant == true
+            && ModoJogoManager.Instance?.uiMode != true)
+        {
+            InteracaoRestaurant mesaRestaurant = hit.collider.GetComponentInParent<InteracaoRestaurant>();
+            if (mesaRestaurant != null && mesaRestaurant.PodeSentar(hit.collider))
+            {
+                ClearLast();
+                if (modalAvisoMouse != null)
+                    modalAvisoMouse.SetActive(false);
+
+                if (ModoVR ? solicitouInteracaoVR : Input.GetMouseButtonDown(0))
+                    mesaRestaurant.TentarSentar();
+                return;
+            }
+        }
 
         DestacarObjeto h = null;
         InteracaoNPC npc = null; //caso colida com um NPC
@@ -137,14 +200,6 @@ public class RaioCentralInteracao : MonoBehaviour
                 }
             }
         }
-
-        // No PC: F interage com NPC.
-        // No VR: botão A interage com NPC ou pega objetos.
-        bool solicitouInteracaoVR =
-            ModoVR &&
-            vrInteractAction != null &&
-            vrInteractAction.action != null &&
-            vrInteractAction.action.WasPressedThisFrame();
 
         //Esse if lida com a interação com avatar pelo desktop e com o interação com o avatar ou pegar objetos pelo VR.
         if ((!ModoVR && Input.GetKeyDown(KeyCode.F)) || solicitouInteracaoVR)

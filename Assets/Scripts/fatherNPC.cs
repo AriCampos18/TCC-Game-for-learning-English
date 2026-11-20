@@ -596,18 +596,6 @@ public class fatherNPC : InteracaoNPC
 
     exerciciosSpeaking.Add(new ExercicioSpeaking()
     {
-        enunciado = "Tell your father how you have been feeling.",
-        opcoesFala = new List<string>()
-        {
-            "I'd like to see the menu, please.\n",
-            "Could you tell me where the bathroom is?\n",
-            "I've been doing well, Dad. Thanks for asking.\n"
-        },
-        respostaCorreta = 2
-    });
-
-    exerciciosSpeaking.Add(new ExercicioSpeaking()
-    {
         enunciado = "Ask your father how things are going at work.",
         opcoesFala = new List<string>()
         {

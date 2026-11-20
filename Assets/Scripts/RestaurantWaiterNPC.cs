@@ -1019,9 +1019,55 @@ public class RestaurantWaiterNPC : InteracaoNPC
     string cumprimento;
     int horaAtual = DateTime.Now.Hour;
     List<string> dialogoAtual;
-    private AudioSource audioSource;
-    private BackendManager backendManager;
-    private const string NpcKey = "restaurant_waiter_npc";
+    private const string NpcKey = MissoesRestaurant.Garcom;
+    private InteracaoRestaurant mesaAtual;
+    private int ultimaVisita;
+    private int VisitaAtual => MissionManager.Instance?.VisitaRestaurant ?? 0;
+
+    protected override bool PermitirReinteracaoAposConclusao => mesaAtual != null;
+
+    public override bool PodeInteragir() => mesaAtual != null && VisitaAtual == ultimaVisita && base.PodeInteragir();
+
+    internal bool PodeIniciarAtendimento() =>
+        isActiveAndEnabled && VisitaAtual != 0 && ultimaVisita != VisitaAtual && mesaAtual == null;
+
+    internal async void IniciarAtendimento(InteracaoRestaurant mesa)
+    {
+        if (!PodeIniciarAtendimento() || mesa == null)
+            return;
+
+        bool atendimentoConcluido = false;
+        try
+        {
+            mesa.Sentar();
+            mesaAtual = mesa;
+            ultimaVisita = VisitaAtual;
+            Emitir("marco_fluxo", "mesa_sentou");
+            GameProgress.EstaEmDialogo = true;
+            await Interagir();
+            atendimentoConcluido = true;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Restaurant: {e.Message}", this);
+        }
+        finally
+        {
+            if (mesaAtual != null)
+            {
+                mesaAtual.Encerrar();
+                mesaAtual = null;
+                if (!atendimentoConcluido)
+                {
+                    GameProgress.EstaEmDialogo = false;
+                    LiberarControlePlayer();
+                }
+            }
+        }
+    }
     private ExerciseLoadResult catalogoExercicios;
     public ModalExercicio modalExercicio;
     public GameObject modalLegenda;
@@ -1043,6 +1089,12 @@ public class RestaurantWaiterNPC : InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        if (audioSourceComum == null)
+        {
+            audioSourceComum = gameObject.AddComponent<AudioSource>();
+            audioSourceComum.playOnAwake = false;
+        }
+
         nivelAtual = DadosJogador.nivelUsuario;
         nomeExibicaoLegenda = "Restaurant Waiter";
         exerciciosCompletarFrase = GarantirListaExercicios(exerciciosCompletarFrase);
@@ -1902,76 +1954,96 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    private void IniciarMissao(string id, string texto, string traducao)
-    {
-        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
-    }
-
-    private void ConcluirMissao(string id)
-    {
-        MissionManager.ConcluirMissaoNPC(id);
-    }
+    private static void Emitir(string tipo, string alvo) =>
+        MissionManager.Instance?.RegistrarEventoRestaurant(tipo, alvo);
 
     protected override async Task IniciarInteracao()
     {
-        GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
-        InicializarConteudosPorNivel();
-        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
-        if (!catalogoExercicios.Success)
-            Debug.LogWarning("RestaurantWaiterNPC: usando exercícios locais. " + catalogoExercicios.Error);
+        try
+        {
+            InicializarConteudosPorNivel();
+            catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+            if (!catalogoExercicios.Success)
+                Debug.LogWarning("RestaurantWaiterNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-        if (nivelAtual == "A1")
-        {
-            await interacaoA1();
+            switch (nivelAtual)
+            {
+                case "A1": await interacaoA1(); break;
+                case "A1-A2": await interacaoA1A2(); break;
+                case "A2": await interacaoA2(); break;
+                case "A2-B1": await interacaoA2B1(); break;
+                case "B1": await interacaoB1(); break;
+            }
         }
-        else if(nivelAtual == "A1-A2")
+        finally
         {
-            await interacaoA1A2();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else if(nivelAtual == "A2-B1")
-        {
-            await interacaoA2B1();
-        }
-        else if(nivelAtual == "B1")
-        {
-            await interacaoB1();
+            aguardandoConversaComCliente = false;
+            if (modalLegenda != null)
+                modalLegenda.SetActive(false);
+            if (textoPularDialogo != null)
+                textoPularDialogo.gameObject.SetActive(false);
         }
 
-        // Desativa o estado quando a conversa acabar completamente!
+        mesaAtual.Encerrar();
         GameProgress.EstaEmDialogo = false;
-        //MissionManager.Instance.ConcluirMissao("finalizar_compra");
-
-        if (modalLegenda != null)
-            modalLegenda.SetActive(false);
-
-        if (textoPularDialogo != null)
-            textoPularDialogo.gameObject.SetActive(false);
-
-        GameProgress.EstaEmDialogo = false;
-
         LiberarControlePlayer();
-
         if (RevisaoManager.Instance != null)
             await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
         else
             Debug.LogError("RevisaoManager não está disponível para finalizar Restaurant.");
     }
 
+    private async Task InteragirComCliente()
+    {
+        await AguardarSentado(InteracaoRestaurant.Etapa.Levantar);
+        Emitir("marco_fluxo", "mesa_levantou");
+        await AguardarConversaComCliente();
+        Emitir("conversa_encerrada", MissoesRestaurant.Cliente);
+
+        LiberarControlePlayer();
+        try
+        {
+            await mesaAtual.Aguardar(InteracaoRestaurant.Etapa.Retornar);
+        }
+        finally
+        {
+            TravarControlePlayer();
+        }
+
+        Emitir("marco_fluxo", "mesa_retornou");
+    }
+
+    private async Task AguardarSentado(InteracaoRestaurant.Etapa etapa)
+    {
+        DefinirCursorDesktop(false);
+        if (movimentoPlayer != null)
+            movimentoPlayer.PermitirOlharSemMover(true);
+        try
+        {
+            await mesaAtual.Aguardar(etapa);
+        }
+        finally
+        {
+            if (movimentoPlayer != null)
+                movimentoPlayer.PermitirOlharSemMover(false);
+        }
+    }
+
+    private async Task Comer()
+    {
+        await AguardarSentado(InteracaoRestaurant.Etapa.Comer);
+        await mesaAtual.SimularRefeicao();
+        Emitir("marco_fluxo", "refeicao_concluida");
+    }
+
     private async Task interacaoA1()
     {
         int i = 0;
 
-        IniciarMissao("rest_a1_entrar", "Entre no restaurante e sente-se em uma mesa", "Enter the restaurant and sit at a table");
         await PlayAudioETexto(i++); // Welcome!
         await PlayAudioETexto(i++); // Here is the menu.
-        ConcluirMissao("rest_a1_entrar");
 
-        IniciarMissao("rest_a1_pedido", "Olhe o menu e faça seu pedido", "Look at the menu and place your order");
         await PlayAudioETexto(i++); // Are you ready to order?
 
         exAtual = exerciciosSpeaking[0];
@@ -1983,22 +2055,16 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("drink_order", 1, exAtual);
 
         await PlayAudioETexto(i++); // Your order will be ready...
-        ConcluirMissao("rest_a1_pedido");
 
-        IniciarMissao("rest_a1_comer", "Coma a comida", "Eat your meal");
-        // O avanço para a próxima fala representa o retorno do usuário após a refeição.
+        await Comer();
         await PlayAudioETexto(i++); // How can I help you?
-        ConcluirMissao("rest_a1_comer");
 
-        IniciarMissao("rest_a1_viagem", "Solicite a refeição para viagem", "Ask to have your meal packed to go");
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicioDoPonto("takeaway", 1, exAtual);
 
         await PlayAudioETexto(i++); // Of course.
         await PlayAudioETexto(i++); // Here it is.
-        ConcluirMissao("rest_a1_viagem");
 
-        IniciarMissao("rest_a1_pagamento", "Realize o pagamento", "Pay the bill");
         exAtual = exerciciosSpeaking[1];
         await AbrirExercicioDoPonto("bill_request", 1, exAtual);
 
@@ -2009,7 +2075,6 @@ else if (nivelAtual == "A2-B1")
         exAtual = exerciciosSpeaking[2];
         await AbrirExercicioDoPonto("farewell", 1, exAtual);
 
-        ConcluirMissao("rest_a1_pagamento");
         await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
@@ -2017,12 +2082,9 @@ else if (nivelAtual == "A2-B1")
     {
         int i = 0;
 
-        IniciarMissao("rest_a2_entrar", "Entre no restaurante e sente-se em uma mesa", "Enter the restaurant and sit at a table");
         await PlayAudioETexto(i++); // Welcome.
         await PlayAudioETexto(i++); // Menu.
-        ConcluirMissao("rest_a2_entrar");
 
-        IniciarMissao("rest_a2_pedido", "Faça seu pedido ao garçom", "Place your order with the waiter");
         await PlayAudioETexto(i++); // Are you ready to order?
 
         exAtual = exerciciosCriarFrases[0];
@@ -2031,28 +2093,22 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Order ready in 20 minutes.
         exAtual = exerciciosAlternativas[0];
         await AbrirExercicioDoPonto("preparation_time", 1, exAtual);
-        ConcluirMissao("rest_a2_pedido");
 
-        IniciarMissao("rest_a2_comer", "Coma a comida", "Eat your meal");
         await PlayAudioETexto(i++); // Food is served.
+        await Comer();
         await PlayAudioETexto(i++); // Is everything okay?
-        ConcluirMissao("rest_a2_comer");
 
-        IniciarMissao("rest_a2_embalagem", "Peça uma embalagem para levar o resto para viagem", "Ask for a container to take the leftovers away");
         await AbrirExercicioDoPonto("takeaway", 1, exerciciosCompletarFrase[0]);
 
         await PlayAudioETexto(i++); // Of course. I'll bring it right away.
         await AbrirExercicioDoPonto("bill_request", 1, exerciciosCompletarFrase[1]);
-        ConcluirMissao("rest_a2_embalagem");
 
-        IniciarMissao("rest_a2_pagamento", "Pague sua conta", "Pay your bill");
         await PlayAudioETexto(i++); // Bill amount and payment question.
 
         exAtual = exerciciosAlternativas[1];
         await AbrirExercicioDoPonto("payment", 1, exAtual);
 
         await PlayAudioETexto(i++); // Thank you.
-        ConcluirMissao("rest_a2_pagamento");
 
         await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
     }
@@ -2061,11 +2117,8 @@ else if (nivelAtual == "A2-B1")
     {
         int i = 0;
 
-        IniciarMissao("rest_b1_entrar", "Entre no restaurante e sente-se em uma mesa", "Enter the restaurant and sit at a table");
         await PlayAudioETexto(i++); // Welcome, menu and invitation to order.
-        ConcluirMissao("rest_b1_entrar");
 
-        IniciarMissao("rest_b1_perguntar_pratos", "Pergunte sobre os pratos disponíveis", "Ask about the dishes on the menu");
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicioDoPonto("menu_details", 1, exAtual);
 
@@ -2074,9 +2127,7 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("menu_details", 2, exAtual);
 
         await PlayAudioETexto(i++); // Recommendation.
-        ConcluirMissao("rest_b1_perguntar_pratos");
 
-        IniciarMissao("rest_b1_pedido", "Faça seu pedido", "Place your order");
         exAtual = exerciciosCriarFrases[0];
         await AbrirExercicioDoPonto("meal_order", 1, exAtual);
 
@@ -2087,17 +2138,12 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Order will be ready.
         exAtual = exerciciosCompletarFrase[0];
         await AbrirExercicioDoPonto("preparation_time", 1, exAtual);
-        ConcluirMissao("rest_b1_pedido");
 
-        IniciarMissao("rest_b1_cliente", "Converse com o outro cliente", "Talk to the other customer");
-        await AguardarConversaComCliente();
-        // A conversa com o cliente conclui esta missão no RestaurantClient.
+        await InteragirComCliente();
 
-        IniciarMissao("rest_b1_comer", "Coma sua comida", "Eat your meal");
+        await Comer();
         await PlayAudioETexto(i++); // How was everything?
-        ConcluirMissao("rest_b1_comer");
 
-        IniciarMissao("rest_b1_viagem", "Solicite para levar o restante da refeição para viagem", "Ask to have the rest of your meal packed to go");
         exAtual = exerciciosWriting[0];
         await AbrirExercicioDoPonto("meal_feedback", 1, exAtual);
 
@@ -2106,9 +2152,7 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++); // Certainly. I'll be right back.
         await PlayAudioETexto(i++); // Here is the bag.
-        ConcluirMissao("rest_b1_viagem");
 
-        IniciarMissao("rest_b1_pagamento", "Pague a conta", "Pay the bill");
         exAtual = exerciciosSpeaking[3];
         await AbrirExercicioDoPonto("bill_request", 1, exAtual);
 
@@ -2120,169 +2164,113 @@ else if (nivelAtual == "A2-B1")
         await PlayAudioETexto(i++); // Thank you. Would you like a receipt?
         await AbrirExercicioDoPonto("farewell", 1, exerciciosAlternativas[0]);
 
-        ConcluirMissao("rest_b1_pagamento");
         await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
     }
 
     private async Task interacaoA1A2()
-{
-    int i = 0;
+    {
+        int i = 0;
 
-    IniciarMissao("rest_a1a2_entrar",
-        "Entre no restaurante e sente-se em uma mesa",
-        "Enter the restaurant and sit at a table");
+        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a1a2_entrar");
+        await PlayAudioETexto(i++);
 
-    IniciarMissao("rest_a1a2_pedido",
-        "Faça seu pedido ao garçom",
-        "Place your order with the waiter");
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
 
-    await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("meal_order", 1, exAtual);
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicioDoPonto("drink_order", 1, exAtual);
 
-    await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("drink_order", 1, exAtual);
+        await Comer();
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a1a2_pedido");
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicioDoPonto("takeaway", 1, exAtual);
 
-    IniciarMissao("rest_a1a2_refeicao",
-        "Aproveite sua refeição",
-        "Enjoy your meal");
+        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a1a2_refeicao");
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicioDoPonto("bill_request", 1, exAtual);
 
-    IniciarMissao("rest_a1a2_viagem",
-        "Peça para levar o restante da refeição",
-        "Ask to take the rest of your meal to go");
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("takeaway", 1, exAtual);
+        exAtual = exerciciosAlternativas[1];
+        await AbrirExercicioDoPonto("payment", 1, exAtual);
 
-    await PlayAudioETexto(i++);
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a1a2_viagem");
+        await PlayAudioETexto(i++);
 
-    IniciarMissao("rest_a1a2_pagamento",
-        "Realize o pagamento da conta",
-        "Pay the bill");
+        exAtual = exerciciosSpeaking[2];
+        await AbrirExercicioDoPonto("farewell", 1, exAtual);
 
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("bill_request", 1, exAtual);
+        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+    }
 
-    await PlayAudioETexto(i++);
+    private async Task interacaoA2B1()
+    {
+        int i = 0;
 
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("payment", 1, exAtual);
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
+        exAtual = exerciciosSpeaking[0];
+        await AbrirExercicioDoPonto("menu_details", 1, exAtual);
 
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("farewell", 1, exAtual);
+        await PlayAudioETexto(i++);
 
-    ConcluirMissao("rest_a1a2_pagamento");
+        exAtual = exerciciosCriarFrases[0];
+        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
 
-    await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
-}
+        await PlayAudioETexto(i++);
 
-private async Task interacaoA2B1()
-{
-    int i = 0;
+        exAtual = exerciciosCriarFrases[1];
+        await AbrirExercicioDoPonto("order_closing", 1, exAtual);
 
-    IniciarMissao("rest_a2b1_entrar",
-        "Entre no restaurante e sente-se em uma mesa",
-        "Enter the restaurant and sit at a table");
+        await PlayAudioETexto(i++);
 
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a2b1_entrar");
+        await InteragirComCliente();
 
-    IniciarMissao("rest_a2b1_pratos",
-        "Pergunte sobre os pratos e peça uma recomendação",
-        "Ask about the dishes and request a recommendation");
+        await Comer();
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("menu_details", 1, exAtual);
+        exAtual = exerciciosCompletarFrase[0];
+        await AbrirExercicioDoPonto("takeaway", 1, exAtual);
+        await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
+        exAtual = exerciciosWriting[0];
+        await AbrirExercicioDoPonto("meal_feedback", 1, exAtual);
 
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a2b1_pratos");
+        exAtual = exerciciosSpeaking[1];
+        await AbrirExercicioDoPonto("bill_request", 1, exAtual);
 
-    IniciarMissao("rest_a2b1_pedido",
-        "Faça seu pedido ao garçom",
-        "Place your order with the waiter");
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("meal_order", 1, exAtual);
+        exAtual = exerciciosAlternativas[0];
+        await AbrirExercicioDoPonto("payment", 1, exAtual);
 
-    await PlayAudioETexto(i++);
+        await PlayAudioETexto(i++);
 
-    exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicioDoPonto("order_closing", 1, exAtual);
+        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+    }
 
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a2b1_pedido");
-
-    IniciarMissao("rest_a2b1_cliente",
-        "Converse com o outro cliente",
-        "Talk to the other customer");
-
-    await AguardarConversaComCliente();
-    // RestaurantClient conclui essa missão ao terminar a conversa.
-
-    IniciarMissao("rest_a2b1_refeicao",
-        "Aproveite sua refeição",
-        "Enjoy your meal");
-
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a2b1_refeicao");
-
-    IniciarMissao("rest_a2b1_viagem",
-        "Peça para embalar o restante da refeição",
-        "Ask the waiter to pack the rest of your meal");
-
-    exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicioDoPonto("takeaway", 1, exAtual); 
-    await PlayAudioETexto(i++);
-    await PlayAudioETexto(i++);
-    exAtual = exerciciosWriting[0];
-    await AbrirExercicioDoPonto("meal_feedback", 1, exAtual);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("bill_request", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a2b1_viagem");
-
-    IniciarMissao("rest_a2b1_pagamento",
-        "Pague a conta e solicite o recibo",
-        "Pay the bill and ask for the receipt");
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-    ConcluirMissao("rest_a2b1_pagamento");
-
-    await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
-}
-
-    private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
+    private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
         if (item != null)
-            return AbrirExercicio(item.Tipo, item.Exercise);
+            await AbrirExercicio(item.Tipo, item.Exercise);
+        else
+        {
+            Debug.LogWarning($"RestaurantWaiterNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
+            await AbrirExercicio(tipo, fallback);
+        }
 
-        Debug.LogWarning($"RestaurantWaiterNPC: usando exercício local em {nivelAtual}/{pointKey}/{ordem}.");
-        return AbrirExercicio(tipo, fallback);
+        Emitir("exercicio_encerrado", $"{NpcKey}/{pointKey}/{ordem}");
     }
 
     public async Task AbrirExercicio(TipoExercicio tipo, ExercicioBase ex)
@@ -2344,6 +2332,8 @@ private async Task interacaoA2B1()
         while (!conversaClienteConcluida)
         {
             await Task.Yield();
+            if (this == null || !isActiveAndEnabled || VisitaAtual != ultimaVisita)
+                throw new OperationCanceledException();
         }
 
         aguardandoConversaComCliente = false;
@@ -2361,7 +2351,7 @@ private async Task interacaoA2B1()
     {
         ultimaFraseDita = dialogoAtual[i];
         // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[i], idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2376,14 +2366,14 @@ private async Task interacaoA2B1()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
 
             if (textoPularDialogo != null)
                 textoPularDialogo.gameObject.SetActive(false);
 
             modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSource.Play();
-            while (audioSource.isPlaying)
+            audioSourceComum.Play();
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }
@@ -2422,7 +2412,7 @@ private async Task interacaoA2B1()
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
 
-        byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2436,7 +2426,7 @@ private async Task interacaoA2B1()
                 await Task.Yield();
 
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
+            audioSourceComum.clip = clip;
             if (modalLegenda != null)
             {
                 modalLegenda.SetActive(true);
@@ -2448,9 +2438,9 @@ private async Task interacaoA2B1()
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
+            audioSourceComum.Play();
             
-            while (audioSource.isPlaying)
+            while (audioSourceComum.isPlaying)
             {
                 await Task.Yield();
             }

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Threading.Tasks;
 
@@ -8,11 +9,14 @@ public class FamiliaManager : MonoBehaviour
     [SerializeField] private fatherNPC pai;
     [SerializeField] private brotherNPC irmao;
 
+    [SerializeField] private InteracaoHome interacaoHome;
+
     private bool visitaEmAndamento = false;
+    private bool associacaoAposSaidaIniciada;
 
     public async Task IniciarVisita()
     {
-        if (visitaEmAndamento)
+        if (visitaEmAndamento || associacaoAposSaidaIniciada)
             return;
 
         visitaEmAndamento = true;
@@ -38,6 +42,29 @@ public class FamiliaManager : MonoBehaviour
                     await InteracaoA2B1();
                 else
                     await InteracaoB1();
+
+                if (nivel != "B1")
+                {
+                    Emitir("marco_fluxo", "dialogos_concluidos");
+                    await AguardarComMovimento(ObterInteracaoHome().AguardarTravessiaDaSaida);
+                    Emitir("marco_fluxo", "saida_home");
+                    string despedida = MissoesHome.UltimaMissao(nivel);
+                    if (MissionManager.Instance?.MissaoConcluida(despedida) != true)
+                        throw new InvalidOperationException("A miss?o de despedida precisa estar conclu?da antes da Associa??o.");
+
+                    associacaoAposSaidaIniciada = true;
+                    int ordem = nivel == "A1" ? 9 : nivel == "A2" ? 10 : 13;
+                    await mae.ExecutarExercicio("farewell", ordem, mae.exerciciosAssociacao[0]);
+                }
+            }
+            catch (InvalidOperationException e)
+            {
+                Debug.LogError($"Home: {e.Message}", this);
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                return;
             }
             finally
             {
@@ -56,435 +83,247 @@ public class FamiliaManager : MonoBehaviour
         }
     }
 
-    private void IniciarMissao(string id, string texto, string traducao)
+    private static void Emitir(string tipo, string alvo)
     {
-        MissionManager.AdicionarMissaoNPC(id, texto, traducao);
+        MissionManager.Instance?.RegistrarEventoHome(tipo, alvo);
     }
 
-    private void ConcluirMissao(string id)
+    private InteracaoHome ObterInteracaoHome()
     {
-        MissionManager.ConcluirMissaoNPC(id);
+        if (interacaoHome == null || !interacaoHome.isActiveAndEnabled)
+            throw new InvalidOperationException("Vincule um componente InteracaoHome ativo ao FamiliaManager.");
+
+        return interacaoHome;
     }
 
-    // =====================================================
-    // A1
-    // =====================================================
+    private async Task AguardarComMovimento(Func<Task> aguardar)
+    {
+        mae.LiberarControlePlayer();
+        try
+        {
+            await aguardar();
+        }
+        finally
+        {
+            mae.TravarControlePlayer();
+        }
+    }
+
+    private async Task Visitar(string comodo)
+    {
+        InteracaoHome interacao = ObterInteracaoHome();
+        await AguardarComMovimento(() => interacao.AguardarPermanencia(comodo));
+        Emitir("permanencia_confirmada", comodo);
+    }
+
+    private async Task Jantar()
+    {
+        InteracaoHome interacao = ObterInteracaoHome();
+        await AguardarComMovimento(interacao.AguardarMesa);
+        await interacao.SimularJantar();
+        Emitir("marco_fluxo", "jantar_concluido");
+    }
 
     private async Task InteracaoA1()
     {
-        // MISSÃO 1 — Chegada e cumprimentos.
-        IniciarMissao("casa_a1_chegada", "Greet your family", "Cumprimente sua família");
-
         await pai.ExecutarFala(0);
         await irmao.ExecutarFala(0);
         await mae.ExecutarFala(0);
         await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
-
-        ConcluirMissao("casa_a1_chegada");
-
-        // MISSÃO 2 — Conversar com a mãe sobre o dia.
-        IniciarMissao("casa_a1_dia_mae", "Talk to your mother about your day", "Converse com sua mãe sobre seu dia");
+        Emitir("exercicio_encerrado", "mother_npc/greeting/1");
 
         await mae.ExecutarFala(1);
         await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosAlternativas[0]);
-
-        ConcluirMissao("casa_a1_dia_mae");
-
-        // MISSÃO 3 — Conhecer o banheiro reformado.
-        IniciarMissao("casa_a1_banheiro", "See the renovated bathroom", "Conheça o banheiro reformado");
+        Emitir("exercicio_encerrado", "mother_npc/day_conversation/2");
 
         await mae.ExecutarFala(2);
-        // O deslocamento até o banheiro ainda não é controlado pelo FamiliaManager.
+        await Visitar("banheiro");
         await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosSpeaking[1]);
-
-        ConcluirMissao("casa_a1_banheiro");
-
-        // MISSÃO 4 — Conversar com a mãe sobre o trabalho.
-        IniciarMissao("casa_a1_trabalho_mae", "Talk to your mother about work", "Converse com sua mãe sobre o trabalho");
 
         await mae.ExecutarFala(3);
         await mae.ExecutarExercicio("work_conversation", 4, mae.exerciciosSpeaking[2]);
-
-        ConcluirMissao("casa_a1_trabalho_mae");
-
-        // MISSÃO 5 — Conversar com o irmão sobre a escola e o cachorro.
-        IniciarMissao("casa_a1_irmao", "Talk to your brother about school and the dog", "Converse com seu irmão sobre a escola e o cachorro");
+        Emitir("exercicio_encerrado", "mother_npc/work_conversation/4");
 
         await irmao.ExecutarExercicio("school_and_dog", 5, irmao.exerciciosSpeaking[0]);
         await irmao.ExecutarFala(1);
         await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosCompletarFrase[0]);
         await irmao.ExecutarFala(2);
         await irmao.ExecutarExercicio("school_and_dog", 7, irmao.exerciciosAlternativas[0]);
-
-        ConcluirMissao("casa_a1_irmao");
-
-        // MISSÃO 6 — Ir jantar.
-        IniciarMissao("casa_a1_jantar", "Go to the dinner table", "Vá até a mesa para jantar");
+        Emitir("conversa_encerrada", "brother_npc");
 
         await mae.ExecutarFala(4);
-        // O deslocamento até a mesa ainda não é controlado pelo FamiliaManager.
-
-        ConcluirMissao("casa_a1_jantar");
-
-        // MISSÃO 7 — Despedir-se da família.
-        IniciarMissao("casa_a1_despedida", "Say goodbye to your family", "Despeça-se da sua família");
+        await Jantar();
 
         await pai.ExecutarFala(1);
         await mae.ExecutarExercicio("farewell", 8, mae.exerciciosSpeaking[3]);
-        await mae.ExecutarExercicio("farewell", 9, mae.exerciciosAssociacao[0]);
 
-        ConcluirMissao("casa_a1_despedida");
     }
 
-    // =====================================================
-    // A2
-    // =====================================================
-
-    private async Task InteracaoA2()
+    private async Task InteracaoA1A2()
     {
-        // MISSÃO 1 — Chegada e cumprimentos.
-        IniciarMissao("casa_a2_chegada", "Greet your family", "Cumprimente sua família");
-
+        await pai.ExecutarFala(0);
         await irmao.ExecutarFala(0);
         await mae.ExecutarFala(0);
+
         await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
-
-        ConcluirMissao("casa_a2_chegada");
-
-        // MISSÃO 2 — Conversar com a mãe sobre o dia.
-        IniciarMissao("casa_a2_dia_mae", "Talk to your mother about your day", "Converse com sua mãe sobre seu dia");
+        Emitir("exercicio_encerrado", "mother_npc/greeting/1");
 
         await mae.ExecutarFala(1);
         await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
-
-        ConcluirMissao("casa_a2_dia_mae");
-
-        // MISSÃO 3 — Conhecer as mudanças no cômodo.
-        IniciarMissao("casa_a2_comodo", "See the changes in the room", "Conheça as mudanças no cômodo");
+        Emitir("exercicio_encerrado", "mother_npc/day_conversation/2");
 
         await mae.ExecutarFala(2);
-        // O deslocamento até o cômodo e o retorno à sala ainda não são controlados aqui.
+        await Visitar("banheiro");
         await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
         await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
 
-        ConcluirMissao("casa_a2_comodo");
+        await mae.ExecutarExercicio("work_conversation", 5, mae.exerciciosSpeaking[2]);
+        await mae.ExecutarFala(3);
+        Emitir("marco_fluxo", "mae_fala_3");
 
-        // MISSÃO 4 — Conversar com o pai sobre o trabalho.
-        IniciarMissao("casa_a2_pai_trabalho", "Talk to your father about his work", "Converse com seu pai sobre o trabalho dele");
+        await pai.ExecutarFala(1);
+        Emitir("marco_fluxo", "pai_fala_1");
+        await pai.ExecutarExercicio("work_conversation", 7, pai.exerciciosSpeaking[0]);
+
+        await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosSpeaking[0]);
+        await irmao.ExecutarFala(1);
+        await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[1]);
+        await irmao.ExecutarFala(2);
+        await irmao.ExecutarExercicio("school_and_dog", 10, irmao.exerciciosSpeaking[2]);
+        await irmao.ExecutarExercicio("school_and_dog", 11, irmao.exerciciosAlternativas[0]);
+        Emitir("conversa_encerrada", "brother_npc");
+
+        await mae.ExecutarFala(4);
+        await Jantar();
+        await pai.ExecutarFala(2);
+
+        await pai.ExecutarExercicio("farewell", 12, pai.exerciciosSpeaking[1]);
+
+    }
+
+    private async Task InteracaoA2()
+    {
+        await irmao.ExecutarFala(0);
+        await mae.ExecutarFala(0);
+        await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
+        Emitir("exercicio_encerrado", "mother_npc/greeting/1");
+
+        await mae.ExecutarFala(1);
+        await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
+        Emitir("exercicio_encerrado", "mother_npc/day_conversation/2");
+
+        await mae.ExecutarFala(2);
+        await Visitar("quarto");
+        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
+        await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
 
         await pai.ExecutarExercicio("work_conversation", 5, pai.exerciciosSpeaking[0]);
         await pai.ExecutarFala(0);
-
-        ConcluirMissao("casa_a2_pai_trabalho");
-
-        // MISSÃO 5 — Conversar com o irmão sobre escola e cachorro.
-        IniciarMissao("casa_a2_irmao", "Talk to your brother about school and the dog", "Converse com seu irmão sobre a escola e o cachorro");
+        Emitir("marco_fluxo", "pai_fala_0");
 
         await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosSpeaking[0]);
         await irmao.ExecutarFala(1);
         await irmao.ExecutarExercicio("school_and_dog", 7, irmao.exerciciosSpeaking[1]);
         await irmao.ExecutarFala(2);
-
-        ConcluirMissao("casa_a2_irmao");
-
-        // MISSÃO 6 — Compartilhar experiências com animais de estimação.
-        IniciarMissao("casa_a2_animais", "Share your experiences with pets", "Compartilhe suas experiências com animais de estimação");
+        Emitir("marco_fluxo", "irmao_fala_2");
 
         await irmao.ExecutarExercicio("pets", 8, irmao.exerciciosSpeaking[2]);
-
-        ConcluirMissao("casa_a2_animais");
-
-        // MISSÃO 7 — Ir jantar.
-        IniciarMissao("casa_a2_jantar", "Go to the dinner table", "Vá até a mesa para jantar");
+        Emitir("exercicio_encerrado", "brother_npc/pets/8");
 
         await mae.ExecutarFala(3);
-        // O deslocamento até a mesa ainda não é controlado pelo FamiliaManager.
-
-        ConcluirMissao("casa_a2_jantar");
-
-        // MISSÃO 8 — Agradecer e despedir-se.
-        IniciarMissao("casa_a2_despedida", "Thank your family and say goodbye", "Agradeça à sua família e se despeça");
+        await Jantar();
 
         await pai.ExecutarFala(1);
         await mae.ExecutarExercicio("farewell", 9, mae.exerciciosCriarFrases[0]);
-        await mae.ExecutarExercicio("farewell", 10, mae.exerciciosAssociacao[0]);
 
-        ConcluirMissao("casa_a2_despedida");
     }
 
-    // =====================================================
-    // B1
-    // =====================================================
+    private async Task InteracaoA2B1()
+    {
+        await irmao.ExecutarFala(0);
+        await pai.ExecutarFala(0);
+
+        await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
+
+        await mae.ExecutarFala(0);
+        await mae.ExecutarExercicio("routine", 3, mae.exerciciosSpeaking[0]);
+        Emitir("exercicio_encerrado", "mother_npc/routine/3");
+        await pai.ExecutarExercicio("greeting", 2, pai.exerciciosCompletarFrase[0]);
+        Emitir("exercicio_encerrado", "father_npc/greeting/2");
+
+        await mae.ExecutarFala(1);
+        await Visitar("banheiro");
+        await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosWriting[0]);
+        await mae.ExecutarExercicio("home_changes", 5, mae.exerciciosCriarFrases[0]);
+        Emitir("exercicio_encerrado", "mother_npc/home_changes/5");
+
+        await pai.ExecutarExercicio("work_conversation", 6, pai.exerciciosSpeaking[1]);
+        await pai.ExecutarFala(1);
+        Emitir("marco_fluxo", "pai_fala_1");
+
+        await mae.ExecutarExercicio("work_conversation", 7, mae.exerciciosSpeaking[1]);
+        Emitir("exercicio_encerrado", "mother_npc/work_conversation/7");
+        await mae.ExecutarFala(2);
+
+        await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosCriarFrases[0]);
+        await irmao.ExecutarFala(1);
+        await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[0]);
+
+        await irmao.ExecutarFala(2);
+        await irmao.ExecutarExercicio("pets", 10, irmao.exerciciosWriting[0]);
+        Emitir("exercicio_encerrado", "brother_npc/pets/10");
+        await irmao.ExecutarExercicio("pets", 11, irmao.exerciciosSpeaking[1]);
+        Emitir("conversa_encerrada", "brother_npc");
+
+        await mae.ExecutarFala(3);
+        await Jantar();
+        await pai.ExecutarFala(2);
+        await pai.ExecutarExercicio("dinner_plans", 12, pai.exerciciosSpeaking[2]);
+
+        await mae.ExecutarFala(4);
+
+    }
 
     private async Task InteracaoB1()
     {
-        // MISSÃO 1 — Chegada e cumprimentos.
-        IniciarMissao("casa_b1_chegada", "Greet your family", "Cumprimente sua família");
-
         await irmao.ExecutarFala(0);
         await mae.ExecutarFala(0);
         await pai.ExecutarFala(0);
         await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
-
-        ConcluirMissao("casa_b1_chegada");
-
-        // MISSÃO 2 — Conversar com o pai sobre a rotina.
-        IniciarMissao("casa_b1_rotina_pai", "Talk to your father about your recent routine", "Converse com seu pai sobre sua rotina recente");
+        Emitir("exercicio_encerrado", "father_npc/greeting/1");
 
         await pai.ExecutarExercicio("routine", 2, pai.exerciciosSpeaking[1]);
 
-        ConcluirMissao("casa_b1_rotina_pai");
-
-        // MISSÃO 3 — Ouvir sobre o trabalho do pai.
-        IniciarMissao("casa_b1_trabalho_pai", "Talk about your father's work", "Converse sobre o trabalho do seu pai");
-
         await pai.ExecutarFala(1);
-
-        ConcluirMissao("casa_b1_trabalho_pai");
-
-        // MISSÃO 4 — Conhecer as mudanças na cozinha.
-        IniciarMissao("casa_b1_cozinha", "See the changes in the kitchen", "Conheça as mudanças na cozinha");
+        Emitir("marco_fluxo", "pai_fala_1");
 
         await mae.ExecutarFala(1);
-        // O deslocamento até a cozinha ainda não é controlado pelo FamiliaManager.
+        await Visitar("cozinha");
         await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosWriting[0]);
 
-        ConcluirMissao("casa_b1_cozinha");
-
-        // MISSÃO 5 — Conversar com a mãe sobre o trabalho.
-        IniciarMissao("casa_b1_trabalho_mae", "Ask your mother about her work", "Pergunte à sua mãe sobre o trabalho dela");
-
         await mae.ExecutarExercicio("work_conversation", 4, mae.exerciciosSpeaking[0]);
+        Emitir("exercicio_encerrado", "mother_npc/work_conversation/4");
         await mae.ExecutarFala(2);
-
-        ConcluirMissao("casa_b1_trabalho_mae");
-
-        // MISSÃO 6 — Conversar com o irmão sobre escola e cachorro.
-        IniciarMissao("casa_b1_irmao", "Talk to your brother about school and the dog", "Converse com seu irmão sobre a escola e o cachorro");
 
         await irmao.ExecutarExercicio("school_and_dog", 5, irmao.exerciciosCriarFrases[0]);
         await irmao.ExecutarFala(1);
         await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosSpeaking[0]);
         await irmao.ExecutarFala(2);
-
-        ConcluirMissao("casa_b1_irmao");
-
-        // MISSÃO 7 — Compartilhar experiências com animais.
-        IniciarMissao("casa_b1_animais", "Share your experiences with animals", "Compartilhe suas experiências com animais");
+        Emitir("marco_fluxo", "irmao_fala_2");
 
         await irmao.ExecutarExercicio("pets", 7, irmao.exerciciosWriting[0]);
-
-        ConcluirMissao("casa_b1_animais");
-
-        // MISSÃO 8 — Jantar e conversar sobre os planos para a noite.
-        IniciarMissao("casa_b1_jantar_planos", "Have dinner and talk about your plans for the night", "Jante e converse sobre seus planos para a noite");
+        Emitir("exercicio_encerrado", "brother_npc/pets/7");
 
         await mae.ExecutarFala(3);
-        // O deslocamento até a mesa ainda não é controlado pelo FamiliaManager.
+        await Jantar();
         await pai.ExecutarFala(2);
         await pai.ExecutarExercicio("dinner_plans", 8, pai.exerciciosCompletarFrase[0]);
-
-        ConcluirMissao("casa_b1_jantar_planos");
-
-        // MISSÃO 9 — Agradecer e despedir-se.
-        IniciarMissao("casa_b1_despedida", "Thank your family and say goodbye", "Agradeça à sua família e se despeça");
+        Emitir("exercicio_encerrado", "father_npc/dinner_plans/8");
 
         await mae.ExecutarFala(4);
         await mae.ExecutarExercicio("farewell", 9, mae.exerciciosSpeaking[1]);
+        Emitir("exercicio_encerrado", "mother_npc/farewell/9");
         await mae.ExecutarExercicio("farewell", 10, mae.exerciciosAssociacao[0]);
 
-        ConcluirMissao("casa_b1_despedida");
     }
-
-    private async Task InteracaoA1A2()
-{
-    // MISSÃO 1 — Chegada e cumprimentos.
-    IniciarMissao("casa_a1a2_chegada",
-        "Greet your family",
-        "Cumprimente sua família");
-
-    await pai.ExecutarFala(0);
-    await irmao.ExecutarFala(0);
-    await mae.ExecutarFala(0);
-
-    await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
-
-    ConcluirMissao("casa_a1a2_chegada");
-
-    // MISSÃO 2 — Conversar sobre o dia.
-    IniciarMissao("casa_a1a2_dia",
-        "Talk to your mother about your day",
-        "Converse com sua mãe sobre seu dia");
-
-    await mae.ExecutarFala(1);
-    await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
-
-    ConcluirMissao("casa_a1a2_dia");
-
-    // MISSÃO 3 — Conhecer o banheiro reformado.
-    IniciarMissao("casa_a1a2_banheiro",
-        "See the renovated bathroom",
-        "Conheça o banheiro reformado");
-
-    await mae.ExecutarFala(2);
-    await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
-    await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
-
-    ConcluirMissao("casa_a1a2_banheiro");
-
-    // MISSÃO 4 — Conversar sobre o trabalho da mãe.
-    IniciarMissao("casa_a1a2_trabalho_mae",
-        "Talk to your mother about work",
-        "Converse com sua mãe sobre o trabalho");
-
-    await mae.ExecutarExercicio("work_conversation", 5, mae.exerciciosSpeaking[2]);
-    await mae.ExecutarFala(3);
-
-    ConcluirMissao("casa_a1a2_trabalho_mae");
-
-    // MISSÃO 5 — Conversar com o pai.
-    IniciarMissao("casa_a1a2_pai",
-        "Talk to your father about his work",
-        "Converse com seu pai sobre o trabalho dele");
-
-    await pai.ExecutarExercicio("work_conversation", 6, pai.exerciciosSpeaking[0]);
-    await pai.ExecutarFala(1);
-    await pai.ExecutarExercicio("work_conversation", 7, pai.exerciciosSpeaking[1]);
-
-    ConcluirMissao("casa_a1a2_pai");
-
-    // MISSÃO 6 — Conversar com o irmão.
-    IniciarMissao("casa_a1a2_irmao",
-        "Talk to your brother about school and the dog",
-        "Converse com seu irmão sobre a escola e o cachorro");
-
-    await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosSpeaking[0]);
-    await irmao.ExecutarFala(1);
-    await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[1]);
-    await irmao.ExecutarFala(2);
-    await irmao.ExecutarExercicio("school_and_dog", 10, irmao.exerciciosSpeaking[2]);
-    await irmao.ExecutarExercicio("school_and_dog", 11, irmao.exerciciosAlternativas[0]);
-
-    ConcluirMissao("casa_a1a2_irmao");
-
-    // MISSÃO 7 — Ir jantar.
-    IniciarMissao("casa_a1a2_jantar",
-        "Go to the dinner table",
-        "Vá até a mesa para jantar");
-
-    await mae.ExecutarFala(4);
-    await pai.ExecutarFala(2);
-
-    ConcluirMissao("casa_a1a2_jantar");
-
-    // MISSÃO 8 — Despedir-se da família.
-    IniciarMissao("casa_a1a2_despedida",
-        "Say goodbye to your family",
-        "Despeça-se da sua família");
-
-    await pai.ExecutarExercicio("farewell", 12, pai.exerciciosSpeaking[2]);
-    await mae.ExecutarExercicio("farewell", 13, mae.exerciciosAssociacao[0]);
-
-    ConcluirMissao("casa_a1a2_despedida");
-}
-
-private async Task InteracaoA2B1()
-{
-    // MISSÃO 1 — Chegada e cumprimentos.
-    IniciarMissao("casa_a2b1_chegada",
-        "Greet your family",
-        "Cumprimente sua família");
-
-    await irmao.ExecutarFala(0);
-    await pai.ExecutarFala(0);
-
-    await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
-    await pai.ExecutarExercicio("greeting", 2, pai.exerciciosCompletarFrase[0]);
-
-    ConcluirMissao("casa_a2b1_chegada");
-
-    // MISSÃO 2 — Conversar com o pai sobre a rotina.
-    IniciarMissao("casa_a2b1_rotina_pai",
-        "Talk to your father about your recent routine",
-        "Converse com seu pai sobre sua rotina recente");
-
-    await mae.ExecutarFala(0);
-    await mae.ExecutarExercicio("routine", 3, mae.exerciciosSpeaking[0]);
-
-    ConcluirMissao("casa_a2b1_rotina_pai");
-
-    // MISSÃO 3 — Conhecer a reforma do banheiro.
-    IniciarMissao("casa_a2b1_banheiro",
-        "Talk about the bathroom renovation",
-        "Converse sobre a reforma do banheiro");
-
-    await mae.ExecutarFala(1);
-    await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosWriting[0]);
-    await mae.ExecutarExercicio("home_changes", 5, mae.exerciciosCriarFrases[0]);
-
-    ConcluirMissao("casa_a2b1_banheiro");
-
-    // MISSÃO 4 — Conversar com o pai sobre o trabalho.
-    IniciarMissao("casa_a2b1_trabalho_pai",
-        "Ask your father about his current project",
-        "Pergunte ao seu pai sobre o projeto atual dele");
-
-    await pai.ExecutarExercicio("work_conversation", 6, pai.exerciciosSpeaking[1]);
-    await pai.ExecutarFala(1);
-
-    ConcluirMissao("casa_a2b1_trabalho_pai");
-
-    // MISSÃO 5 — Conversar com a mãe sobre o trabalho.
-    IniciarMissao("casa_a2b1_trabalho_mae",
-        "Ask your mother about her work",
-        "Pergunte à sua mãe sobre o trabalho dela");
-
-    await mae.ExecutarExercicio("work_conversation", 7, mae.exerciciosSpeaking[1]);
-    await mae.ExecutarFala(2);
-
-    ConcluirMissao("casa_a2b1_trabalho_mae");
-
-    // MISSÃO 6 — Conversar com o irmão sobre a escola.
-    IniciarMissao("casa_a2b1_irmao",
-        "Talk to your brother about school",
-        "Converse com seu irmão sobre a escola");
-
-    await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosCriarFrases[0]);
-    await irmao.ExecutarFala(1);
-    await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[0]);
-
-    ConcluirMissao("casa_a2b1_irmao");
-
-    // MISSÃO 7 — Conversar sobre os animais.
-    IniciarMissao("casa_a2b1_animais",
-        "Talk about activities with pets",
-        "Converse sobre atividades com animais de estimação");
-
-    await irmao.ExecutarFala(2);
-    await irmao.ExecutarExercicio("pets", 10, irmao.exerciciosWriting[0]);
-    await irmao.ExecutarExercicio("pets", 11, irmao.exerciciosSpeaking[1]);
-
-    ConcluirMissao("casa_a2b1_animais");
-
-    // MISSÃO 8 — Ir jantar.
-    IniciarMissao("casa_a2b1_jantar",
-        "Go to the dinner table",
-        "Vá até a mesa para jantar");
-
-    await mae.ExecutarFala(3);
-    await pai.ExecutarFala(2);
-    await pai.ExecutarExercicio("dinner_plans", 12, pai.exerciciosSpeaking[2]);
-
-    ConcluirMissao("casa_a2b1_jantar");
-
-    // MISSÃO 9 — Agradecer e despedir-se.
-    IniciarMissao("casa_a2b1_despedida",
-        "Thank your family and say goodbye",
-        "Agradeça à sua família e se despeça");
-
-    await mae.ExecutarFala(4);
-    await mae.ExecutarExercicio("farewell", 13, mae.exerciciosAssociacao[0]);
-
-    ConcluirMissao("casa_a2b1_despedida");
-}
 }

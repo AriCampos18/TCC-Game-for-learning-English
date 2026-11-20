@@ -111,6 +111,19 @@ public class PortaAutomatica : MonoBehaviour
             MissionManager.Instance.ConcluirMissaoMarket("pegar_sacola", "marco_fluxo", "saida_market");
         }
 
+        var atividades = cashier.ExecutarAtividadesAposSaida();
+        while (!atividades.IsCompleted)
+            yield return null;
+
+        if (atividades.Status != System.Threading.Tasks.TaskStatus.RanToCompletion || !atividades.Result)
+        {
+            Debug.LogError("Market: falha ao concluir a Associa??o ou a revis?o ap?s a sa?da.", this);
+            if (atividades.Exception != null)
+                Debug.LogException(atividades.Exception, this);
+            cashier.LiberarControlePlayer();
+            yield break;
+        }
+
         if (movimentoPlayer != null)
         {
             movimentoPlayer.DesativarControle();

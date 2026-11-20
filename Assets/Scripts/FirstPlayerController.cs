@@ -181,6 +181,12 @@ public class FirstPlayerController : MonoBehaviour
     private float velocityY;
     private float timerPasso;
     private bool controleAtivo = true;
+    private bool olharSemMover;
+
+    internal void PermitirOlharSemMover(bool permitir)
+    {
+        olharSemMover = permitir;
+    }
 
     private bool ModoVR => XRSettings.isDeviceActive;
 
@@ -193,9 +199,12 @@ public class FirstPlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (!controleAtivo || (ModoJogoManager.Instance != null && ModoJogoManager.Instance.uiMode))
+        bool modoInterface = ModoJogoManager.Instance != null && ModoJogoManager.Instance.uiMode;
+        if (!controleAtivo || modoInterface)
         {
             PararMovimentoVisual();
+            if (!controleAtivo && !modoInterface && olharSemMover && !ModoVR)
+                AtualizarOlharDesktop();
             return;
         }
 
@@ -226,6 +235,11 @@ public class FirstPlayerController : MonoBehaviour
             controller.Move(move * Time.deltaTime);
         }
 
+        AtualizarOlharDesktop();
+    }
+
+    private void AtualizarOlharDesktop()
+    {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 

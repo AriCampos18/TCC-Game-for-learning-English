@@ -342,13 +342,14 @@ public class InteracaoNPC : MonoBehaviour
 
     public async Task Interagir()
     {
-        if (interagindo || (interacaoConcluida && !PermitirReinteracaoAposConclusao))
+        if (!PodeInteragir())
             return;
 
         interagindo = true;
 
         try
         {
+            AoIniciarInteracao();
             MostrarAviso(false);
 
             if (movimentoPlayer != null)
@@ -544,6 +545,8 @@ public class InteracaoNPC : MonoBehaviour
         if (movimentoPlayer != null)
             movimentoPlayer.DesativarControle();
     }
+
+    protected virtual void AoIniciarInteracao() { }
 
     protected virtual Task IniciarInteracao()
     {
