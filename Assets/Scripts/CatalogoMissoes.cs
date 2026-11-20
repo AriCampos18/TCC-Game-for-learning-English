@@ -36,8 +36,34 @@ internal sealed class CatalogoMissoes
 
     public IReadOnlyList<Definicao> Definicoes { get; }
 
-    public CatalogoMissoes(List<Definicao> definicoes, string nivel)
+    public CatalogoMissoes(List<Definicao> definicoes, string nivel, string nomeCenario = "Airport")
     {
+        var chaves = ChavesEsperadas(nomeCenario, nivel);
+        if (definicoes == null || definicoes.Count != chaves.Count
+            || !definicoes.All(d => d != null && d.nivel == nivel && d.id_cenario > 0
+                && !string.IsNullOrWhiteSpace(d.texto) && !string.IsNullOrWhiteSpace(d.traducao)
+                && chaves.Remove(d.mission_key)))
+            throw new InvalidOperationException("Catálogo incompleto ou inválido.");
+
+        Definicoes = definicoes.OrderBy(d => d.ordem).ToList();
+        int cenario = Definicoes[0].id_cenario;
+        var anteriores = new HashSet<string>();
+        for (int i = 0; i < Definicoes.Count; i++)
+        {
+            Definicao d = Definicoes[i];
+            if (d.ordem != i + 1 || d.id_cenario != cenario
+                || !Valida(d.inicio, anteriores, nomeCenario) || !Valida(d.conclusao, anteriores, nomeCenario))
+                throw new InvalidOperationException("Regra ou ordem inválida em " + d.mission_key);
+            anteriores.Add(d.mission_key);
+        }
+    }
+
+    private static HashSet<string> ChavesEsperadas(string nomeCenario, string nivel)
+    {
+        if (nomeCenario == "Market")
+            return new HashSet<string> { "pegar_cesta", "falar_padaria", "falar_atendente",
+                "seguir_atendente", "interagir_produtos", "falar_caixa", "pegar_sacola" };
+
         string identificadores;
         switch (nivel)
         {
@@ -50,27 +76,27 @@ internal sealed class CatalogoMissoes
         }
 
         string prefixo = "aeroporto_" + nivel.ToLowerInvariant().Replace("-", "") + "_";
-        var chaves = new HashSet<string>(identificadores.Split(' ').Select(id => prefixo + id));
-        if (definicoes == null || definicoes.Count != chaves.Count
-            || !definicoes.All(d => d != null && d.nivel == nivel && d.id_cenario > 0
-                && !string.IsNullOrWhiteSpace(d.texto) && !string.IsNullOrWhiteSpace(d.traducao)
-                && chaves.Remove(d.mission_key)))
-            throw new InvalidOperationException("Catálogo Airport incompleto ou inválido.");
+        return new HashSet<string>(identificadores.Split(' ').Select(id => prefixo + id));
+    }
 
-        Definicoes = definicoes.OrderBy(d => d.ordem).ToList();
-        int cenario = Definicoes[0].id_cenario;
-        var anteriores = new HashSet<string>();
-        for (int i = 0; i < Definicoes.Count; i++)
+    private static bool ValidaAlvoMarket(Evento evento)
+    {
+        switch (evento.tipo)
         {
-            Definicao d = Definicoes[i];
-            if (d.ordem != i + 1 || d.id_cenario != cenario
-                || !Valida(d.inicio, anteriores) || !Valida(d.conclusao, anteriores))
-                throw new InvalidOperationException("Regra ou ordem inválida em " + d.mission_key);
-            anteriores.Add(d.mission_key);
+            case "npc_interagido":
+            case "conversa_encerrada":
+                return evento.alvo == "bakery_npc" || evento.alvo == "shelf_npc" || evento.alvo == "cashier_npc";
+            case "marco_fluxo":
+                return evento.alvo == "cesta_coletada" || evento.alvo == "rota_prateleiras_iniciada"
+                    || evento.alvo == "rota_prateleiras_concluida" || evento.alvo == "produtos_liberados"
+                    || evento.alvo == "produtos_obrigatorios_coletados" || evento.alvo == "sacola_liberada"
+                    || evento.alvo == "sacola_coletada" || evento.alvo == "saida_market";
+            default:
+                return false;
         }
     }
 
-    private static bool Valida(Regra regra, HashSet<string> anteriores)
+    private static bool Valida(Regra regra, HashSet<string> anteriores, string nomeCenario)
     {
         if (regra?.eventos == null || (regra.operador != "EVENTO" && regra.operador != "AND")
             || (regra.operador == "EVENTO" ? regra.eventos.Count != 1 : regra.eventos.Count < 2))
@@ -81,9 +107,15 @@ internal sealed class CatalogoMissoes
         {
             if (e == null || string.IsNullOrWhiteSpace(e.alvo) || !chaves.Add(e.Chave))
                 return false;
+            if (nomeCenario == "Market" && e.tipo != "cenario_iniciado" && e.tipo != "missao_concluida")
+            {
+                if (!ValidaAlvoMarket(e))
+                    return false;
+                continue;
+            }
             switch (e.tipo)
             {
-                case "cenario_iniciado": if (e.alvo != "Airport") return false; break;
+                case "cenario_iniciado": if (e.alvo != nomeCenario) return false; break;
                 case "missao_concluida": if (!anteriores.Contains(e.alvo)) return false; break;
                 case "npc_interagido":
                 case "conversa_encerrada": if (e.alvo != "airport_info_npc" && e.alvo != "checkin_npc") return false; break;

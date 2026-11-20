@@ -108,7 +108,7 @@ public class PortaAutomatica : MonoBehaviour
 
         if (MissionManager.Instance != null)
         {
-            MissionManager.Instance.ConcluirMissao("pegar_sacola");
+            MissionManager.Instance.ConcluirMissaoMarket("pegar_sacola", "marco_fluxo", "saida_market");
         }
 
         if (movimentoPlayer != null)

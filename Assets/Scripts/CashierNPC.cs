@@ -1565,6 +1565,10 @@ else if (nivelAtual == "A2-B1")
             GameProgress.EstaEmDialogo = true;
 
             nivelAtual = DadosJogador.nivelUsuario;
+            bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
+            if (intermediario)
+                MissionManager.Instance?.ConcluirMissaoMarket("falar_caixa", "npc_interagido", "cashier_npc");
+
             InicializarConteudosPorNivel();
 
             await MostrarProdutosNoBalcao();
@@ -1584,7 +1588,8 @@ else if (nivelAtual == "A2-B1")
             else
                 await interacaoB1();
 
-            MissionManager.Instance.ConcluirMissao("falar_caixa");
+            if (!intermediario)
+                MissionManager.Instance.ConcluirMissaoMarket("falar_caixa", "conversa_encerrada", "cashier_npc");
 
             if (!await FazerRevisao())
             {
@@ -1593,11 +1598,23 @@ else if (nivelAtual == "A2-B1")
                 return;
             }
 
-            MissionManager.Instance.AdicionarMissao(
-                "pegar_sacola",
-                "Pick up your bag at the checkout and leave the market",
-                "Pegue a sacola no caixa e saia do mercado"
-            );
+            if (intermediario)
+            {
+                bool iniciante = nivelAtual == "A1-A2";
+                MissionManager.Instance.IniciarMissaoMarket("pegar_sacola",
+                    iniciante ? "Collect your shopping bag and leave the market."
+                        : "Pick up your shopping bag at checkout and exit the market.",
+                    iniciante ? "Pegue sua sacola de compras e saia do mercado."
+                        : "Pegue sua sacola de compras no caixa e saia do mercado.");
+            }
+            else
+            {
+                MissionManager.Instance.IniciarMissaoMarket(
+                    "pegar_sacola",
+                    "Pick up your bag at the checkout and leave the market",
+                    "Pegue a sacola no caixa e saia do mercado"
+                );
+            }
 
             missaoSacolaLiberada = true;
 
@@ -1967,6 +1984,7 @@ private async Task interacaoA2B1()
     public void SacolaFoiPega()
     {
         sacolaFoiPega = true;
+        MissionManager.Instance?.RegistrarEventoMarket("marco_fluxo", "sacola_coletada");
     }
 
     private async Task PlayAudioETexto(int i, bool mostrarLegenda = true)
@@ -2089,6 +2107,10 @@ private async Task interacaoA2B1()
             return false;
 
         if (!ProdutoManager.Instance.ProdutosObrigatoriosPegos())
+            return false;
+
+        if (MissionManager.NivelMarketIntermediario(DadosJogador.nivelUsuario)
+            && MissionManager.Instance?.MissaoAtiva("falar_caixa") != true)
             return false;
 
         return GameProgress.Instance.PodeFalarComCaixa();

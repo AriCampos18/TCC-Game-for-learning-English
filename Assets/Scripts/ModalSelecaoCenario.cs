@@ -270,8 +270,8 @@ public class ModalSelecaoCenario : MonoBehaviour
         // No VR, player deve ser a raiz do XR Origin.
         // Assim, o rig inteiro é deslocado e a posição local da câmera
         // (altura e deslocamento do headset) é preservada.
-        if (cenario == "Airport" && MissionManager.Instance != null)
-            await MissionManager.Instance.PrepararAirportAsync();
+        if ((cenario == "Airport" || cenario == "Market") && MissionManager.Instance != null)
+            await MissionManager.Instance.PrepararCatalogoAsync(cenario);
 
         TransportarJogador(destino.position);
 

@@ -1102,6 +1102,10 @@ public class BakeryNPC : InteracaoNPC
         // Ativa o estado de diálogo logo no começo
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
+        bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
+        if (intermediario)
+            MissionManager.Instance?.ConcluirMissaoMarket("falar_padaria", "npc_interagido", "bakery_npc");
+
         InicializarConteudosPorNivel();
         await CarregarExerciciosDoBanco();
 
@@ -1129,20 +1133,13 @@ public class BakeryNPC : InteracaoNPC
 
         // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
-        MissionManager.Instance.ConcluirMissao("falar_padaria");
-        bool podeLiberarCaixa =
-            MissionManager.Instance.MissaoConcluida("falar_atendente")
-            && ProdutoManager.Instance != null
-            && ProdutoManager.Instance.ProdutosObrigatoriosPegos();
+        var missoes = MissionManager.Instance;
+        if (!intermediario)
+            missoes.ConcluirMissaoMarket("falar_padaria", "conversa_encerrada", "bakery_npc");
+        else
+            missoes?.RegistrarEventoMarket("conversa_encerrada", "bakery_npc");
 
-        if (podeLiberarCaixa)
-        {
-            MissionManager.Instance.AdicionarMissao(
-                "falar_caixa",
-                "Put the products on the counter to start the conversation with the cashier",
-                "Coloque os produtos no caixa para iniciar a conversa com o caixa"
-            );
-        }
+        missoes?.TentarLiberarCaixaMarket();
 
         if (modalLegenda != null)
             modalLegenda.SetActive(false);

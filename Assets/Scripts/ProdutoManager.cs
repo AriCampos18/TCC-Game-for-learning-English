@@ -23,6 +23,7 @@ public class ProdutoManager : MonoBehaviour
     private MissionManager missaoManager; 
 
     private string nivelAtual;
+    private bool marketIntermediario;
 
     private List<TipoProdutoMercado> produtosPegos = new List<TipoProdutoMercado>();
 
@@ -66,7 +67,8 @@ public class ProdutoManager : MonoBehaviour
 
     public void LiberarProdutos(string nivel)
     {
-        nivelAtual = nivel == "A1-A2" || nivel == "A2-B1" ? "A2" : nivel;
+        marketIntermediario = MissionManager.NivelMarketIntermediario(nivel);
+        nivelAtual = marketIntermediario ? "A2" : nivel;
         produtosPegos.Clear();
 
         DesativarTodos();
@@ -92,6 +94,12 @@ public class ProdutoManager : MonoBehaviour
     public void RegistrarProduto(ProdutoInterativo produto)
     {
         if (produto == null || !produto.podePegar) return;
+
+        if (marketIntermediario)
+        {
+            produto.DefinirInterativo(false);
+            produto.gameObject.SetActive(false);
+        }
 
         if (!produtosPegos.Contains(produto.tipo))
             produtosPegos.Add(produto.tipo);
@@ -125,18 +133,8 @@ public class ProdutoManager : MonoBehaviour
 
         if (MissaoProdutosConcluida())
         {
-            MissionManager.Instance.ConcluirMissao("interagir_produtos");
-
-            bool falouPadaria = MissionManager.Instance.MissaoConcluida("falar_padaria");
-
-            if (falouPadaria)
-            {
-                MissionManager.Instance.AdicionarMissao(
-                    "falar_caixa",
-                    "Go to the counter and interact with the cashier",
-                    "Vá para o balcão do caixa e inicie uma conversa com o atendente do caixa"
-                );
-            }
+            MissionManager.Instance.ConcluirMissaoMarket("interagir_produtos", "marco_fluxo", "produtos_obrigatorios_coletados");
+            MissionManager.Instance.TentarLiberarCaixaMarket();
         }
     }
 

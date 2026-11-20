@@ -1046,7 +1046,7 @@ public class checkinNPC : InteracaoNPC
                 cartaoEmbarqueConsultado = true;
                 EmitirEventoMissao("cartao_embarque_consultado", "cartao_embarque");
                 ConcluirMissao("aeroporto_a1_4");
-                IniciarMissaoChegadaPortao("aeroporto_a1_5", "Encontre o portão 12", "Find gate 12", pontoChegadaPortao12, marcadorPortao12);
+                IniciarMissaoChegadaPortao("aeroporto_a1_5", "Find gate 12", "Encontre o portão 12", pontoChegadaPortao12, marcadorPortao12);
                 break;
             case "A1-A2":
                 if (MissionManager.Instance?.MissaoAtiva("aeroporto_a1a2_5") != true)
@@ -1062,7 +1062,7 @@ public class checkinNPC : InteracaoNPC
                 EmitirEventoMissao("cartao_embarque_consultado", "cartao_embarque");
                 ConcluirMissao("aeroporto_a2b1_6");
                 if (MissionManager.Instance?.MissaoConcluida("aeroporto_a2b1_6") == true)
-                    IniciarMissaoChegadaPortao("aeroporto_a2b1_7", "Encontre o portão 24 para seu voo", "Find gate 24 for your flight", pontoChegadaPortao24, marcadorPortao24);
+                    IniciarMissaoChegadaPortao("aeroporto_a2b1_7", "Find gate 24 for your flight", "Encontre o portão 24 para seu voo", pontoChegadaPortao24, marcadorPortao24);
                 break;
         }
     }
@@ -1843,7 +1843,7 @@ else if (nivelAtual == "A2-B1")
         if (nivelAtual == "A1")
         {
             EmitirEventoMissao("conversa_encerrada", "checkin_npc");
-            IniciarMissao("aeroporto_a1_4", "Consulte seu cartão de embarque", "Check your boarding pass");
+            IniciarMissao("aeroporto_a1_4", "Check your boarding pass", "Consulte seu cartão de embarque");
         }
     }
 
@@ -1869,7 +1869,7 @@ else if (nivelAtual == "A2-B1")
     {
         int i = 0;
 
-        IniciarMissao("aeroporto_a2_2", "Informe seu destino ao funcionário", "Tell the airport employee your destination");
+        IniciarMissao("aeroporto_a2_2", "Tell the airport employee your destination", "Informe seu destino ao funcionário");
 
         await PlayAudioETexto(i++); // Where are you flying today?
 
@@ -1877,7 +1877,7 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("destination", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_2");
-        IniciarMissao("aeroporto_a2_3", "Apresente seu passaporte e confirmação da reserva", "Present your passport and booking confirmation");
+        IniciarMissao("aeroporto_a2_3", "Present your passport and booking confirmation", "Apresente seu passaporte e confirmação da reserva");
 
         await PlayAudioETexto(i++); // Passport and booking confirmation
 
@@ -1885,7 +1885,7 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_3");
-        IniciarMissao("aeroporto_a2_4", "Informe sua bagagem para despacho", "Tell the employee about the luggage you need to check in");
+        IniciarMissao("aeroporto_a2_4", "Tell the employee about the luggage you need to check in", "Informe sua bagagem para despacho");
 
         await PlayAudioETexto(i++); // Bags to check in
 
@@ -1893,7 +1893,7 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("checked_baggage", 1, exAtual);
 
         ConcluirMissao("aeroporto_a2_4");
-        IniciarMissao("aeroporto_a2_5", "Descubra o horário de embarque", "Find out the boarding time");
+        IniciarMissao("aeroporto_a2_5", "Find out the boarding time", "Descubra o horário de embarque");
 
         await PlayAudioETexto(i++); // Gate and boarding time
 
@@ -1906,7 +1906,7 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("gate_number", 1, exAtual);
 
         EmitirEventoMissao("marco_fluxo", "portao_liberado");
-        IniciarMissaoChegadaPortao("aeroporto_a2_6", "Encontre o portão 18", "Find gate 18", pontoChegadaPortao18, marcadorPortao18);
+        IniciarMissaoChegadaPortao("aeroporto_a2_6", "Find gate 18", "Encontre o portão 18", pontoChegadaPortao18, marcadorPortao18);
 
         await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
     }
@@ -1917,20 +1917,20 @@ else if (nivelAtual == "A2-B1")
 
         await PlayAudioETexto(i++); // Destination and connecting flight
 
-        IniciarMissao("aeroporto_b1_4", "Informe seu destino e os detalhes do voo de conexão", "Provide your destination and connecting-flight details");
+        IniciarMissao("aeroporto_b1_4", "Provide your destination and connecting-flight details", "Informe seu destino e os detalhes do voo de conexão");
 
         exAtual = exerciciosSpeaking[0];
         await AbrirExercicioDoPonto("destination", 1, exAtual);
 
         ConcluirMissao("aeroporto_b1_4");
-        IniciarMissao("aeroporto_b1_5", "Apresente seus documentos de viagem", "Present your travel documents");
+        IniciarMissao("aeroporto_b1_5", "Present your travel documents", "Apresente seus documentos de viagem");
 
         await PlayAudioETexto(i++); // Passport and booking confirmation
 
         await AbrirExercicioDoPonto("travel_documents", 1, exerciciosSpeaking[1]);
 
         ConcluirMissao("aeroporto_b1_5");
-        IniciarMissao("aeroporto_b1_6", "Confirme as informações sobre a bagagem despachada", "Confirm the checked-baggage information");
+        IniciarMissao("aeroporto_b1_6", "Confirm the checked-baggage information", "Confirme as informações sobre a bagagem despachada");
 
         await PlayAudioETexto(i++); // Are you checking any bags?
 
@@ -1948,7 +1948,7 @@ else if (nivelAtual == "A2-B1")
         await AbrirExercicioDoPonto("departure_screens", 1, exAtual);
 
         EmitirEventoMissao("marco_fluxo", "portao_liberado");
-        IniciarMissaoChegadaPortao("aeroporto_b1_8", "Encontre o portão 24 para seu voo", "Find gate 24 for your flight", pontoChegadaPortao24, marcadorPortao24);
+        IniciarMissaoChegadaPortao("aeroporto_b1_8", "Find gate 24 for your flight", "Encontre o portão 24 para seu voo", pontoChegadaPortao24, marcadorPortao24);
 
         await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
     }
@@ -1967,8 +1967,8 @@ else if (nivelAtual == "A2-B1")
     EmitirEventoMissao("marco_fluxo", "documentos_solicitados");
     IniciarMissao(
         "aeroporto_a1a2_4",
-        "Apresente seu passaporte e confirmação da reserva",
-        "Present your passport and booking confirmation"
+        "Present your passport and booking confirmation",
+        "Apresente seu passaporte e confirmação da reserva"
     );
 
     exAtual = exerciciosSpeaking[0];
@@ -1977,8 +1977,8 @@ else if (nivelAtual == "A2-B1")
     ConcluirMissao("aeroporto_a1a2_4");
     IniciarMissao(
         "aeroporto_a1a2_5",
-        "Consulte seu cartão de embarque e encontre o portão 18",
-        "Check your boarding pass and find gate 18"
+        "Check your boarding pass and find gate 18",
+        "Consulte seu cartão de embarque e encontre o portão 18"
     );
 
     await PlayAudioETexto(i++);
@@ -1999,8 +1999,8 @@ private async Task interacaoA2B1()
     EmitirEventoMissao("npc_interagido", "checkin_npc");
     IniciarMissao(
         "aeroporto_a2b1_destino",
-        "Informe seu destino e os detalhes do voo de conexão",
-        "Provide your destination and connecting-flight details"
+        "Provide your destination and connecting-flight details",
+        "Informe seu destino e os detalhes do voo de conexão"
     );
 
     await PlayAudioETexto(i++);
@@ -2012,8 +2012,8 @@ private async Task interacaoA2B1()
 
     IniciarMissao(
         "aeroporto_a2b1_4",
-        "Apresente seus documentos de viagem",
-        "Present your travel documents"
+        "Present your travel documents",
+        "Apresente seus documentos de viagem"
     );
 
     await PlayAudioETexto(i++);
@@ -2025,8 +2025,8 @@ private async Task interacaoA2B1()
 
     IniciarMissao(
         "aeroporto_a2b1_5",
-        "Confirme as informações sobre sua bagagem despachada",
-        "Confirm the information about your checked baggage"
+        "Confirm the information about your checked baggage",
+        "Confirme as informações sobre sua bagagem despachada"
     );
 
     await PlayAudioETexto(i++);
@@ -2038,8 +2038,8 @@ private async Task interacaoA2B1()
 
     IniciarMissao(
         "aeroporto_a2b1_6",
-        "Confira as informações sobre o embarque e o portão de conexão",
-        "Check the boarding information and connecting gate"
+        "Check the boarding information and connecting gate",
+        "Confira as informações sobre o embarque e o portão de conexão"
     );
 
     await PlayAudioETexto(i++);

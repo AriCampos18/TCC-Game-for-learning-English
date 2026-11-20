@@ -26,6 +26,7 @@ public class ShelfNPC : InteracaoNPC
 
     private int indiceDestinoPrateleira;
     private bool podeInteragirCenario = true;
+    private int paradasMarketConcluidas;
     public TextMeshProUGUI textoPularDialogo;
 
     public string idNpcParaVoz = "shelf"; 
@@ -89,6 +90,11 @@ public class ShelfNPC : InteracaoNPC
         
         nivelAtual = DadosJogador.nivelUsuario;
 
+        bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
+        if (intermediario)
+            MissionManager.Instance?.ConcluirMissaoMarket("falar_atendente", "npc_interagido", "shelf_npc");
+
+        paradasMarketConcluidas = 0;
         indiceDestinoPrateleira = 0;
         InicializarConteudosPorNivel();
         catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
@@ -116,9 +122,13 @@ public class ShelfNPC : InteracaoNPC
             await interacaoB1();
         }
         
-        MissionManager.Instance.ConcluirMissao("falar_atendente");
+        if (!intermediario)
+            MissionManager.Instance.ConcluirMissaoMarket("falar_atendente", "conversa_encerrada", "shelf_npc");
 
         GameProgress.Instance.falouAtendente = true;
+        if (intermediario)
+            MissionManager.Instance?.RegistrarEventoMarket("conversa_encerrada", "shelf_npc");
+        MissionManager.Instance?.TentarLiberarCaixaMarket();
         GameProgress.EstaEmDialogo = false; // ✨ Só destrava aqui no final de TUDO
         podeInteragirCenario = true;
     
@@ -162,7 +172,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "Yes, we have apples too."
         await AbrirExercicioDoPonto("shopping_complete", 1, exerciciosAlternativas[0]);
 
-        missaoManager.AdicionarMissao(
+        missaoManager.IniciarMissaoMarket(
             "interagir_produtos",
             "Get the milk and the fruit from the shelves",
             "Pegue o leite e a fruta das prateleiras"
@@ -201,7 +211,7 @@ public class ShelfNPC : InteracaoNPC
         await PlayAudioETexto(i++); // "I see. Is there anything else you need?"
         await AbrirExercicioDoPonto("shopping_complete", 1, exerciciosAlternativas[0]);
 
-        missaoManager.AdicionarMissao(
+        missaoManager.IniciarMissaoMarket(
             "interagir_produtos",
             "Get the milk, the cereal and the snack from the shelves",
             "Pegue o leite, o cereal e o salgadinho das prateleiras"
@@ -233,7 +243,7 @@ public class ShelfNPC : InteracaoNPC
         await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
         await PlayAudioETexto(i++); // "Enjoy the discounts. Happy shopping!"
 
-        missaoManager.AdicionarMissao(
+        missaoManager.IniciarMissaoMarket(
             "interagir_produtos",
             "Get the vegetable and the soda from the shelves",
             "Pegue o legumes e o refrigerante das prateleiras"
@@ -286,10 +296,13 @@ public class ShelfNPC : InteracaoNPC
     await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
     await PlayAudioETexto(i++); // Despedida.
 
-    missaoManager.AdicionarMissao(
+    if (!missaoManager.MissaoConcluida("seguir_atendente"))
+        return;
+
+    missaoManager.IniciarMissaoMarket(
         "interagir_produtos",
-        "Get the milk, cereal and snacks from the shelves",
-        "Pegue o leite, o cereal e os salgadinhos nas prateleiras"
+        "Pick up milk, cereal, and snacks from the shelves.",
+        "Pegue leite, cereal e salgadinhos nas prateleiras."
     );
 
     ProdutoManager.Instance.LiberarProdutos(nivelAtual);
@@ -348,10 +361,13 @@ private async Task interacaoA2B1()
     await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
     await PlayAudioETexto(i++); // Despedida.
 
-    missaoManager.AdicionarMissao(
+    if (!missaoManager.MissaoConcluida("seguir_atendente"))
+        return;
+
+    missaoManager.IniciarMissaoMarket(
         "interagir_produtos",
-        "Get the selected products from the shelves",
-        "Pegue os produtos escolhidos nas prateleiras"
+        "Collect milk, cereal, and snacks from their respective shelves.",
+        "Recolha leite, cereal e salgadinhos nas respectivas prateleiras."
     );
 
     ProdutoManager.Instance.LiberarProdutos(nivelAtual);
@@ -378,24 +394,52 @@ private async Task interacaoA2B1()
             return;
         }
 
-        missaoManager.ResetarMissao("seguir_atendente");
-
-        missaoManager.AdicionarMissao(
-            "seguir_atendente",
-            "Follow the attendant to get the products",
-            "Siga o atendente para pegar os produtos"
-        );
+        bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
+        if (intermediario)
+        {
+            bool iniciante = nivelAtual == "A1-A2";
+            missaoManager.IniciarMissaoMarket("seguir_atendente",
+                iniciante ? "Follow the attendant to the correct shelves."
+                    : "Follow the attendant to the shelves where the products are located.",
+                iniciante ? "Siga o atendente até as prateleiras corretas."
+                    : "Siga o atendente até as prateleiras onde estão os produtos.");
+        }
+        else
+        {
+            missaoManager.IniciarMissaoMarket(
+                "seguir_atendente",
+                "Follow the attendant to get the products",
+                "Siga o atendente para pegar os produtos"
+            );
+        }
 
         if (modalLegenda != null) modalLegenda.SetActive(false);
 
         LiberarControlePlayer();
 
         // Faz o NPC andar até o destino atual da sequência
-        agent.SetDestination(pontoDestinoEscolhido.position); 
+        bool destinoAceito = agent.SetDestination(pontoDestinoEscolhido.position);
+        if (intermediario && !destinoAceito)
+        {
+            TravarControlePlayer();
+            Debug.LogError("ShelfNPC: o agente não aceitou o destino da prateleira.");
+            return;
+        }
 
         while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
         {
+            if (intermediario && !agent.pathPending && agent.pathStatus != NavMeshPathStatus.PathComplete)
+                break;
             await Task.Yield();
+        }
+
+        if (intermediario && agent.pathStatus != NavMeshPathStatus.PathComplete
+            && Vector3.Distance(transform.position, pontoDestinoEscolhido.position) > agent.stoppingDistance)
+        {
+            agent.ResetPath();
+            TravarControlePlayer();
+            Debug.LogError("ShelfNPC: o agente não alcançou o destino da prateleira.");
+            return;
         }
 
         agent.ResetPath();
@@ -482,7 +526,9 @@ private async Task interacaoA2B1()
             await Task.Yield();
         }
 
-            missaoManager.ConcluirMissao("seguir_atendente");
+            int paradasNecessarias = nivelAtual == "B1" ? 1 : 2;
+            if (++paradasMarketConcluidas == paradasNecessarias)
+                missaoManager.ConcluirMissaoMarket("seguir_atendente", "marco_fluxo", "rota_prateleiras_concluida");
             if (modalLegenda != null) 
                 modalLegenda.SetActive(false);
         } 

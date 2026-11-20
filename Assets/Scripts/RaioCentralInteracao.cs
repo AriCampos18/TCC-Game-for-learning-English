@@ -197,6 +197,20 @@ public class RaioCentralInteracao : MonoBehaviour
         ProdutoInterativo produto =
             objetoAtual.GetComponentInParent<ProdutoInterativo>();
 
+        GameObject cesta = null;
+        if (produto == null && MissionManager.NivelMarketIntermediario(DadosJogador.nivelUsuario))
+        {
+            // A cesta da entrada já está na camada de interação da cena.
+            for (Transform alvo = objetoAtual.transform; alvo != null; alvo = alvo.parent)
+            {
+                if (alvo.name == "shopping_basket" || alvo.name.StartsWith("shopping_basket (", System.StringComparison.Ordinal))
+                {
+                    cesta = alvo.gameObject;
+                    break;
+                }
+            }
+        }
+
         if (produto != null)
         {
             if (ProdutoManager.Instance != null)
@@ -206,26 +220,34 @@ public class RaioCentralInteracao : MonoBehaviour
         }
         else
         {
-            Destroy(objetoAtual);
+            Destroy(cesta != null ? cesta : objetoAtual);
         }
 
-        // Mantém a lógica original de conclusão da primeira missão.
-        if (MissionManager.Instance != null &&
+        if (MissionManager.NivelMarketIntermediario(DadosJogador.nivelUsuario))
+        {
+            if (produto == null && cesta != null)
+                MissionManager.Instance?.RegistrarCestaMarketIntermediario();
+        }
+        // Mantém a lógica original de conclusão da primeira missão nos demais níveis.
+        else if (MissionManager.Instance != null &&
             !MissionManager.Instance.MissaoConcluida("pegar_cesta"))
         {
-            MissionManager.Instance.ConcluirMissao("pegar_cesta");
+            MissionManager.Instance.ConcluirMissaoMarket("pegar_cesta", "marco_fluxo", "cesta_coletada");
+            if (!MissionManager.Instance.UsaCatalogoMarket)
+            {
 
-            MissionManager.Instance.AdicionarMissao(
-                "falar_atendente",
-                "Talk to the market attendant",
-                "Fale com o atendente do mercado"
-            );
+                MissionManager.Instance.AdicionarMissao(
+                    "falar_atendente",
+                    "Talk to the market attendant",
+                    "Fale com o atendente do mercado"
+                );
 
-            MissionManager.Instance.AdicionarMissao(
-                "falar_padaria",
-                "Talk to the bakery attendant",
-                "Fale com o atendente da padaria"
-            );
+                MissionManager.Instance.AdicionarMissao(
+                    "falar_padaria",
+                    "Talk to the bakery attendant",
+                    "Fale com o atendente da padaria"
+                );
+            }
         }
 
         if (modalAvisoMouse != null)

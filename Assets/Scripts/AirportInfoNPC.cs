@@ -910,17 +910,17 @@ else if (nivelAtual == "A2-B1")
                 case "A1":
                     EmitirEventoMissao("npc_interagido", "airport_info_npc");
                     ConcluirMissao("aeroporto_a1_1");
-                    IniciarMissao("aeroporto_a1_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
+                    IniciarMissao("aeroporto_a1_2", "Ask for directions to find the check-in desk", "Peça orientações para encontrar o balcão de check-in");
                     break;
                 case "A1-A2":
                     EmitirEventoMissao("npc_interagido", "airport_info_npc");
                     ConcluirMissao("aeroporto_a1a2_1");
-                    IniciarMissao("aeroporto_a1a2_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
+                    IniciarMissao("aeroporto_a1a2_2", "Ask for directions to find the check-in desk", "Peça orientações para encontrar o balcão de check-in");
                     break;
                 case "B1":
                     EmitirEventoMissao("npc_interagido", "airport_info_npc");
                     ConcluirMissao("aeroporto_b1_1");
-                    IniciarMissao("aeroporto_b1_2", "Peça orientações para encontrar o balcão de check-in", "Ask for directions to find the check-in desk");
+                    IniciarMissao("aeroporto_b1_2", "Ask for directions to find the check-in desk", "Peça orientações para encontrar o balcão de check-in");
                     break;
             }
 
@@ -949,14 +949,14 @@ else if (nivelAtual == "A2-B1")
             switch (nivelAtual)
             {
                 case "A1":
-                    IniciarMissao("aeroporto_a1_3", "Dirija-se ao balcão de check-in e apresente seu passaporte", "Go to the check-in desk and present your passport");
+                    IniciarMissao("aeroporto_a1_3", "Go to the check-in desk and present your passport", "Dirija-se ao balcão de check-in e apresente seu passaporte");
                     break;
                 case "A1-A2":
-                    IniciarMissao("aeroporto_a1a2_3", "Dirija-se ao balcão de check-in e apresente seu passaporte", "Go to the check-in desk and present your passport");
+                    IniciarMissao("aeroporto_a1a2_3", "Go to the check-in desk and present your passport", "Dirija-se ao balcão de check-in e apresente seu passaporte");
                     break;
                 case "B1":
                     EmitirEventoMissao("conversa_encerrada", "airport_info_npc");
-                    IniciarMissao("aeroporto_b1_3", "Dirija-se ao balcão de check-in", "Go to the check-in desk");
+                    IniciarMissao("aeroporto_b1_3", "Go to the check-in desk", "Dirija-se ao balcão de check-in");
                     break;
             }
 
@@ -1086,8 +1086,8 @@ private async Task interacaoA2B1()
 
     IniciarMissao(
         "aeroporto_a2b1_2",
-        "Descubra o caminho para chegar ao segundo andar",
-        "Find out how to reach the second floor"
+        "Find out how to reach the second floor",
+        "Descubra o caminho para chegar ao segundo andar"
     );
 
     await PlayAudioETexto(i++);
@@ -1099,8 +1099,8 @@ private async Task interacaoA2B1()
 
     IniciarMissao(
         "aeroporto_a2b1_3",
-        "Confirme quanto tempo levará para chegar ao check-in",
-        "Find out how long it will take to reach the check-in desks"
+        "Find out how long it will take to reach the check-in desks",
+        "Confirme quanto tempo levará para chegar ao check-in"
     );
 
     await PlayAudioETexto(i++);
