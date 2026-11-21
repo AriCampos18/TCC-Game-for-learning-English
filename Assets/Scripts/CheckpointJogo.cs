@@ -60,10 +60,19 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
             novo.ValidarConta();
             if (novo.dispositivo?.Atual != null)
             {
-                await novo.Restaurar(novo.dispositivo.Atual);
+                var atual = novo.dispositivo.Atual;
+                try { await novo.Restaurar(atual); }
+                catch (InvalidDataException) when (MarcoAnteriorCompativel(atual, novo.dispositivo.MarcoAnterior))
+                {
+                    novo.ValidarConta();
+                    await novo.Restaurar(novo.dispositivo.MarcoAnterior);
+                    novo.modoGiro = (string)atual["preferences"]?["turn_mode"] ?? novo.modoGiro;
+                    novo.Status = "Retomado do marco anterior disponível";
+                }
                 novo.RetomouFase = true;
             }
             novo.preparado = true;
+            FindAnyObjectByType<ModalConfiguracoes>(FindObjectsInactive.Include)?.AplicarPreferenciaTurn(novo.ModoGiro);
             return true;
         }
         catch (Exception e) when (Prevista(e))
@@ -77,6 +86,17 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
             return false;
         }
         finally { novo.restaurando = false; }
+    }
+
+    private static bool MarcoAnteriorCompativel(JObject atual, JObject anterior)
+    {
+        var a = atual?["visit"];
+        var b = anterior?["visit"];
+        return (string)a?["step_key"] == RoteiroNpcCheckpoint.Passo && b is JObject
+            && (string)b["step_key"] != RoteiroNpcCheckpoint.Passo
+            && (string)a["visit_id"] == (string)b["visit_id"]
+            && (int?)a["scenario_id"] == (int?)b["scenario_id"]
+            && (string)a["level"] == (string)b["level"];
     }
 
     private void OnEnable() => Application.wantsToQuit += AoSolicitarSaida;

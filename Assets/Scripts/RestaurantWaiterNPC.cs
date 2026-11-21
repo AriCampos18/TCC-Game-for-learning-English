@@ -1012,8 +1012,9 @@ using UnityEngine.Networking;
 using System.IO;
 using TMPro;
 using System;
+using System.Linq;
 
-public class RestaurantWaiterNPC : InteracaoNPC
+public class RestaurantWaiterNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -1043,6 +1044,8 @@ public class RestaurantWaiterNPC : InteracaoNPC
         {
             mesa.Sentar();
             mesaAtual = mesa;
+            if (IdentificarMesa(mesa, MesasCheckpoint()) == null)
+                Debug.LogWarning("Restaurant: configure chaves de checkpoint únicas nas mesas do garçom.", mesa);
             ultimaVisita = VisitaAtual;
             Emitir("marco_fluxo", "mesa_sentou");
             GameProgress.EstaEmDialogo = true;
@@ -1120,8 +1123,18 @@ public class RestaurantWaiterNPC : InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -1936,6 +1949,13 @@ else if (nivelAtual == "A2-B1")
         }
     });
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1969,14 +1989,7 @@ else if (nivelAtual == "A2-B1")
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("RestaurantWaiterNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            switch (nivelAtual)
-            {
-                case "A1": await interacaoA1(); break;
-                case "A1-A2": await interacaoA1A2(); break;
-                case "A2": await interacaoA2(); break;
-                case "A2-B1": await interacaoA2B1(); break;
-                case "B1": await interacaoB1(); break;
-            }
+            await CriarRoteiro(SessaoCenario.Atual.Versao).Executar();
         }
         finally
         {
@@ -1996,13 +2009,20 @@ else if (nivelAtual == "A2-B1")
             Debug.LogError("RevisaoManager não está disponível para finalizar Restaurant.");
     }
 
-    private async Task InteragirComCliente()
+    private async Task LevantarParaCliente()
     {
         await AguardarSentado(InteracaoRestaurant.Etapa.Levantar);
         Emitir("marco_fluxo", "mesa_levantou");
+    }
+
+    private async Task ConversarComCliente()
+    {
         await AguardarConversaComCliente();
         Emitir("conversa_encerrada", MissoesRestaurant.Cliente);
+    }
 
+    private async Task RetornarParaMesa()
+    {
         LiberarControlePlayer();
         try
         {
@@ -2012,7 +2032,6 @@ else if (nivelAtual == "A2-B1")
         {
             TravarControlePlayer();
         }
-
         Emitir("marco_fluxo", "mesa_retornou");
     }
 
@@ -2039,228 +2058,273 @@ else if (nivelAtual == "A2-B1")
         Emitir("marco_fluxo", "refeicao_concluida");
     }
 
-    private async Task interacaoA1()
+    private InteracaoRestaurant[] MesasCheckpoint() =>
+        FindObjectsByType<InteracaoRestaurant>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .Where(mesa => mesa.PertenceAoGarcom(this)).ToArray();
+
+    private static string IdentificarMesa(InteracaoRestaurant mesa, InteracaoRestaurant[] mesas)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++); // Welcome!
-        await PlayAudioETexto(i++); // Here is the menu.
-
-        await PlayAudioETexto(i++); // Are you ready to order?
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Anything to drink?
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("drink_order", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Your order will be ready...
-
-        await Comer();
-        await PlayAudioETexto(i++); // How can I help you?
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("takeaway", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Of course.
-        await PlayAudioETexto(i++); // Here it is.
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("bill_request", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Bill amount and payment question.
-
-        await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[1]);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("farewell", 1, exAtual);
-
-        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+        if (mesa == null || !mesas.Contains(mesa))
+            return null;
+        string chave = mesa.ChaveCheckpoint;
+        if (chave != null)
+            return mesas.Count(m => m.ChaveCheckpoint == chave) == 1 ? "table.key." + chave : null;
+        return mesas.Length == 1 ? "table.single" : null;
     }
 
-    private async Task interacaoA2()
+    Task<Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token) => PrepararRoteiroRestaurado(visita, versao, token);
+
+    private async Task<Func<Task>> PrepararRoteiroRestaurado(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var roteiro = CriarRoteiro(versao);
+        var cursor = roteiro.Validar(visita);
+        if (cursor.Situacao.Length != 3 || (cursor.Situacao[2] != "table.seated" && cursor.Situacao[2] != "table.standing"))
+            throw new System.IO.InvalidDataException("Estado da mesa inválido.");
+        string etapa = (string)visita["safe_steps"][1];
+        bool estavaEmPe = etapa == "action.table.customer" || etapa == "action.table.return";
+        if (estavaEmPe != (cursor.Situacao[2] == "table.standing"))
+            throw new System.IO.InvalidDataException("A posição da mesa diverge da etapa do atendimento.");
+        var mesas = MesasCheckpoint();
+        var mesa = mesas.SingleOrDefault(m => IdentificarMesa(m, mesas) == cursor.Situacao[1]);
+        if (mesa == null || !mesa.isActiveAndEnabled)
+            throw new System.IO.InvalidDataException("A mesa do checkpoint está indisponível ou tem chave duplicada.");
 
-        await PlayAudioETexto(i++); // Welcome.
-        await PlayAudioETexto(i++); // Menu.
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual, token);
+        token.ThrowIfCancellationRequested();
+        ValidarVisita(versao);
+        if (!catalogoExercicios.Success)
+            throw new System.IO.InvalidDataException("Catálogo de Restaurant indisponível para retomar o atendimento.");
 
-        await PlayAudioETexto(i++); // Are you ready to order?
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Order ready in 20 minutes.
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("preparation_time", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Food is served.
-        await Comer();
-        await PlayAudioETexto(i++); // Is everything okay?
-
-        await AbrirExercicioDoPonto("takeaway", 1, exerciciosCompletarFrase[0]);
-
-        await PlayAudioETexto(i++); // Of course. I'll bring it right away.
-        await AbrirExercicioDoPonto("bill_request", 1, exerciciosCompletarFrase[1]);
-
-        await PlayAudioETexto(i++); // Bill amount and payment question.
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Thank you.
-
-        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            ultimaVisita = VisitaAtual;
+            interacaoConcluida = true;
+            mesaAtual = mesa;
+            GameProgress.EstaEmDialogo = true;
+            TravarControlePlayer();
+            try
+            {
+                mesa.RetomarPosicao(cursor.Situacao[2] == "table.seated");
+                await roteiro.Executar(cursor.Indice);
+            }
+            finally
+            {
+                if (SessaoCenario.Atual.Permite(Cenario, versao))
+                {
+                    aguardandoConversaComCliente = false;
+                    mesa.Encerrar();
+                    mesaAtual = null;
+                    GameProgress.EstaEmDialogo = false;
+                    if (modalLegenda != null) modalLegenda.SetActive(false);
+                    if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
+                    LiberarControlePlayer();
+                }
+            }
+            if (SessaoCenario.Atual.Permite(Cenario, versao) && RevisaoManager.Instance != null)
+                await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        };
     }
 
-    private async Task interacaoB1()
+    internal string[] EstadoMesaDuranteCliente()
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++); // Welcome, menu and invitation to order.
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("menu_details", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Ingredients.
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("menu_details", 2, exAtual);
-
-        await PlayAudioETexto(i++); // Recommendation.
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Anything else?
-        exAtual = exerciciosCriarFrases[1];
-        await AbrirExercicioDoPonto("order_closing", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Order will be ready.
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("preparation_time", 1, exAtual);
-
-        await InteragirComCliente();
-
-        await Comer();
-        await PlayAudioETexto(i++); // How was everything?
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("meal_feedback", 1, exAtual);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("takeaway", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Certainly. I'll be right back.
-        await PlayAudioETexto(i++); // Here is the bag.
-
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicioDoPonto("bill_request", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Bill amount and payment question.
-
-        exAtual = exerciciosSpeaking[4];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Thank you. Would you like a receipt?
-        await AbrirExercicioDoPonto("farewell", 1, exerciciosAlternativas[0]);
-
-        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+        string chave = IdentificarMesa(mesaAtual, MesasCheckpoint());
+        string saudacao = RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento);
+        return aguardandoConversaComCliente && chave != null && saudacao != null && !mesaAtual.Sentado
+            ? new[] { saudacao, chave, "table.standing", "parent." + CriarRoteiro(SessaoCenario.Atual.Versao).Identidade }
+            : null;
     }
 
-    private async Task interacaoA1A2()
+    internal async Task<(Action Posicionar, Func<Task> Continuar)> PrepararRetomadaDoCliente(
+        Newtonsoft.Json.Linq.JObject visita, string[] estado, int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-        await PlayAudioETexto(i++);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("drink_order", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await Comer();
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("takeaway", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("bill_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("farewell", 1, exAtual);
-
-        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+        if (estado.Length != 4 || estado[2] != "table.standing")
+            throw new System.IO.InvalidDataException("Estado da mesa durante a conversa com o cliente inválido.");
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        var pai = (Newtonsoft.Json.Linq.JObject)visita.DeepClone();
+        pai.Remove("line_key");
+        pai.Remove("next_exercise");
+        pai["safe_steps"] = new Newtonsoft.Json.Linq.JArray("script", "step", estado[0]);
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(pai);
+        InicializarConteudosPorNivel();
+        var roteiro = CriarRoteiro(versao);
+        if (estado[3] != "parent." + roteiro.Identidade)
+            throw new System.IO.InvalidDataException("O roteiro do garçom mudou desde a conversa com o cliente.");
+        pai["safe_steps"] = roteiro.CursorDaAcao("table.return", estado.Take(3).ToArray());
+        var mesas = MesasCheckpoint();
+        var mesa = mesas.SingleOrDefault(m => IdentificarMesa(m, mesas) == estado[1]);
+        var retorno = await PrepararRoteiroRestaurado(pai, versao, token);
+        return (() =>
+        {
+            ValidarVisita(versao);
+            mesa.RetomarPosicao(false);
+        }, async () =>
+        {
+            ValidarVisita(versao);
+            Emitir("conversa_encerrada", MissoesRestaurant.Cliente);
+            await ExecutarRoteiroRetomado(versao, retorno);
+        });
     }
 
-    private async Task interacaoA2B1()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
+    }
 
-        await PlayAudioETexto(i++);
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("menu_details", 1, exAtual);
+        var mesas = MesasCheckpoint();
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () =>
+        {
+            string mesa = IdentificarMesa(mesaAtual, mesas);
+            string saudacao = RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento);
+            return mesa == null || saudacao == null ? null
+                : new[] { saudacao, mesa, mesaAtual.Sentado ? "table.seated" : "table.standing" };
+        });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
+        void Cliente()
+        {
+            roteiro.Acao("table.stand", LevantarParaCliente);
+            roteiro.Acao("table.customer", ConversarComCliente);
+            roteiro.Acao("table.return", RetornarParaMesa);
+        }
+        void Refeicao() => roteiro.Acao("table.meal", Comer);
 
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("meal_order", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[1];
-        await AbrirExercicioDoPonto("order_closing", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await InteragirComCliente();
-
-        await Comer();
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("takeaway", 1, exAtual);
-        await PlayAudioETexto(i++);
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("meal_feedback", 1, exAtual);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("bill_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Fala(1);
+                Fala(2);
+                Exercicio("meal_order", 1, exerciciosSpeaking[0]);
+                Fala(3);
+                Exercicio("drink_order", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Refeicao();
+                Fala(5);
+                Exercicio("takeaway", 1, exerciciosCriarFrases[0]);
+                Fala(6);
+                Fala(7);
+                Exercicio("bill_request", 1, exerciciosSpeaking[1]);
+                Fala(8);
+                Exercicio("payment", 1, exerciciosAlternativas[1]);
+                Exercicio("farewell", 1, exerciciosSpeaking[2]);
+                Exercicio("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2":
+                Fala(0);
+                Fala(1);
+                Fala(2);
+                Exercicio("meal_order", 1, exerciciosCriarFrases[0]);
+                Fala(3);
+                Exercicio("preparation_time", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Refeicao();
+                Fala(5);
+                Exercicio("takeaway", 1, exerciciosCompletarFrase[0]);
+                Fala(6);
+                Exercicio("bill_request", 1, exerciciosCompletarFrase[1]);
+                Fala(7);
+                Exercicio("payment", 1, exerciciosAlternativas[1]);
+                Fala(8);
+                Exercicio("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("menu_details", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("menu_details", 2, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("meal_order", 1, exerciciosCriarFrases[0]);
+                Fala(3);
+                Exercicio("order_closing", 1, exerciciosCriarFrases[1]);
+                Fala(4);
+                Exercicio("preparation_time", 1, exerciciosCompletarFrase[0]);
+                Cliente();
+                Refeicao();
+                Fala(5);
+                Exercicio("meal_feedback", 1, exerciciosWriting[0]);
+                Exercicio("takeaway", 1, exerciciosSpeaking[2]);
+                Fala(6);
+                Fala(7);
+                Exercicio("bill_request", 1, exerciciosSpeaking[3]);
+                Fala(8);
+                Exercicio("payment", 1, exerciciosSpeaking[4]);
+                Fala(9);
+                Exercicio("farewell", 1, exerciciosAlternativas[0]);
+                Exercicio("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Fala(1);
+                Fala(2);
+                Exercicio("meal_order", 1, exerciciosSpeaking[0]);
+                Fala(3);
+                Exercicio("drink_order", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Refeicao();
+                Fala(5);
+                Exercicio("takeaway", 1, exerciciosCriarFrases[0]);
+                Fala(6);
+                Fala(7);
+                Exercicio("bill_request", 1, exerciciosSpeaking[1]);
+                Fala(8);
+                Exercicio("payment", 1, exerciciosAlternativas[1]);
+                Fala(9);
+                Exercicio("farewell", 1, exerciciosSpeaking[2]);
+                Exercicio("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("menu_details", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("meal_order", 1, exerciciosCriarFrases[0]);
+                Fala(2);
+                Exercicio("order_closing", 1, exerciciosCriarFrases[1]);
+                Fala(3);
+                Cliente();
+                Refeicao();
+                Fala(4);
+                Exercicio("takeaway", 1, exerciciosCompletarFrase[0]);
+                Fala(5);
+                Fala(6);
+                Exercicio("meal_feedback", 1, exerciciosWriting[0]);
+                Exercicio("bill_request", 1, exerciciosSpeaking[1]);
+                Fala(7);
+                Exercicio("payment", 1, exerciciosAlternativas[0]);
+                Fala(8);
+                Exercicio("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+        }
+        return roteiro;
     }
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
+        int visita = SessaoCenario.Atual.Versao;
+        if (pointKey == "restaurant_vocabulary")
+            CheckpointJogo.Instance?.CapturarAssociacaoFinal(this, pointKey, ordem);
         CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
@@ -2273,6 +2337,7 @@ else if (nivelAtual == "A2-B1")
             await AbrirExercicio(tipo, fallback);
         }
 
+        ValidarVisita(visita);
         Emitir("exercicio_encerrado", $"{NpcKey}/{pointKey}/{ordem}");
     }
 

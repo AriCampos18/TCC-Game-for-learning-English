@@ -22,6 +22,7 @@ internal sealed class CheckpointDispositivo
     public long Revisao;
     public long Geracao;
     public JObject Atual;
+    public JObject MarcoAnterior;
     public bool Alterado;
     public CheckpointPendente Pendente;
 }

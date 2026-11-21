@@ -181,6 +181,7 @@ public class FirstPlayerController : MonoBehaviour
     private float velocityY;
     private float timerPasso;
     private bool controleAtivo = true;
+    internal bool ControleAtivo => controleAtivo;
     private bool olharSemMover;
 
     internal void PermitirOlharSemMover(bool permitir)

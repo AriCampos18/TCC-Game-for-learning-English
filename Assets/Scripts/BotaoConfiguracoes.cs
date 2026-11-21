@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR;
 
 public class BotaoConfiguracoes : MonoBehaviour
 {
@@ -7,47 +8,63 @@ public class BotaoConfiguracoes : MonoBehaviour
     public GameObject modalConfiguracoes;
     public FirstPlayerController firstPlayerControllerScript;
 
-    void Start()
+    private int visitaAoAbrir;
+    private bool aberto;
+    private bool controleAnterior;
+    private bool emJogoAnterior;
+    private bool emDialogoAnterior;
+    private bool modoInterfaceAnterior;
+    private CursorLockMode cursorAnterior;
+    private bool cursorEstavaVisivel;
+
+    private void Start()
     {
         if (botaoConfiguracoes != null)
-            botaoConfiguracoes.onClick.AddListener(() =>
-            {
-                AbrirConfiguracoes();
-            });
+            botaoConfiguracoes.onClick.AddListener(AbrirConfiguracoes);
     }
 
-    void AbrirConfiguracoes()
+    private void AbrirConfiguracoes()
     {
+        if (aberto || modalConfiguracoes == null)
+            return;
+
+        aberto = true;
+        visitaAoAbrir = SessaoCenario.Atual.Versao;
+        emJogoAnterior = SessaoCenario.Atual.EmJogo;
+        emDialogoAnterior = GameProgress.EstaEmDialogo;
+        controleAnterior = firstPlayerControllerScript != null && firstPlayerControllerScript.ControleAtivo;
+        modoInterfaceAnterior = ModoJogoManager.Instance != null && ModoJogoManager.Instance.uiMode;
+        cursorAnterior = Cursor.lockState;
+        cursorEstavaVisivel = Cursor.visible;
+
         botaoConfiguracoes.gameObject.SetActive(false);
-        if (firstPlayerControllerScript != null)
-            firstPlayerControllerScript.DesativarControle();
-        
+        firstPlayerControllerScript?.DesativarControle();
+        modalConfiguracoes.GetComponent<ModalConfiguracoes>()?.VincularAbertura(this);
         modalConfiguracoes.SetActive(true);
     }
 
-    // ADICIONE OU ADAPTE ESTE MÉTODO QUE SEU BOTÃO DE FECHAR/PLAY CHAMA:
     public void FecharConfiguracoes()
     {
-        modalConfiguracoes.SetActive(false);
-        botaoConfiguracoes.gameObject.SetActive(true);
+        if (modalConfiguracoes != null) modalConfiguracoes.SetActive(false);
+        if (botaoConfiguracoes != null) botaoConfiguracoes.gameObject.SetActive(true);
+        if (!aberto)
+            return;
 
-        // O PULO DO GATO: Checa se o player estava conversando antes de liberar a câmera
-        if (!SessaoCenario.Atual.EmJogo || GameProgress.EstaEmDialogo)
-        {
-            // Se está em diálogo, mantemos o controle desativado e o mouse solto
-            if (firstPlayerControllerScript != null)
-            {
-                firstPlayerControllerScript.DesativarControle(); 
-                // Se o seu FirstPlayerController não força o cursor visível ao desativar, force aqui:
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-        }
+        aberto = false;
+        bool mesmaVisita = visitaAoAbrir == SessaoCenario.Atual.Versao && CheckpointJogo.PodeAvancar;
+        if (mesmaVisita && controleAnterior && SessaoCenario.Atual.EmJogo && !GameProgress.EstaEmDialogo)
+            firstPlayerControllerScript?.AtivarControle();
         else
+            firstPlayerControllerScript?.DesativarControle();
+
+        bool mesmoContexto = mesmaVisita && emJogoAnterior == SessaoCenario.Atual.EmJogo
+            && emDialogoAnterior == GameProgress.EstaEmDialogo;
+        if (mesmoContexto && ModoJogoManager.Instance != null)
+            ModoJogoManager.Instance.DefinirModoUI(modoInterfaceAnterior);
+        if (mesmoContexto && !XRSettings.isDeviceActive)
         {
-            // Se NÃO está em diálogo, o player pode voltar a andar e olhar pro lado de boa
-            if (firstPlayerControllerScript != null)
-                firstPlayerControllerScript.AtivarControle(); // Ou o método equivalente que você usa para liberar
+            Cursor.lockState = cursorAnterior;
+            Cursor.visible = cursorEstavaVisivel;
         }
     }
 }

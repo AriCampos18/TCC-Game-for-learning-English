@@ -63,6 +63,18 @@ public sealed class SessionManager
         get { return CurrentRole == AccountRole.Admin; }
     }
 
+    internal async Task<bool> ConfirmarAdminAtualAsync(CancellationToken token)
+    {
+        string acesso = AccessToken;
+        int? conta = AuthenticatedUserId;
+        if (!IsAdmin || !conta.HasValue || acesso == null)
+            return false;
+        var resposta = await authenticationManager.GetCurrentUserAsync(acesso, token);
+        token.ThrowIfCancellationRequested();
+        return acesso == AccessToken && conta == AuthenticatedUserId && IsAdmin
+            && resposta.IsSuccess && resposta.Value.Id == conta.Value && resposta.Value.Role == AccountRole.Admin;
+    }
+
     public SessionManager(AuthenticationManager authenticationManager, IRefreshTokenStore refreshTokenStore)
     {
         this.authenticationManager = authenticationManager ??

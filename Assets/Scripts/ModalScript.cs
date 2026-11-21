@@ -743,6 +743,13 @@ public class ModalExercicio : MonoBehaviour
 
     private int visitaExercicio;
     private int versaoExercicio;
+    internal int VersaoAbertura => versaoExercicio;
+
+    internal void RestaurarEnunciadoExibido(int abertura)
+    {
+        if (versaoExercicio == abertura && enunciado != null && exercicioAtual != null)
+            enunciado.text = exercicioAtual.enunciado;
+    }
 
     private bool ExercicioDaVisita(int versao) =>
         this != null && versao == versaoExercicio && npcAtual != null && CheckpointJogo.PodeAvancar
@@ -1241,7 +1248,8 @@ public class ModalExercicio : MonoBehaviour
         ExercicioBase ex,
         InteracaoNPC npc,
         bool revisao = false,
-        bool faseAssociacao = false)
+        bool faseAssociacao = false,
+        string contextoVisual = null)
     {
         if (npc == null || !npc.PertenceAoCenarioAtivo)
             throw new System.OperationCanceledException("Exercício de uma visita inativa.");
@@ -1272,7 +1280,9 @@ public class ModalExercicio : MonoBehaviour
 
         if (enunciado != null && ex != null)
         {
-            enunciado.text = ex.enunciado;
+            enunciado.text = revisao && contextoVisual != null
+                ? "Context: " + contextoVisual + "\n\n" + ex.enunciado
+                : ex.enunciado;
         }
 
         if (crosshair != null)
@@ -1404,6 +1414,7 @@ public class ModalExercicio : MonoBehaviour
         if (exercicioFinalizado || !ExercicioDaVisita(versaoExercicio))
             return;
 
+        RestaurarEnunciadoExibido(versaoExercicio);
         versaoExercicio++;
         exercicioFinalizado = true;
         if (panel != null)

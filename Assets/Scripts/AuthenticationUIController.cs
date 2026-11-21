@@ -329,7 +329,10 @@ public sealed class AuthenticationUIController : MonoBehaviour
             if (await CheckpointJogo.Conectar(this))
             {
                 Close();
-                if (CheckpointJogo.Instance?.RetomouFase == true)
+                var checkpoint = CheckpointJogo.Instance;
+                if (checkpoint?.RetomadaInterna == true)
+                    _ = checkpoint.ContinuarMarcoInterno();
+                else if (checkpoint?.RetomouFase == true)
                     modeManager?.DefinirModoUI(true);
                 return true;
             }

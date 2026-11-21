@@ -8,7 +8,7 @@ using System.IO;
 using TMPro;
 using UnityEngine.AI; // ✨ Essencial para o NavMeshAgent
 
-public class ShelfNPC : InteracaoNPC
+public class ShelfNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     List<string> dialogoAtual;
     string nivelAtual;
@@ -99,45 +99,31 @@ public class ShelfNPC : InteracaoNPC
         return base.PodeInteragir() && podeInteragirCenario;
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0, false);
+
+    private async Task ExecutarAtendimento(int inicio, bool retomada)
     {
+        int versao = SessaoCenario.Atual.Versao;
         GameProgress.EstaEmDialogo = true; // ✨ Trava tudo aqui
         podeInteragirCenario = false;
         
         nivelAtual = DadosJogador.nivelUsuario;
 
         bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
-        if (intermediario)
+        if (!retomada && intermediario)
             MissionManager.Instance?.ConcluirMissaoMarket("falar_atendente", "npc_interagido", "shelf_npc");
 
-        paradasMarketConcluidas = 0;
-        indiceDestinoPrateleira = 0;
+        if (!retomada)
+            paradasMarketConcluidas = indiceDestinoPrateleira = 0;
         InicializarConteudosPorNivel();
         catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
         if (!catalogoExercicios.Success)
             Debug.LogWarning("ShelfNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-        if (nivelAtual == "A1")
-        {
-            await interacaoA1();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else if (nivelAtual == "A1-A2")
-        {
-            await interacaoA1A2();
-        }
-        else if (nivelAtual == "A2-B1")
-        {
-            await interacaoA2B1();
-        }
-        else if(nivelAtual == "B1")
-        {
-            await interacaoB1();
-        }
-        
+        ValidarVisita(versao);
+        await CriarRoteiro(versao).Executar(inicio);
+        LiberarProdutosDoRoteiro();
+
         if (!intermediario)
             MissionManager.Instance.ConcluirMissaoMarket("falar_atendente", "conversa_encerrada", "shelf_npc");
 
@@ -159,247 +145,229 @@ public class ShelfNPC : InteracaoNPC
         LiberarControlePlayer();
     }
 
-    private async Task interacaoA1()
+
+    private List<Transform> RotaPrateleiras() => nivelAtual switch
     {
-        int i = 0;
-        await PlayAudioETexto(i++); // "Hi. Are you looking for anything today?"
+        "A1" => pontosPrateleiraA1,
+        "A1-A2" or "A2" or "A2-B1" => pontosPrateleiraA2,
+        "B1" => pontosPrateleiraB1,
+        _ => null
+    };
 
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("product_location", 1, exAtual);
-
-        await PlayAudioETexto(i++); // "Follow me."
-
-        crosshair.SetActive(true); //Esconde a mira durante o "siga-me" para evitar distrações
-        await FluxoSeguirNPCAtelarPrateleira();
-        crosshair.SetActive(false); 
-
-        await PlayAudioETexto(i++); // "The milk is here. Do you need anything else?"
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("additional_product", 1, exAtual);
-
-        await PlayAudioETexto(i++); // "Ok, I will show you"
-        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
-        await FluxoSeguirNPCAtelarPrateleira();
-        crosshair.SetActive(false); // ✨ Volta a mostrar a mira após o "siga-me"
-        await PlayAudioETexto(i++); // "The fruits are here. Can I do anything else for you?"
-        await AbrirExercicioDoPonto("additional_product", 2, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++); // "Yes, we have apples too."
-        await AbrirExercicioDoPonto("shopping_complete", 1, exerciciosAlternativas[0]);
-
-        missaoManager.IniciarMissaoMarket(
-            "interagir_produtos",
-            "Get the milk and the fruit from the shelves",
-            "Pegue o leite e a fruta das prateleiras"
-        );
-
-        ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+    async Task<Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
+    {
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        var rota = RotaPrateleiras();
+        if (cursor.Situacao.Length != 2 || !cursor.Situacao[0].StartsWith("route.")
+            || !cursor.Situacao[1].StartsWith("stops.")
+            || !int.TryParse(cursor.Situacao[0].Substring(6), out int destino)
+            || !int.TryParse(cursor.Situacao[1].Substring(6), out int paradas)
+            || rota == null || destino < 0 || destino > rota.Count || paradas < 0 || paradas != destino
+            || (destino > 0 && (rota[destino - 1] == null || agent == null || !agent.isOnNavMesh)))
+            throw new InvalidDataException("A rota salva das prateleiras não pode ser reconstruída.");
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            indiceDestinoPrateleira = destino;
+            paradasMarketConcluidas = paradas;
+            if (destino > 0)
+            {
+                var ponto = rota[destino - 1];
+                agent.ResetPath();
+                if (!agent.Warp(ponto.position))
+                    throw new InvalidOperationException("Não foi possível restaurar o atendente na prateleira.");
+                npcPosicaoOriginal = ponto.position;
+                npcRotacaoOriginal = ponto.rotation;
+                transform.SetPositionAndRotation(ponto.position, ponto.rotation);
+            }
+            TravarControlePlayer();
+            await ExecutarAtendimento(cursor.Indice, true);
+        };
     }
 
-    private async Task interacaoA2() 
+    private async Task SeguirRoteiro()
     {
-        int i = 0;
-        await PlayAudioETexto(i++); // "Hi! What are you looking for..."
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("product_location", 1, exAtual); //
-
-        await PlayAudioETexto(i++); // "Sure. Follow me, please."
-
-        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
+        crosshair.SetActive(true);
         await FluxoSeguirNPCAtelarPrateleira();
-        crosshair.SetActive(false); 
-
-        await PlayAudioETexto(i++); // "The milk is on this shelf..."
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("additional_product", 1, exAtual); //
-
-        await AbrirExercicioDoPonto("discounts", 1, exerciciosCriarFrases[1]); //
-
-        await PlayAudioETexto(i++); // "Do you often buy snacks from this aisle..."
-        await AbrirExercicioDoPonto("snack_preference", 1, exerciciosSpeaking[1]);
-
-        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
-        await FluxoSeguirNPCAtelarPrateleira();
-        crosshair.SetActive(false); 
-        await PlayAudioETexto(i++); // "I see. Is there anything else you need?"
-        await AbrirExercicioDoPonto("shopping_complete", 1, exerciciosAlternativas[0]);
-
-        missaoManager.IniciarMissaoMarket(
-            "interagir_produtos",
-            "Get the milk, the cereal and the snack from the shelves",
-            "Pegue o leite, o cereal e o salgadinho das prateleiras"
-        );
-
-        ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+        crosshair.SetActive(false);
     }
 
-    private async Task interacaoB1()
+    private void LiberarProdutosDoRoteiro()
     {
-        int i = 0;
-        await PlayAudioETexto(i++); // "Hi! What are you searching for..."
+        switch (nivelAtual)
+        {
+            case "A1":
+                missaoManager.IniciarMissaoMarket(
+                "interagir_produtos",
+                "Get the milk and the fruit from the shelves",
+                "Pegue o leite e a fruta das prateleiras"
+                );
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("discounts", 1, exAtual);
+                ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+                break;
+            case "A2":
+                missaoManager.IniciarMissaoMarket(
+                "interagir_produtos",
+                "Get the milk, the cereal and the snack from the shelves",
+                "Pegue o leite, o cereal e o salgadinho das prateleiras"
+                );
 
-        await PlayAudioETexto(i++); // "Yes, there are still some discounts..."
-        await AbrirExercicioDoPonto("shopping_request", 1, exerciciosSpeaking[1]); //
+                ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+                break;
+            case "B1":
+                missaoManager.IniciarMissaoMarket(
+                "interagir_produtos",
+                "Get the vegetable and the soda from the shelves",
+                "Pegue o legumes e o refrigerante das prateleiras"
+                );
 
-        await PlayAudioETexto(i++);
+                ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+                break;
+            case "A1-A2":
+                if (!missaoManager.MissaoConcluida("seguir_atendente"))
+                return;
 
-        crosshair.SetActive(true); // ✨ Esconde a mira durante o "siga-me" para evitar distrações
-        await FluxoSeguirNPCAtelarPrateleira();
-        crosshair.SetActive(false); 
+                missaoManager.IniciarMissaoMarket(
+                "interagir_produtos",
+                "Pick up milk, cereal, and snacks from the shelves.",
+                "Pegue leite, cereal e salgadinhos nas prateleiras."
+                );
 
-        await PlayAudioETexto(i++); // "The soda is on this shelf..."
+                ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+                break;
+            case "A2-B1":
+                if (!missaoManager.MissaoConcluida("seguir_atendente"))
+                return;
 
-        exAtual = exerciciosCriarFrases[0]; 
-        await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
-        await PlayAudioETexto(i++); // "Enjoy the discounts. Happy shopping!"
+                missaoManager.IniciarMissaoMarket(
+                "interagir_produtos",
+                "Collect milk, cereal, and snacks from their respective shelves.",
+                "Recolha leite, cereal e salgadinhos nas respectivas prateleiras."
+                );
 
-        missaoManager.IniciarMissaoMarket(
-            "interagir_produtos",
-            "Get the vegetable and the soda from the shelves",
-            "Pegue o legumes e o refrigerante das prateleiras"
-        );
-
-        ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+                ProdutoManager.Instance.LiberarProdutos(nivelAtual);
+                break;
+        }
     }
 
-    private async Task interacaoA1A2()
-{
-    int i = 0;
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
+    {
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
+    }
 
-    await PlayAudioETexto(i++);
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
 
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] { $"route.{indiceDestinoPrateleira}", $"stops.{paradasMarketConcluidas}" });
+        void Fala(int indice, bool mostrarLegenda = true) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice, mostrarLegenda));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("product_location", 1, exAtual);
-
-    await PlayAudioETexto(i++); // Convite para seguir até a seção de leite.
-    crosshair.SetActive(true);
-    await FluxoSeguirNPCAtelarPrateleira();
-    crosshair.SetActive(false);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("milk_preference", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicioDoPonto("cereal_preference", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("discounts", 1, exAtual);
-
-    crosshair.SetActive(true);
-    await FluxoSeguirNPCAtelarPrateleira();
-    crosshair.SetActive(false);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
-    await PlayAudioETexto(i++); // Despedida.
-
-    if (!missaoManager.MissaoConcluida("seguir_atendente"))
-        return;
-
-    missaoManager.IniciarMissaoMarket(
-        "interagir_produtos",
-        "Pick up milk, cereal, and snacks from the shelves.",
-        "Pegue leite, cereal e salgadinhos nas prateleiras."
-    );
-
-    ProdutoManager.Instance.LiberarProdutos(nivelAtual);
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    await PlayAudioETexto(i++); // Convite para seguir até os laticínios.
-
-    crosshair.SetActive(true);
-    await FluxoSeguirNPCAtelarPrateleira();
-    crosshair.SetActive(false);
-
-    await PlayAudioETexto(i++); // Opções de leite.
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("milk_preference", 1, exAtual);
-
-    await PlayAudioETexto(i++); // Promoção de cereais.
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("discounts", 1, exAtual);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("cereal_preference", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("cereal_preference", 2, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    crosshair.SetActive(true);
-    await FluxoSeguirNPCAtelarPrateleira();
-    crosshair.SetActive(false);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("discounts", 2, exAtual);
-
-    exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicioDoPonto("discounts", 3, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[3];
-    await AbrirExercicioDoPonto("shopping_complete", 1, exAtual);
-    await PlayAudioETexto(i++); // Despedida.
-
-    if (!missaoManager.MissaoConcluida("seguir_atendente"))
-        return;
-
-    missaoManager.IniciarMissaoMarket(
-        "interagir_produtos",
-        "Collect milk, cereal, and snacks from their respective shelves.",
-        "Recolha leite, cereal e salgadinhos nas respectivas prateleiras."
-    );
-
-    ProdutoManager.Instance.LiberarProdutos(nivelAtual);
-}
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("product_location", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                roteiro.Acao("shelf.route.1", SeguirRoteiro);
+                Fala(2);
+                Exercicio("additional_product", 1, exerciciosSpeaking[0]);
+                Fala(3);
+                roteiro.Acao("shelf.route.2", SeguirRoteiro);
+                Fala(4);
+                Exercicio("additional_product", 2, exerciciosWriting[0]);
+                Fala(5);
+                Exercicio("shopping_complete", 1, exerciciosAlternativas[0]);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("product_location", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                roteiro.Acao("shelf.route.1", SeguirRoteiro);
+                Fala(2);
+                Exercicio("additional_product", 1, exerciciosSpeaking[0]);
+                Exercicio("discounts", 1, exerciciosCriarFrases[1]);
+                Fala(3);
+                Exercicio("snack_preference", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("shelf.route.2", SeguirRoteiro);
+                Fala(4);
+                Exercicio("shopping_complete", 1, exerciciosAlternativas[0]);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("discounts", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("shopping_request", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                roteiro.Acao("shelf.route.1", SeguirRoteiro);
+                Fala(3);
+                Exercicio("shopping_complete", 1, exerciciosCriarFrases[0]);
+                Fala(4);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("product_location", 1, exerciciosCriarFrases[0]);
+                Fala(2);
+                roteiro.Acao("shelf.route.1", SeguirRoteiro);
+                Fala(3);
+                Exercicio("milk_preference", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("cereal_preference", 1, exerciciosCriarFrases[1]);
+                Fala(5);
+                Exercicio("discounts", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("shelf.route.2", SeguirRoteiro);
+                Fala(6);
+                Exercicio("shopping_complete", 1, exerciciosAlternativas[1]);
+                Fala(7);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Fala(2);
+                roteiro.Acao("shelf.route.1", SeguirRoteiro);
+                Fala(3);
+                Exercicio("milk_preference", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("discounts", 1, exerciciosSpeaking[1]);
+                Exercicio("cereal_preference", 1, exerciciosCriarFrases[0]);
+                Fala(5);
+                Exercicio("cereal_preference", 2, exerciciosAlternativas[1]);
+                Fala(6);
+                roteiro.Acao("shelf.route.2", SeguirRoteiro);
+                Fala(7);
+                Exercicio("discounts", 2, exerciciosSpeaking[2]);
+                Exercicio("discounts", 3, exerciciosCriarFrases[1]);
+                Fala(8);
+                Exercicio("shopping_complete", 1, exerciciosSpeaking[3]);
+                Fala(9);
+                break;
+        }
+        return roteiro;
+    }
 
     private async Task FluxoSeguirNPCAtelarPrateleira()
     {
+        int visita = SessaoCenario.Atual.Versao;
         if (agent != null)
         {
-        var rota = nivelAtual switch
-        {
-            "A1" => pontosPrateleiraA1,
-            "A1-A2" or "A2" or "A2-B1" => pontosPrateleiraA2,
-            "B1" => pontosPrateleiraB1,
-            _ => null
-        };
+        var rota = RotaPrateleiras();
 
         Transform pontoDestinoEscolhido = rota != null && indiceDestinoPrateleira < rota.Count
             ? rota[indiceDestinoPrateleira++]
@@ -447,6 +415,7 @@ private async Task interacaoA2B1()
             if (intermediario && !agent.pathPending && agent.pathStatus != NavMeshPathStatus.PathComplete)
                 break;
             await Task.Yield();
+            ValidarVisita(visita);
         }
 
         if (intermediario && agent.pathStatus != NavMeshPathStatus.PathComplete
@@ -485,6 +454,7 @@ private async Task interacaoA2B1()
                 }
             }
             await Task.Yield();
+            ValidarVisita(visita);
         }
 
         TravarControlePlayer();
@@ -534,12 +504,14 @@ private async Task interacaoA2B1()
                 tempoRotacao += Time.deltaTime;
                 transform.rotation = Quaternion.Slerp(transform.rotation, rotacaoAlvoNpc, tempoRotacao / 0.25f);
                 await Task.Yield();
+                ValidarVisita(visita);
             }
         }
         // Se o player chegou perto clicando ou segurando o mouse, espera ele soltar.
         while (Input.GetMouseButton(0) || Input.GetMouseButtonDown(0))
         {
             await Task.Yield();
+            ValidarVisita(visita);
         }
 
             int paradasNecessarias = nivelAtual == "B1" ? 1 : 2;
@@ -550,8 +522,15 @@ private async Task interacaoA2B1()
         } 
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
         exerciciosAlternativas.Clear();
@@ -852,6 +831,13 @@ else if (nivelAtual == "A2-B1")
         enunciado = "The attendant asks whether you need anything else. Explain that you have found everything you need and thank them."
     });
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)

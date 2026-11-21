@@ -1,4 +1,5 @@
 
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
@@ -24,15 +25,28 @@ public class ModalInstrucoes : MonoBehaviour
 
     public bool jogoJaComecou = false;
 
-    private FirstPlayerController firstPlayerControllerScript;
+    private ModalConfiguracoes voltarPara;
+    private TMP_Text textoBotaoPlay;
+    private string textoOriginal;
 
-    void Start()
+    private void Awake()
     {
-        firstPlayerControllerScript = FindObjectOfType<FirstPlayerController>();
+        if (botaoPlay != null)
+        {
+            textoBotaoPlay = botaoPlay.GetComponentInChildren<TMP_Text>(true);
+            textoOriginal = textoBotaoPlay?.text;
+            botaoPlay.onClick.AddListener(ComecarJogo);
+        }
+    }
 
-        if (firstPlayerControllerScript != null)
-            firstPlayerControllerScript.DesativarControle();
+    private void Start()
+    {
+        if (voltarPara == null)
+            FindObjectOfType<FirstPlayerController>()?.DesativarControle();
+    }
 
+    private void OnEnable()
+    {
         // Identifica se o jogo está executando em VR.
         bool estaEmVR = XRSettings.isDeviceActive;
 
@@ -43,12 +57,28 @@ public class ModalInstrucoes : MonoBehaviour
         if (painelInstrucoesVR != null)
             painelInstrucoesVR.SetActive(estaEmVR);
 
-        if (botaoPlay != null)
-            botaoPlay.onClick.AddListener(ComecarJogo);
+        if (textoBotaoPlay != null)
+            textoBotaoPlay.text = voltarPara != null ? "Voltar" : textoOriginal;
     }
 
-    void ComecarJogo()
+    internal void AbrirPelasConfiguracoes(ModalConfiguracoes configuracoes)
     {
+        voltarPara = configuracoes;
+        modalInstrucoes.SetActive(true);
+        if (textoBotaoPlay != null)
+            textoBotaoPlay.text = "Voltar";
+    }
+
+    private void ComecarJogo()
+    {
+        if (voltarPara != null)
+        {
+            var configuracoes = voltarPara;
+            voltarPara = null;
+            modalInstrucoes.SetActive(false);
+            configuracoes.gameObject.SetActive(true);
+            return;
+        }
         modalInstrucoes.SetActive(false);
 
         if (modalSelecaoCenario != null)

@@ -357,7 +357,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class RestaurantClient : InteracaoNPC
+public class RestaurantClient : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -404,8 +404,17 @@ public class RestaurantClient : InteracaoNPC
         exerciciosAssociacao = GarantirListaExercicios(exerciciosAssociacao);
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -531,6 +540,13 @@ public class RestaurantClient : InteracaoNPC
                 }
             );
         }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -557,10 +573,13 @@ public class RestaurantClient : InteracaoNPC
             && garcom.PodeReceberConversaDoCliente(DadosJogador.nivelUsuario);
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarConversa(0, null, null);
+
+    private async Task ExecutarConversa(int inicio, string[] estadoMesa, Func<Task> concluir)
     {
+        int versao = SessaoCenario.Atual.Versao;
         nivelAtual = DadosJogador.nivelUsuario;
-        if (garcom == null || !garcom.PodeReceberConversaDoCliente(nivelAtual))
+        if (garcom == null || (concluir == null && !garcom.PodeReceberConversaDoCliente(nivelAtual)))
         {
             LiberarControlePlayer();
             return;
@@ -575,10 +594,7 @@ public class RestaurantClient : InteracaoNPC
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("RestaurantClient: usando exercícios locais. " + catalogoExercicios.Error);
 
-            if (nivelAtual == "A2-B1")
-                await InteracaoA2B1();
-            else
-                await interacaoB1();
+            await CriarRoteiro(SessaoCenario.Atual.Versao, estadoMesa).Executar(inicio);
 
         }
         finally
@@ -593,51 +609,76 @@ public class RestaurantClient : InteracaoNPC
             LiberarControlePlayer();
         }
 
-        garcom.FinalizarConversaComCliente();
+        ValidarVisita(versao);
+        if (concluir == null)
+            garcom.FinalizarConversaComCliente();
+        else
+            await concluir();
     }
 
-    private async Task interacaoB1()
+
+    async Task<Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("first_visit", 1, exAtual);//
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("menu_experience", 1, exAtual); //
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("meal_comment", 1, exAtual); //
-
-        await PlayAudioETexto(i++);
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        if (garcom == null || (nivelAtual != "A2-B1" && nivelAtual != "B1"))
+            throw new System.IO.InvalidDataException("Garçom ou nível incompatível com a conversa do cliente.");
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao, null).Validar(visita);
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        var retorno = await garcom.PrepararRetomadaDoCliente(visita, cursor.Situacao, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            retorno.Posicionar();
+            TravarControlePlayer();
+            await ExecutarConversa(cursor.Indice, cursor.Situacao, retorno.Continuar);
+        };
     }
 
-    private async Task InteracaoA2B1()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, null, conteudo, nivel);
+    }
 
-        await PlayAudioETexto(i++);
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, string[] estadoMesa, ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => estadoMesa ?? garcom?.EstadoMesaDuranteCliente());
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("menu_experience", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("meal_comment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
+        switch (nivelAtual)
+        {
+            case "B1":
+                Fala(0);
+                Exercicio("first_visit", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("menu_experience", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("meal_comment", 1, exerciciosCriarFrases[0]);
+                Fala(3);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("first_visit", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("menu_experience", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("meal_comment", 1, exerciciosCriarFrases[0]);
+                Fala(3);
+                break;
+        }
+        return roteiro;
     }
 
     private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)

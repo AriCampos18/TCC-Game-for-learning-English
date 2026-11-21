@@ -226,6 +226,23 @@ public sealed class ExerciseManager : MonoBehaviour
         completion.SetResult(result);
     }
 
+    internal async Task<ExerciseLoadResult> LerCatalogoAdministrativoAsync(int cenario, string npc, string nivel,
+        CancellationToken token)
+    {
+        ResolveAuthenticationController();
+        var auth = authenticationController;
+        var sessao = auth != null ? auth.Session : null;
+        if (sessao?.IsAuthenticated != true || !sessao.IsAdmin)
+            return ExerciseLoadResult.Failed("Acesso administrativo necessário.");
+        if (SessaoCenario.Id(SessaoCenario.CenarioDoNpc(npc)) != cenario || cenario == 0)
+            return ExerciseLoadResult.Failed("O NPC não pertence ao cenário selecionado.");
+        int? conta = sessao.AuthenticatedUserId;
+        var resultado = await FetchAsync(auth.BackendBaseUrl, cenario, npc, null, nivel, token);
+        token.ThrowIfCancellationRequested();
+        return sessao.IsAuthenticated && sessao.IsAdmin && sessao.AuthenticatedUserId == conta
+            ? resultado : ExerciseLoadResult.Failed("A sessão administrativa mudou.");
+    }
+
     private async Task<ExerciseLoadResult> FetchAsync(string baseUrl, int scenarioId, string npcKey, string pointKey, string level,
         CancellationToken cancellationToken)
     {

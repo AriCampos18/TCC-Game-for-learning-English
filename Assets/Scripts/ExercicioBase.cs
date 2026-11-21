@@ -6,6 +6,12 @@ using UnityEngine;
 public abstract class ExercicioBase 
 {
     // Persisted exercise identity and location; local legacy exercises leave these at defaults.
+    internal string reviewGreeting;
+    internal string reviewTotal;
+    internal string reviewPeriod;
+
+    internal ExercicioBase CopiarParaRevisaoCheckpoint() => (ExercicioBase)MemberwiseClone();
+
     public int idExercise;
     public int idTipoBanco;
     public string nomeTipoBanco;

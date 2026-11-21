@@ -898,7 +898,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class SecretaryCollegeNPC: InteracaoNPC
+public class SecretaryCollegeNPC: InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -960,8 +960,18 @@ public class SecretaryCollegeNPC: InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -1781,30 +1791,49 @@ else if (nivelAtual == "A2-B1")
         }
     );
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0);
+
+    private async Task ExecutarAtendimento(int inicio, string estadoDocumento = null)
     {
+        int versao = SessaoCenario.Atual.Versao;
         ultimaVisitaCollege = VisitaAtual;
         GameProgress.EstaEmDialogo = true;
 
         try
         {
             documentoCurso?.Resetar();
-            MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.InicioConversa, NpcKey);
+            if (estadoDocumento == null)
+                MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.InicioConversa, NpcKey);
             nivelAtual = DadosJogador.nivelUsuario;
             InicializarConteudosPorNivel();
             catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("SecretaryCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            switch (nivelAtual)
+            if (estadoDocumento == "document.available" || estadoDocumento == "document.read")
             {
-                case "A1": await interacaoA1(); break;
-                case "A2": await interacaoA2(); break;
-                case "A1-A2": await interacaoA1A2(); break;
-                case "A2-B1": await interacaoA2B1(); break;
-                default: await interacaoB1(); break;
+                if (documentoCurso == null || !documentoCurso.Disponibilizar(nivelAtual))
+                    throw new System.IO.InvalidDataException("Documento do curso indisponível para retomada.");
+                documentoCurso.RestaurarConsulta(estadoDocumento == "document.read");
+            }
+            ValidarVisita(versao);
+            var roteiro = CriarRoteiro(versao);
+            if (documentoCurso != null)
+                documentoCurso.ConsultaConfirmada += roteiro.AtualizarCursor;
+            try { await roteiro.Executar(inicio); }
+            finally
+            {
+                if (documentoCurso != null)
+                    documentoCurso.ConsultaConfirmada -= roteiro.AtualizarCursor;
             }
 
             if (modalLegenda != null)
@@ -1813,8 +1842,13 @@ else if (nivelAtual == "A2-B1")
                 textoPularDialogo.gameObject.SetActive(false);
 
             MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.FimConversa, NpcKey);
-            if ((nivelAtual == "A1-A2" || nivelAtual == "A2-B1") && !await ConfirmarConsultaDoDocumento())
-                return;
+            if (nivelAtual == "A1-A2" || nivelAtual == "A2-B1")
+            {
+                CheckpointJogo.Instance?.CapturarCaminhoCollege(true);
+                if (!await ConfirmarConsultaDoDocumento())
+                    return;
+            }
+            CheckpointJogo.Instance?.CapturarRevisaoCollege();
         }
         finally
         {
@@ -1852,176 +1886,158 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    private async Task interacaoA1()
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("course_choice", 1, exerciciosWriting[1]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[2]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("tuition", 1, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("class_start", 1, exerciciosCriarFrases[1]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        if (cursor.Situacao.Length != 2 || (cursor.Situacao[1] != "document.unavailable"
+            && cursor.Situacao[1] != "document.available" && cursor.Situacao[1] != "document.read"))
+            throw new System.IO.InvalidDataException("Estado do documento do College inválido.");
+        var recepcao = FindAnyObjectByType<RecepcionistCollegeNPC>();
+        if (recepcao != null)
+            recepcao.RetomarAposAtendimentoCheckpoint(versao);
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            TravarControlePlayer();
+            await ExecutarAtendimento(cursor.Indice, cursor.Situacao[1]);
+        };
     }
 
-    private async Task interacaoA2()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("course_choice", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[1]);
-
-        // Confirmação de matrícula.
-        await PlayAudioETexto(i++);
-
-        // Pergunta sobre a mensalidade e recebe a resposta.
-        await AbrirExercicioDoPonto("tuition", 1, exerciciosWriting[2]);
-        await PlayAudioETexto(i++);
-
-        // Pergunta quando as aulas começam e confere a data.
-        await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[1]);
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("class_start", 2, exerciciosAlternativas[0]);
-
-        // Pergunta onde fica a sala e confere o número no cronograma.
-        await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[2]);
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("classroom", 2, exerciciosAlternativas[1]);
-
-        await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoB1()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
 
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento),
+            documentoCurso?.Consultado == true ? "document.read"
+                : documentoCurso?.Disponivel == true ? "document.available" : "document.unavailable" });
+        void Fala(int indice, bool apresentarDocumento = false) =>
+            roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice, apresentarDocumento),
+                anotacao: apresentarDocumento ? "Disponibilizar a consulta ao documento do curso." : null);
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("enrollment_confirmation", 1, exerciciosCompletarFrase[0]);
-
-        // Confirmação de matrícula concluída.
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("classroom", 1, exerciciosAlternativas[0]);
-
-        await AbrirExercicioDoPonto("classroom", 2, exerciciosWriting[2]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("enrollment_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("personal_details", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("course_choice", 1, exerciciosWriting[1]);
+                Fala(3);
+                Exercicio("personal_details", 2, exerciciosWriting[2]);
+                Fala(4);
+                Exercicio("tuition", 1, exerciciosCriarFrases[0]);
+                Fala(5);
+                Exercicio("class_start", 1, exerciciosCriarFrases[1]);
+                Fala(6);
+                Exercicio("classroom", 1, exerciciosSpeaking[1]);
+                Fala(7);
+                Exercicio("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("enrollment_request", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                Exercicio("personal_details", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("course_choice", 1, exerciciosSpeaking[0]);
+                Fala(3);
+                Exercicio("personal_details", 2, exerciciosWriting[1]);
+                Fala(4);
+                Exercicio("tuition", 1, exerciciosWriting[2]);
+                Fala(5);
+                Exercicio("class_start", 1, exerciciosSpeaking[1]);
+                Fala(6);
+                Exercicio("class_start", 2, exerciciosAlternativas[0]);
+                Exercicio("classroom", 1, exerciciosSpeaking[2]);
+                Fala(7);
+                Exercicio("classroom", 2, exerciciosAlternativas[1]);
+                Exercicio("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("enrollment_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("personal_details", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("personal_details", 2, exerciciosWriting[1]);
+                Fala(3);
+                Exercicio("enrollment_confirmation", 1, exerciciosCompletarFrase[0]);
+                Fala(4);
+                Exercicio("class_start", 1, exerciciosSpeaking[1]);
+                Fala(5);
+                Exercicio("classroom", 1, exerciciosAlternativas[0]);
+                Exercicio("classroom", 2, exerciciosWriting[2]);
+                Fala(6);
+                Exercicio("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("enrollment_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("personal_details", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("course_choice", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("personal_details", 2, exerciciosWriting[1]);
+                Fala(4);
+                Exercicio("tuition", 1, exerciciosAlternativas[0]);
+                Fala(5);
+                Exercicio("class_start", 1, exerciciosSpeaking[2]);
+                Fala(6, apresentarDocumento: true);
+                Exercicio("class_start", 2, exerciciosAlternativas[1]);
+                Exercicio("classroom", 1, exerciciosSpeaking[3]);
+                Exercicio("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("enrollment_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("personal_details", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("course_choice", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("enrollment_confirmation", 1, exerciciosCompletarFrase[0]);
+                Fala(4);
+                Exercicio("enrollment_confirmation", 2, exerciciosWriting[1]);
+                Fala(5, apresentarDocumento: true);
+                Exercicio("tuition", 1, exerciciosAlternativas[0]);
+                Fala(6);
+                Exercicio("class_start", 1, exerciciosSpeaking[2]);
+                Fala(7);
+                Exercicio("classroom", 1, exerciciosAlternativas[1]);
+                Exercicio("classroom", 2, exerciciosWriting[2]);
+                Fala(8);
+                Exercicio("classroom", 3, exerciciosSpeaking[3]);
+                Exercicio("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+        }
+        return roteiro;
     }
-
-    private async Task interacaoA1A2()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("course_choice", 1, exerciciosSpeaking[1]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("personal_details", 2, exerciciosWriting[1]);
-
-    await PlayAudioETexto(i++);
-
-    await AbrirExercicioDoPonto("tuition", 1, exerciciosAlternativas[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[2]);
-
-    await PlayAudioETexto(i++, apresentarDocumento: true);
-    await AbrirExercicioDoPonto("class_start", 2, exerciciosAlternativas[1]);
-
-    await AbrirExercicioDoPonto("classroom", 1, exerciciosSpeaking[3]);
-
-    await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("enrollment_request", 1, exerciciosSpeaking[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("personal_details", 1, exerciciosWriting[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("course_choice", 1, exerciciosSpeaking[1]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("enrollment_confirmation", 1, exerciciosCompletarFrase[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("enrollment_confirmation", 2, exerciciosWriting[1]);
-
-    await PlayAudioETexto(i++, apresentarDocumento: true);
-    await AbrirExercicioDoPonto("tuition", 1, exerciciosAlternativas[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("class_start", 1, exerciciosSpeaking[2]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("classroom", 1, exerciciosAlternativas[1]);
-
-    await AbrirExercicioDoPonto("classroom", 2, exerciciosWriting[2]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("classroom", 3, exerciciosSpeaking[3]);
-
-    await AbrirExercicioDoPonto("enrollment_vocabulary", 1, exerciciosAssociacao[0]);
-}
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
@@ -2039,6 +2055,36 @@ private async Task interacaoA2B1()
 
         if (nivelAtual == "B1" && pointKey == "class_start" && ordem == 1)
             MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.ExercicioEncerrado, MissoesCollege.InicioAulas);
+    }
+
+    internal async Task RetomarConsultaCheckpoint(int visita)
+    {
+        ValidarVisita(visita);
+        AtualizarVisita();
+        ultimaVisitaCollege = VisitaAtual;
+        interacaoConcluida = true;
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        GameProgress.EstaEmDialogo = true;
+        TravarControlePlayer();
+        try
+        {
+            if (documentoCurso == null || !documentoCurso.Disponibilizar(nivelAtual))
+                throw new InvalidOperationException("College: configure a interface do documento para retomar a consulta.");
+            if (!await ConfirmarConsultaDoDocumento())
+                return;
+            ValidarVisita(visita);
+            CheckpointJogo.Instance?.CapturarRevisaoCollege();
+        }
+        finally
+        {
+            if (SessaoCenario.Atual.Permite(Cenario, visita))
+            {
+                documentoCurso?.Resetar();
+                GameProgress.EstaEmDialogo = false;
+                LiberarControlePlayer();
+            }
+        }
+        await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
     }
 
     private async Task<bool> ConfirmarConsultaDoDocumento()

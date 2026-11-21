@@ -983,7 +983,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class VisitorCenterNPC: InteracaoNPC
+public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -1163,6 +1163,7 @@ public class VisitorCenterNPC: InteracaoNPC
                 TravarControlePlayer();
                 try
                 {
+                    CheckpointJogo.Instance?.CapturarAssociacaoFinal(this, ArrivalAssociationPoint, 1);
                     await AbrirExercicioDoPonto(ArrivalAssociationPoint, 1, exerciciosAssociacao[0]);
                     associacaoChegadaConcluida = true;
                 }
@@ -1197,8 +1198,18 @@ public class VisitorCenterNPC: InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -1884,6 +1895,13 @@ else if (nivelAtual == "A2-B1")
         }
     );
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1932,17 +1950,7 @@ else if (nivelAtual == "A2-B1")
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("VisitorCenterNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            switch (nivelAtual)
-            {
-                case "A1":
-                    await interacaoA1();
-                    Emitir("conversa_encerrada", NpcKey);
-                    break;
-                case "A1-A2": await interacaoA1A2(); break;
-                case "A2": await interacaoA2(); break;
-                case "A2-B1": await interacaoA2B1(); break;
-                default: await interacaoB1(); break;
-            }
+            await CriarRoteiro(SessaoCenario.Atual.Versao).Executar();
         }
         finally
         {
@@ -1956,7 +1964,30 @@ else if (nivelAtual == "A2-B1")
         }
 
         if (VisitaAtual == visitaAtendida)
+        {
             LiberarChegadaCityPark();
+            if (aguardandoChegadaCityPark)
+                CheckpointJogo.Instance?.CapturarCaminhoCityPark();
+        }
+    }
+
+    internal async Task RetomarCaminhoCheckpoint(int visita, System.Threading.CancellationToken token)
+    {
+        ValidarVisita(visita);
+        AtualizarVisita();
+        visitaAtendida = VisitaAtual;
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        interacaoConcluida = true;
+        atendimentoConcluido = false;
+        associacaoChegadaConcluida = false;
+        finalizacaoIniciada = false;
+        aguardandoChegadaCityPark = false;
+        InicializarConteudosPorNivel();
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual, token);
+        token.ThrowIfCancellationRequested();
+        ValidarVisita(visita);
+        LiberarChegadaCityPark();
+        LiberarControlePlayer();
     }
 
     private void LiberarChegadaCityPark()
@@ -1979,162 +2010,151 @@ else if (nivelAtual == "A2-B1")
             marcadorCityPark.SetActive(true);
     }
 
-    private async Task interacaoA1()
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var roteiro = CriarRoteiro(versao);
+        var cursor = roteiro.Validar(visita);
+        if (cursor.Situacao.Length != 1)
+            throw new System.IO.InvalidDataException("Estado inesperado no roteiro de Visitor Center.");
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual, token);
+        token.ThrowIfCancellationRequested();
+        ValidarVisita(versao);
+        if (!catalogoExercicios.Success)
+            throw new System.IO.InvalidDataException("Catálogo indisponível para retomar Visitor Center.");
 
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("city_information", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("destination_choice", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("directions_request", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
+        return async () =>
+        {
+            ValidarVisita(versao);
+            visitaAtendida = VisitaAtual;
+            atendimentoConcluido = associacaoChegadaConcluida = finalizacaoIniciada = aguardandoChegadaCityPark = false;
+            if (marcadorCityPark != null) marcadorCityPark.SetActive(false);
+            GameProgress.EstaEmDialogo = true;
+            TravarControlePlayer();
+            try { await roteiro.Executar(cursor.Indice); }
+            finally
+            {
+                if (SessaoCenario.Atual.Permite(Cenario, versao))
+                {
+                    GameProgress.EstaEmDialogo = false;
+                    if (modalLegenda != null) modalLegenda.SetActive(false);
+                    if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
+                    LiberarControlePlayer();
+                }
+            }
+            ValidarVisita(versao);
+            LiberarChegadaCityPark();
+            if (aguardandoChegadaCityPark)
+                CheckpointJogo.Instance?.CapturarCaminhoCityPark();
+        };
     }
 
-    private async Task interacaoA2()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("city_information", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("destination_choice", 1, exerciciosSpeaking[1]);
-        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("destination_choice", 1));
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("directions_request", 1, exerciciosSpeaking[2]);
-
-        await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
-
-        exAtual = exerciciosAlternativas[0]; //EXERCICIO QUE TEM QUE MUDAR DE ACORDO COM A DIREÇÃO CORRETA DO PARQUE
-        await AbrirExercicioDoPonto("directions_confirmation", 1, exAtual);
-
-        await AbrirExercicioDoPonto("walking_time", 1, exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("walking_time", 2, exerciciosCompletarFrase[0]);
-        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 2));
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoB1()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
 
-        await PlayAudioETexto(i++);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento) });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
+        void Evento(string chave, string tipo, string alvo) => roteiro.Acao(chave, () =>
+        {
+            Emitir(tipo, alvo);
+            return Task.CompletedTask;
+        });
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("city_information", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        Emitir("marco_fluxo", MissoesVisitorCenter.FalaB1);
-
-        await AbrirExercicioDoPonto("first_visit", 1, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("directions_request", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Substituir pela direção real até o City Park.
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("directions_confirmation", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0]; //EXERCICIO QUE TEM QUE MUDAR DE ACORDO COM A DIREÇÃO CORRETA DO PARQUE
-        await AbrirExercicioDoPonto("park_location", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Informações adicionais sobre transporte e visita.
-
-        await PlayAudioETexto(i++); // Recomendação sobre o melhor horário para visitar.
-    }
-
-    private async Task interacaoA1A2()
-    {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("city_information", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("park_location", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("walking_time", 1, exAtual);
-        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 1));
-    }
-
-    private async Task interacaoA2B1()
-    {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("city_information", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("first_visit", 1, exAtual);
-        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("first_visit", 1));
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("directions_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("directions_confirmation", 1, exAtual);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("directions_confirmation", 2, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("transportation", 1, exAtual);
-        Emitir("exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("transportation", 1));
-
-        await PlayAudioETexto(i++);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("city_information", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("first_visit", 1, exerciciosSpeaking[1]);
+                Exercicio("destination_choice", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                Exercicio("directions_request", 1, exerciciosSpeaking[2]);
+                Fala(3);
+                Evento("conversation.finished", "conversa_encerrada", NpcKey);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("city_information", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                Exercicio("first_visit", 1, exerciciosSpeaking[0]);
+                Fala(2);
+                Exercicio("destination_choice", 1, exerciciosSpeaking[1]);
+                Evento("exercise.destination_choice.1.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("destination_choice", 1));
+                Fala(3);
+                Exercicio("directions_request", 1, exerciciosSpeaking[2]);
+                Fala(4);
+                Exercicio("directions_confirmation", 1, exerciciosAlternativas[0]);
+                Exercicio("walking_time", 1, exerciciosSpeaking[3]);
+                Fala(5);
+                Exercicio("walking_time", 2, exerciciosCompletarFrase[0]);
+                Evento("exercise.walking_time.2.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 2));
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("city_information", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Evento("line.first_visit.event", "marco_fluxo", MissoesVisitorCenter.FalaB1);
+                Exercicio("first_visit", 1, exerciciosCriarFrases[0]);
+                Fala(2);
+                Exercicio("directions_request", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("directions_confirmation", 1, exerciciosWriting[0]);
+                Fala(4);
+                Exercicio("park_location", 1, exerciciosAlternativas[0]);
+                Fala(5);
+                Fala(6);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("city_information", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("first_visit", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("park_location", 1, exerciciosAlternativas[0]);
+                Fala(3);
+                Exercicio("walking_time", 1, exerciciosSpeaking[2]);
+                Evento("exercise.walking_time.1.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 1));
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("city_information", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("first_visit", 1, exerciciosCriarFrases[0]);
+                Evento("exercise.first_visit.1.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("first_visit", 1));
+                Fala(2);
+                Exercicio("directions_request", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("directions_confirmation", 1, exerciciosWriting[0]);
+                Exercicio("directions_confirmation", 2, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("transportation", 1, exerciciosSpeaking[2]);
+                Evento("exercise.transportation.1.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("transportation", 1));
+                Fala(5);
+                break;
+        }
+        return roteiro;
     }
 
     private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)

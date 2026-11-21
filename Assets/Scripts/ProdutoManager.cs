@@ -81,6 +81,37 @@ public class ProdutoManager : MonoBehaviour
         DesativarTodos();
     }
 
+    internal int CapturarInventarioCheckpoint()
+    {
+        int mascara = 0;
+        foreach (var produto in produtosPegos)
+            mascara |= 1 << (int)produto;
+        return mascara;
+    }
+
+    internal bool RestaurarInventarioCheckpoint(string nivel, int mascara)
+    {
+        bool intermediario = MissionManager.NivelMarketIntermediario(nivel);
+        var grupos = nivel == "A1" ? new[] { (TipoProdutoMercado.Milk, grupoLeites), (TipoProdutoMercado.Fruit, grupoFrutas) }
+            : nivel == "A2" || intermediario ? new[] { (TipoProdutoMercado.Milk, grupoLeites),
+                (TipoProdutoMercado.Cereal, grupoCereais), (TipoProdutoMercado.Snack, grupoSalgadinhos) }
+            : new[] { (TipoProdutoMercado.Vegetable, grupoLegumes), (TipoProdutoMercado.Soda, grupoRefrigerantes) };
+        int permitidos = 0;
+        foreach (var item in grupos)
+            permitidos |= 1 << (int)item.Item1;
+        if (mascara < 0 || (mascara & ~permitidos) != 0)
+            return false;
+
+        LiberarProdutos(nivel);
+        foreach (var item in grupos)
+            if ((mascara & (1 << (int)item.Item1)) != 0)
+            {
+                produtosPegos.Add(item.Item1);
+                DesativarGrupo(item.Item2);
+            }
+        return true;
+    }
+
     public void LiberarProdutos(string nivel)
     {
         if (!SessaoCenario.Atual.Permite("Market"))

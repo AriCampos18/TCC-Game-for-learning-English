@@ -16,6 +16,23 @@ public class MissionManager : MonoBehaviour
 
     private List<Missao> missoes = new List<Missao>();
 
+    internal bool RestaurarMissoesHotel(JArray missoes, bool todasConcluidas) =>
+        UsaCatalogoHotel && catalogoMissoes != null
+        && catalogoMissoes.RestaurarMarco(missoes, todasConcluidas, AdicionarDoCatalogo, ConcluirMissao);
+
+    internal bool RestaurarMissoesMarco(string cenario, JArray missoes, string missaoAtiva) =>
+        TemCatalogo(cenario) && catalogoMissoes != null
+        && catalogoMissoes.RestaurarMarco(missoes, missaoAtiva == null, AdicionarDoCatalogo, ConcluirMissao, missaoAtiva);
+
+    internal bool InicioRegistradoCheckpoint(string tipo, string alvo) =>
+        catalogoMissoes?.InicioRegistradoCheckpoint(tipo, alvo) == true;
+
+    internal JArray CapturarIniciosCheckpoint() => catalogoMissoes?.CapturarIniciosCheckpoint() ?? new JArray();
+
+    internal bool RestaurarMissoesRoteiro(string cenario, JArray missoes, JArray inicios) =>
+        TemCatalogo(cenario) && catalogoMissoes != null
+        && catalogoMissoes.RestaurarRoteiro(missoes, inicios, AdicionarDoCatalogo, ConcluirMissao);
+
     internal JArray CapturarMissoesCheckpoint() => new JArray(missoes.Select(m => new JObject
     {
         ["mission_key"] = m.id,

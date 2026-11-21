@@ -534,7 +534,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class RecepcionistCollegeNPC: InteracaoNPC
+public class RecepcionistCollegeNPC: InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -586,8 +586,16 @@ public class RecepcionistCollegeNPC: InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -951,12 +959,22 @@ else if (nivelAtual == "A2-B1")
         }
     );
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     protected override bool PermitirReinteracaoAposConclusao => true;
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0);
+
+    private async Task ExecutarAtendimento(int inicio)
     {
+        int versao = SessaoCenario.Atual.Versao;
         GameProgress.EstaEmDialogo = true;
         int visita = MissionManager.Instance?.VisitaCollege ?? 0;
         if (visita != 0 && visita != ultimaVisitaCollege)
@@ -979,17 +997,12 @@ else if (nivelAtual == "A2-B1")
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("RecepcionistCollegeNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            switch (nivelAtual)
-            {
-                case "A1": await interacaoA1(); break;
-                case "A2": await interacaoA2(); break;
-                case "A1-A2": await interacaoA1A2(); break;
-                case "A2-B1": await interacaoA2B1(); break;
-                default: await interacaoB1(); break;
-            }
+            ValidarVisita(versao);
+            await CriarRoteiro(versao).Executar(inicio);
 
             instrucoesJaApresentadas = true;
             MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.FimConversa, NpcKey);
+            CheckpointJogo.Instance?.CapturarCaminhoCollege(false);
         }
         finally
         {
@@ -1001,6 +1014,36 @@ else if (nivelAtual == "A2-B1")
 
             LiberarControlePlayer();
         }
+    }
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
+    {
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        if (cursor.Situacao.Length != 1)
+            throw new System.IO.InvalidDataException("Estado do roteiro da recepção inválido.");
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            instrucoesJaApresentadas = false;
+            TravarControlePlayer();
+            await ExecutarAtendimento(cursor.Indice);
+        };
+    }
+
+    internal void RetomarAposAtendimentoCheckpoint(int visita)
+    {
+        ValidarVisita(visita);
+        AtualizarVisita();
+        ultimaVisitaCollege = MissionManager.Instance?.VisitaCollege ?? 0;
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        InicializarConteudosPorNivel();
+        instrucoesJaApresentadas = true;
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1021,107 +1064,85 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    private async Task interacaoA1()
+
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i=0;
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("office_location", 1, exerciciosCriarFrases[0]);
-        
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("directions_request", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("closing", 1, exerciciosAlternativas[0]);
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoA2()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
 
-        await PlayAudioETexto(i++);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento) });
+        void Fala(int indice, bool mostrarLegenda = true) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice, mostrarLegenda));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        await AbrirExercicioDoPonto("office_location", 1, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[0]);
-
-        // A recepcionista repete as direções após o pedido do usuário.
-        await PlayAudioETexto(1);
-
-        await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("office_location", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                Exercicio("directions_request", 1, exerciciosSpeaking[0]);
+                Fala(2);
+                Exercicio("closing", 1, exerciciosAlternativas[0]);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("office_location", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                Exercicio("directions_clarification", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("closing", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("visit_purpose", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("first_visit", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("directions_clarification", 1, exerciciosSpeaking[2]);
+                Fala(2);
+                Fala(3);
+                Exercicio("closing", 1, exerciciosSpeaking[3]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("visit_purpose", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("office_location", 1, exerciciosCriarFrases[0]);
+                Fala(2);
+                Exercicio("directions_clarification", 1, exerciciosSpeaking[1]);
+                Exercicio("office_location", 2, exerciciosAlternativas[0]);
+                Fala(3);
+                Exercicio("closing", 1, exerciciosSpeaking[2]);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("visit_purpose", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("visit_purpose", 2, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("directions_clarification", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("route_confirmation", 1, exerciciosCriarFrases[0]);
+                Fala(4);
+                Exercicio("secretary_services", 1, exerciciosAlternativas[0]);
+                Exercicio("closing", 1, exerciciosSpeaking[2]);
+                break;
+        }
+        return roteiro;
     }
-
-    private async Task interacaoB1()
-    {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("visit_purpose", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("first_visit", 1, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[2]);
-
-        // A recepcionista confirma a informação repetindo as direções detalhadas.
-        await PlayAudioETexto(2);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[3]);
-    }
-
-    private async Task interacaoA1A2()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("visit_purpose", 1, exerciciosSpeaking[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("office_location", 1, exerciciosCriarFrases[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[1]);
-
-    await AbrirExercicioDoPonto("office_location", 2, exerciciosAlternativas[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[2]);
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("visit_purpose", 1, exerciciosSpeaking[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("visit_purpose", 2, exerciciosWriting[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("directions_clarification", 1, exerciciosSpeaking[1]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("route_confirmation", 1, exerciciosCriarFrases[0]);
-
-    await PlayAudioETexto(i++);
-    await AbrirExercicioDoPonto("secretary_services", 1, exerciciosAlternativas[0]);
-
-    await AbrirExercicioDoPonto("closing", 1, exerciciosSpeaking[2]);
-}
 
     private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {

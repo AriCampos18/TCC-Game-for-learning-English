@@ -643,7 +643,7 @@ public enum TipoExercicio
     CompletarFrase
 }
 
-public class BakeryNPC : InteracaoNPC
+public class BakeryNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     List<string> dialogoAtual;
 
@@ -694,8 +694,15 @@ public class BakeryNPC : InteracaoNPC
         nivelAtual = DadosJogador.nivelUsuario;
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -1077,6 +1084,13 @@ public class BakeryNPC : InteracaoNPC
         enunciado = "The attendant asks whether you need anything else. Confirm that your order is complete and thank them politely."
     });
         }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1097,38 +1111,23 @@ public class BakeryNPC : InteracaoNPC
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0, false);
+
+    private async Task ExecutarAtendimento(int inicio, bool retomada)
     {
+        int versao = SessaoCenario.Atual.Versao;
         // Ativa o estado de diálogo logo no começo
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
         bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
-        if (intermediario)
+        if (!retomada && intermediario)
             MissionManager.Instance?.ConcluirMissaoMarket("falar_padaria", "npc_interagido", "bakery_npc");
 
         InicializarConteudosPorNivel();
         await CarregarExerciciosDoBanco();
 
-        if (nivelAtual == "A1")
-        {
-            await interacaoA1();
-        }
-        else if (nivelAtual == "A1-A2")
-        {
-            await interacaoA1A2();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else if(nivelAtual == "A2-B1")
-        {
-            await interacaoA2B1();
-        }
-        else
-        {
-            await interacaoB1();
-        }
+        ValidarVisita(versao);
+        await CriarRoteiro(versao).Executar(inicio);
         GameProgress.Instance.falouPadaria = true;
 
         // Desativa o estado quando a conversa acabar completamente!
@@ -1238,191 +1237,146 @@ public class BakeryNPC : InteracaoNPC
         }
     }
 
-    private async Task interacaoA1()
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-
-        // Toca áudio e mostra a legenda ao mesmo tempo de forma síncrona
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("initial_order", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("product_selection", 1, exAtual);
-
-        await PegarProduto(breadLoaf);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("anything_else_response", 1, exAtual);
-
-        await AbrirExercicioDoPonto("anything_else_response", 2, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-
-        await PegarProduto(cake, falar: true);
-        await PegarProduto(sandwich, falar: false);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicioDoPonto("order_completion", 1, exAtual);
-
-        await PlayAudioETexto(i++);
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        var produtos = new[] { breadLoaf, cake, sandwich, sourdough };
+        var chaves = new[] { "bread", "cake", "sandwich", "sourdough" };
+        if (cursor.Situacao.Length != produtos.Length)
+            throw new System.IO.InvalidDataException("Estado da vitrine inválido.");
+        for (int i = 0; i < produtos.Length; i++)
+            if (cursor.Situacao[i] != chaves[i] + ".hidden" && cursor.Situacao[i] != chaves[i] + ".visible")
+                throw new System.IO.InvalidDataException("Produto da vitrine inválido.");
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            TravarControlePlayer();
+            for (int i = 0; i < produtos.Length; i++)
+                if (produtos[i] != null && cursor.Situacao[i] == chaves[i] + ".hidden")
+                {
+                    produtosExibidos.Add(produtos[i]);
+                    produtos[i].SetActive(false);
+                }
+            await ExecutarAtendimento(cursor.Indice, true);
+        };
     }
 
-    private async Task interacaoA2()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-        
-        //Hello! What are you looking for in the bakery section?
-        await PlayAudioETexto(i++);
-        
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("initial_order", 1, exAtual);
-
-        //Yes, we do. Which sandwich would you like, and would you like some juice too?
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("product_selection", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("anything_else_response", 1, exerciciosCriarFrases[0]);
-
-        await PegarProduto(sandwich, falar: true);
-        await PegarProduto(sourdough, falar: false);
-
-        await PlayAudioETexto(i++);
-        
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("order_completion", 1, exAtual);
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoB1()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
 
-        await PlayAudioETexto(i++);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] {
+            produtosExibidos.Contains(breadLoaf) ? "bread.hidden" : "bread.visible",
+            produtosExibidos.Contains(cake) ? "cake.hidden" : "cake.visible",
+            produtosExibidos.Contains(sandwich) ? "sandwich.hidden" : "sandwich.visible",
+            produtosExibidos.Contains(sourdough) ? "sourdough.hidden" : "sourdough.visible"
+        });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("initial_order", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("product_selection", 1, exAtual);
-
-        await PegarProduto(sandwich, falar: true);
-        await PegarProduto(sourdough, falar: false);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("order_completion", 1, exAtual);
-
-        await PlayAudioETexto(i++);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("initial_order", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("product_selection", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("PegarProduto.breadLoaf", () => PegarProduto(breadLoaf));
+                Fala(2);
+                Exercicio("anything_else_response", 1, exerciciosSpeaking[2]);
+                Exercicio("anything_else_response", 2, exerciciosCriarFrases[0]);
+                Fala(3);
+                roteiro.Acao("PegarProduto.cake", () => PegarProduto(cake, falar: true));
+                roteiro.Acao("PegarProduto.sandwich", () => PegarProduto(sandwich, falar: false));
+                Exercicio("product_comprehension", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("order_completion", 1, exerciciosSpeaking[3]);
+                Fala(5);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("initial_order", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("product_selection", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("anything_else_response", 1, exerciciosCriarFrases[0]);
+                roteiro.Acao("PegarProduto.sandwich", () => PegarProduto(sandwich, falar: true));
+                roteiro.Acao("PegarProduto.sourdough", () => PegarProduto(sourdough, falar: false));
+                Fala(3);
+                Exercicio("order_completion", 1, exerciciosSpeaking[2]);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("initial_order", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("product_selection", 1, exerciciosCriarFrases[0]);
+                roteiro.Acao("PegarProduto.sandwich", () => PegarProduto(sandwich, falar: true));
+                roteiro.Acao("PegarProduto.sourdough", () => PegarProduto(sourdough, falar: false));
+                Exercicio("product_comprehension", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                Exercicio("order_completion", 1, exerciciosWriting[0]);
+                Fala(3);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("initial_order", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("product_comprehension", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                Exercicio("product_selection", 1, exerciciosSpeaking[1]);
+                Exercicio("product_selection", 2, exerciciosCriarFrases[0]);
+                Fala(3);
+                Exercicio("additional_item_request", 1, exerciciosSpeaking[2]);
+                roteiro.Acao("PegarProduto.cake", () => PegarProduto(cake, falar: true));
+                roteiro.Acao("PegarProduto.sandwich", () => PegarProduto(sandwich, falar: false));
+                Fala(4);
+                Exercicio("anything_else_response", 1, exerciciosAlternativas[1]);
+                Fala(5);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("initial_order", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("product_comprehension", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                Exercicio("sandwich_details", 1, exerciciosSpeaking[1]);
+                Exercicio("sandwich_details", 2, exerciciosCriarFrases[0]);
+                Fala(3);
+                Exercicio("dietary_preference", 1, exerciciosSpeaking[2]);
+                Fala(4);
+                Exercicio("drink_details", 1, exerciciosAlternativas[1]);
+                Fala(5);
+                Exercicio("additional_item_request", 1, exerciciosSpeaking[3]);
+                roteiro.Acao("PegarProduto.sandwich", () => PegarProduto(sandwich, falar: true));
+                roteiro.Acao("PegarProduto.sourdough", () => PegarProduto(sourdough, falar: false));
+                Fala(6);
+                Exercicio("anything_else_response", 1, exerciciosCriarFrases[1]);
+                Fala(7);
+                Exercicio("order_completion", 1, exerciciosSpeaking[4]);
+                break;
+        }
+        return roteiro;
     }
-
-    private async Task interacaoA1A2()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("initial_order", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("product_selection", 1, exAtual);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("product_selection", 2, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("additional_item_request", 1, exAtual);
-
-    await PegarProduto(cake, falar: true);
-    await PegarProduto(sandwich, falar: false);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("anything_else_response", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("initial_order", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("product_comprehension", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("sandwich_details", 1, exAtual);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("sandwich_details", 2, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("dietary_preference", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("drink_details", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[3];
-    await AbrirExercicioDoPonto("additional_item_request", 1, exAtual);
-
-    await PegarProduto(sandwich, falar: true);
-    await PegarProduto(sourdough, falar: false);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosCriarFrases[1];
-    await AbrirExercicioDoPonto("anything_else_response", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[4];
-    await AbrirExercicioDoPonto("order_completion", 1, exAtual);
-}
 
     private readonly HashSet<GameObject> produtosExibidos = new HashSet<GameObject>();
 
@@ -1436,6 +1390,7 @@ private async Task interacaoA2B1()
 
     private async Task PegarProduto(GameObject produto, bool falar = true)
     {
+        int visita = SessaoCenario.Atual.Versao;
         if (produto != null)
         {
             if (falar)
@@ -1444,6 +1399,7 @@ private async Task interacaoA2B1()
             }
 
             await Task.Delay(1500);
+            ValidarVisita(visita);
             if (produto.activeSelf)
                 produtosExibidos.Add(produto);
             produto.SetActive(false);

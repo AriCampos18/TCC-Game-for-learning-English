@@ -730,7 +730,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class motherNPC : InteracaoNPC
+public class motherNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -774,8 +774,23 @@ public class motherNPC : InteracaoNPC
         exerciciosAssociacao = GarantirListaExercicios(exerciciosAssociacao);
     }
 
-    private void InicializarConteudosPorNivel()
+    internal ConteudoRoteiro DescreverConteudo(string nivel)
     {
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return conteudo;
+    }
+
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -1304,6 +1319,13 @@ else if (nivelAtual == "A2-B1")
         }
     });
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1505,6 +1527,13 @@ else if (nivelAtual == "A2-B1")
         if (!catalogoExercicios.Success)
             Debug.LogWarning("motherNPC: usando exercícios locais. " + catalogoExercicios.Error);
     }
+
+    Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token) =>
+        familiaManager != null ? familiaManager.PrepararRetomadaRoteiro(visita, versao, token)
+            : throw new System.IO.InvalidDataException("FamiliaManager indisponível para retomar Home.");
+
+    internal string TextoFalaCheckpoint(int indice) => dialogoAtual[indice];
 
     public async Task ExecutarFala(int indice)
     {

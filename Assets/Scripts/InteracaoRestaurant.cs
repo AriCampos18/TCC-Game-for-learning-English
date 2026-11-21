@@ -9,6 +9,7 @@ public sealed class InteracaoRestaurant : MonoBehaviour
 
     [SerializeField] private RestaurantWaiterNPC garcom;
     [SerializeField] private Collider mesa;
+    [SerializeField] private string checkpointKey;
     [SerializeField] private Collider prato;
     [SerializeField] private Transform jogador;
     [SerializeField] private Transform assento;
@@ -33,6 +34,25 @@ public sealed class InteracaoRestaurant : MonoBehaviour
     {
         if (prato != null && prato != mesa)
             prato.enabled = false;
+    }
+
+    internal bool PertenceAoGarcom(RestaurantWaiterNPC candidato) => garcom == candidato;
+
+    internal string ChaveCheckpoint => !string.IsNullOrEmpty(checkpointKey)
+        && System.Text.RegularExpressions.Regex.IsMatch(checkpointKey, @"\A[a-zA-Z0-9_-]{1,64}\z")
+        ? checkpointKey : null;
+
+    internal bool Sentado => sentado;
+
+    internal void RetomarPosicao(bool estavaSentado)
+    {
+        if (estavaSentado)
+            Sentar();
+        else
+        {
+            Encerrar();
+            MoverJogador(posicaoEmPe);
+        }
     }
 
     internal bool PodeSentar(Collider colisor) => mesa != null && colisor == mesa;

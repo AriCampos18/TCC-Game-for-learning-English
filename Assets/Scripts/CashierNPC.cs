@@ -430,7 +430,6 @@
 //             InicializarConteudosPorNivel();
 
 //             await MostrarProdutosNoBalcao();
-
 //             if (nivelAtual == "A1")
 //                 await interacaoA1();
 //             else if (nivelAtual == "A2")
@@ -868,7 +867,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class CashierNPC : InteracaoNPC
+public class CashierNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     int horaAtual = DateTime.Now.Hour;
 
@@ -944,8 +943,19 @@ public class CashierNPC : InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+        var valorTotal = this.valorTotal;
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -1539,6 +1549,14 @@ else if (nivelAtual == "A2-B1")
                 }
             });
         }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+            this.valorTotal = valorTotal;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1559,35 +1577,38 @@ else if (nivelAtual == "A2-B1")
         throw new InvalidOperationException("Tipo de exercício não suportado: " + exercicio.GetType().Name);
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0);
+
+    private async Task ExecutarAtendimento(int inicio, string total = null)
     {
-        if (GameProgress.Instance.PodeFalarComCaixa())
+        int versao = SessaoCenario.Atual.Versao;
+        if (total != null || GameProgress.Instance.PodeFalarComCaixa())
         {
             GameProgress.EstaEmDialogo = true;
 
             nivelAtual = DadosJogador.nivelUsuario;
             bool intermediario = MissionManager.NivelMarketIntermediario(nivelAtual);
-            if (intermediario)
+            if (total == null && intermediario)
                 MissionManager.Instance?.ConcluirMissaoMarket("falar_caixa", "npc_interagido", "cashier_npc");
 
             InicializarConteudosPorNivel();
 
-            await MostrarProdutosNoBalcao();
+            totalDoRoteiro = total ?? valorTotal.ToString();
+            if (total == null)
+                await MostrarProdutosNoBalcao();
+            else
+            {
+                checkoutVisualJaFeito = true;
+                PrepararSacolaVisual();
+            }
+
 
             catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("CashierNPC: usando exerc?cios locais. " + catalogoExercicios.Error);
 
-            if (nivelAtual == "A1")
-                await interacaoA1();
-            else if(nivelAtual=="A1-A2")
-                await interacaoA1A2();
-            else if(nivelAtual=="A2-B1")
-                await interacaoA2B1();
-            else if (nivelAtual == "A2")
-                await interacaoA2();
-            else
-                await interacaoB1();
+            ValidarVisita(versao);
+            await CriarRoteiro(versao).Executar(inicio);
 
             if (!intermediario)
                 MissionManager.Instance.ConcluirMissaoMarket("falar_caixa", "conversa_encerrada", "cashier_npc");
@@ -1636,180 +1657,138 @@ else if (nivelAtual == "A2-B1")
         }
     }
 
-    private async Task interacaoA1()
+
+    private string totalDoRoteiro;
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-        // Usuário deve interagir com o caixa para colocar os produtos primeiro, e depois começa a conversa automaticamente
-
-        await PlayAudioETexto(i++, mostrarLegenda: false); 
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("greeting", 1, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);  
-        
-        // Abre o exercício de blocos ("Yes, I want some chocolate")
-        await AbrirExercicioDoPonto("additional_item", 1, exerciciosCriarFrases[0]);  //
-
-        await PegarChocolate();
-
-        await PlayAudioETexto(i++);  
-        
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("purchase_total", 1, exAtual); //
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("payment_method", 1, exAtual);
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        if (cursor.Situacao.Length != 3 || !System.Text.RegularExpressions.Regex.IsMatch(cursor.Situacao[1],
+            @"\Atotal\.[0-9]{1,8}(?:(?:\.|-comma-)[0-9]{1,2})?\z")
+            || (cursor.Situacao[2] != "chocolate.hidden" && cursor.Situacao[2] != "chocolate.visible"))
+            throw new System.IO.InvalidDataException("Total ou estado do caixa inválido.");
+        string total = cursor.Situacao[1].Substring(6).Replace("-comma-", ",");
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            TravarControlePlayer();
+            if (cursor.Situacao[2] == "chocolate.hidden" && produtoChocolate != null)
+            {
+                chocolateFoiOcultado = true;
+                produtoChocolate.SetActive(false);
+            }
+            await ExecutarAtendimento(cursor.Indice, total);
+        };
     }
 
-    private async Task interacaoA2() 
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-        //usuario deve interagir com o caixa para colocar os produtos primeiro, e depois começa a conversa automaticamente
-        
-        await PlayAudioETexto(i++, mostrarLegenda: false); 
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("greeting", 1, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("purchase_total", 1, exAtual); //
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("purchase_total", 2, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("bag_choice", 1, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("anything_else", 1, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("payment_method", 1, exAtual);
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoB1()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
-        //usuario deve interagir com o caixa para colocar os produtos primeiro, e depois começa a conversa automaticamente
-        await PlayAudioETexto(i++, mostrarLegenda: true);
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("greeting", 1, exAtual); //
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento),
+            "total." + (totalDoRoteiro ?? valorTotal.ToString()).Replace(",", "-comma-"),
+            chocolateFoiOcultado ? "chocolate.hidden" : "chocolate.visible" });
+        void Fala(int indice, bool mostrarLegenda = true) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice, mostrarLegenda));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("purchase_total", 1, exAtual); //
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("purchase_total", 2, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("bag_choice", 1, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("payment_and_receipt", 1, exAtual); //
-
-        await PlayAudioETexto(i++, mostrarLegenda: true);
-
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0, mostrarLegenda: false);
+                Exercicio("greeting", 1, exerciciosSpeaking[0]);
+                Fala(1, mostrarLegenda: true);
+                Exercicio("additional_item", 1, exerciciosCriarFrases[0]);
+                roteiro.Acao("PegarChocolate", PegarChocolate);
+                Fala(2);
+                Exercicio("purchase_total", 1, exerciciosAlternativas[0]);
+                Fala(3, mostrarLegenda: true);
+                Exercicio("payment_method", 1, exerciciosWriting[0]);
+                Fala(4, mostrarLegenda: true);
+                break;
+            case "A2":
+                Fala(0, mostrarLegenda: false);
+                Exercicio("greeting", 1, exerciciosSpeaking[0]);
+                Fala(1, mostrarLegenda: true);
+                Exercicio("purchase_total", 1, exerciciosAlternativas[0]);
+                Exercicio("purchase_total", 2, exerciciosSpeaking[1]);
+                Fala(2, mostrarLegenda: true);
+                Exercicio("bag_choice", 1, exerciciosCriarFrases[0]);
+                Fala(3, mostrarLegenda: true);
+                Exercicio("anything_else", 1, exerciciosSpeaking[2]);
+                Fala(4, mostrarLegenda: true);
+                Exercicio("payment_method", 1, exerciciosAlternativas[1]);
+                Fala(5, mostrarLegenda: true);
+                break;
+            case "B1":
+                Fala(0, mostrarLegenda: true);
+                Exercicio("greeting", 1, exerciciosSpeaking[0]);
+                Fala(1, mostrarLegenda: true);
+                Exercicio("purchase_total", 1, exerciciosAlternativas[0]);
+                Exercicio("purchase_total", 2, exerciciosSpeaking[1]);
+                Fala(2, mostrarLegenda: true);
+                Exercicio("bag_choice", 1, exerciciosSpeaking[2]);
+                Fala(3, mostrarLegenda: true);
+                Exercicio("payment_and_receipt", 1, exerciciosCompletarFrase[0]);
+                Fala(4, mostrarLegenda: true);
+                break;
+            case "A1-A2":
+                Fala(0, mostrarLegenda: true);
+                Exercicio("greeting", 1, exerciciosSpeaking[0]);
+                Fala(1, mostrarLegenda: true);
+                Exercicio("purchase_total", 1, exerciciosAlternativas[0]);
+                Exercicio("purchase_total", 2, exerciciosSpeaking[1]);
+                Fala(2, mostrarLegenda: true);
+                Exercicio("bag_choice", 1, exerciciosCriarFrases[0]);
+                Fala(3, mostrarLegenda: true);
+                Exercicio("payment_method", 1, exerciciosSpeaking[2]);
+                Fala(4, mostrarLegenda: true);
+                Exercicio("receipt_choice", 1, exerciciosAlternativas[1]);
+                break;
+            case "A2-B1":
+                Fala(0, mostrarLegenda: true);
+                Exercicio("greeting", 1, exerciciosSpeaking[0]);
+                Fala(1, mostrarLegenda: true);
+                Exercicio("purchase_total", 1, exerciciosAlternativas[0]);
+                Exercicio("purchase_total", 2, exerciciosSpeaking[1]);
+                Fala(2, mostrarLegenda: true);
+                Exercicio("bag_choice", 1, exerciciosSpeaking[2]);
+                Fala(3, mostrarLegenda: true);
+                Exercicio("payment_method", 1, exerciciosCriarFrases[0]);
+                Fala(4, mostrarLegenda: true);
+                Exercicio("receipt_choice", 1, exerciciosAlternativas[1]);
+                Fala(5, mostrarLegenda: true);
+                Exercicio("payment_and_receipt", 1, exerciciosCompletarFrase[0]);
+                break;
+        }
+        return roteiro;
     }
-
-    private async Task interacaoA1A2()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("greeting", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("purchase_total", 1, exAtual);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("purchase_total", 2, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("bag_choice", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("payment_method", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("receipt_choice", 1, exAtual);
-
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("greeting", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("purchase_total", 1, exAtual);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("purchase_total", 2, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("bag_choice", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("payment_method", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosAlternativas[1];
-    await AbrirExercicioDoPonto("receipt_choice", 1, exAtual);
-
-    await PlayAudioETexto(i++, mostrarLegenda: true);
-
-    exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicioDoPonto("payment_and_receipt", 1, exAtual);
-
-}
 
     private async Task PegarChocolate()
     {
+        int visita = SessaoCenario.Atual.Versao;
         await Task.Delay(1500);
+        ValidarVisita(visita);
 
         if (produtoChocolate != null && produtoChocolate.activeSelf)
         {
@@ -1836,12 +1815,20 @@ private async Task interacaoA2B1()
 
     private ExercicioSpeaking PreencherSpeaking(ExercicioSpeaking speaking)
     {
-        string total = valorTotal.ToString();
-        string Preencher(string texto) => texto?.Replace(GreetingToken, cumprimento).Replace(TotalToken, total);
+        return PreencherSpeaking(speaking, cumprimento, totalDoRoteiro ?? valorTotal.ToString());
+    }
+
+    internal static ExercicioSpeaking PreencherSpeaking(ExercicioSpeaking speaking, string greeting, string total)
+    {
+        string Preencher(string texto) => texto?.Replace(GreetingToken, greeting ?? GreetingToken)
+            .Replace(TotalToken, total ?? TotalToken);
 
         // O cat?logo ? compartilhado pelo cache. O texto preenchido pertence apenas ? intera??o atual.
         return new ExercicioSpeaking
         {
+            reviewGreeting = speaking.pointKey == "greeting" ? greeting : null,
+            reviewTotal = speaking.pointKey == "purchase_total" && speaking.ordemBanco == 2
+                && (speaking.nivelBanco == "A2" || speaking.nivelBanco == "B1") ? total : null,
             idExercise = speaking.idExercise,
             idTipoBanco = speaking.idTipoBanco,
             nomeTipoBanco = speaking.nomeTipoBanco,
@@ -1907,6 +1894,7 @@ private async Task interacaoA2B1()
         TravarControlePlayer();
         try
         {
+            CheckpointJogo.Instance?.CapturarAssociacaoFinal(this, "checkout_vocabulary", 1);
             await AbrirExercicioDoPonto("checkout_vocabulary", 1, exerciciosAssociacao[0], faseAssociacao: true);
             return await FazerRevisao();
         }
@@ -1915,6 +1903,9 @@ private async Task interacaoA2B1()
             GameProgress.EstaEmDialogo = false;
         }
     }
+
+    internal Task<bool> RetomarRevisaoCheckpoint() =>
+        RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this, modalExercicio, modalAvisoRevisao, modalLegenda);
 
     private Task<bool> FazerRevisao()
     {
@@ -1972,6 +1963,11 @@ private async Task interacaoA2B1()
 
         produtosInstanciadosNoCaixa.Clear();
 
+        PrepararSacolaVisual();
+    }
+
+    private void PrepararSacolaVisual()
+    {
         if (sacolaFinal != null)
         {
             sacolaFinal.SetActive(true);

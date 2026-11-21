@@ -926,7 +926,7 @@ using System.IO;
 using TMPro;
 using System;
 
-public class checkinNPC : InteracaoNPC
+public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -1044,6 +1044,7 @@ public class checkinNPC : InteracaoNPC
             string ponto = nivelAtual == "A1" ? "portao_12"
                 : nivelAtual == "A1-A2" || nivelAtual == "A2" ? "portao_18" : "portao_24";
             EmitirEventoMissao("permanencia_confirmada", ponto);
+            CapturarCaminhoCheckpoint();
             TentarConcluirMissaoPortao();
         }
     }
@@ -1092,6 +1093,7 @@ public class checkinNPC : InteracaoNPC
             cartaoEmbarqueAberto = false;
             GameProgress.EstaEmDialogo = false;
             LiberarControlePlayer();
+            CapturarCaminhoCheckpoint();
             TentarConcluirMissaoPortao();
             return;
         }
@@ -1212,6 +1214,68 @@ public class checkinNPC : InteracaoNPC
             Debug.LogWarning("checkinNPC: atribua o ponto de chegada do portão no Inspector.");
     }
 
+    private static string MissaoPortaoCheckpoint(string nivel) => nivel switch
+    {
+        "A1" => "aeroporto_a1_5",
+        "A1-A2" => "aeroporto_a1a2_5",
+        "A2" => "aeroporto_a2_6",
+        "A2-B1" => "aeroporto_a2b1_7",
+        "B1" => "aeroporto_b1_8",
+        _ => null
+    };
+
+    internal static bool MissaoRetomavelCheckpoint(string nivel, string missao) =>
+        !string.IsNullOrEmpty(missao) && (missao == MissaoPortaoCheckpoint(nivel)
+            || (nivel == "A1" && missao == "aeroporto_a1_4")
+            || (nivel == "A2-B1" && missao == "aeroporto_a2b1_6"));
+
+    private void CapturarCaminhoCheckpoint()
+    {
+        if (!fluxoCheckinConcluido || cartaoEmbarqueAberto || MissionManager.Instance?.UsaCatalogoAirport != true)
+            return;
+        string missao = MissaoConsultaCartao();
+        if (missao == null || MissionManager.Instance.MissaoAtiva(missao) == false)
+            missao = MissaoPortaoCheckpoint(nivelAtual);
+        if (MissionManager.Instance.MissaoAtiva(missao))
+            CheckpointJogo.Instance?.CapturarCaminhoAirport(missao);
+    }
+
+    internal void RetomarCaminhoCheckpoint(int visita, Newtonsoft.Json.Linq.JObject missao)
+    {
+        ValidarVisita(visita);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        interacaoConcluida = true;
+        fluxoCheckinConcluido = true;
+        string chave = (string)missao["mission_key"];
+        string portao = MissaoPortaoCheckpoint(nivelAtual);
+        var eventos = (Newtonsoft.Json.Linq.JArray)missao["satisfied_events"];
+        cartaoEmbarqueConsultado = (nivelAtual == "A1" || nivelAtual == "A2-B1") && chave == portao;
+        bool chegou = false;
+        foreach (var evento in eventos)
+        {
+            cartaoEmbarqueConsultado |= (string)evento["tipo"] == "cartao_embarque_consultado";
+            chegou |= (string)evento["tipo"] == "permanencia_confirmada";
+        }
+        if (chave == portao)
+        {
+            if (nivelAtual == "A1")
+                AguardarChegadaAoPortao(portao, pontoChegadaPortao12, marcadorPortao12);
+            else if (nivelAtual == "A1-A2" || nivelAtual == "A2")
+                AguardarChegadaAoPortao(portao, pontoChegadaPortao18, marcadorPortao18);
+            else
+                AguardarChegadaAoPortao(portao, pontoChegadaPortao24, marcadorPortao24);
+            chegadaPortaoConfirmada = chegou;
+        }
+        if (!cartaoEmbarqueConsultado && MissaoConsultaCartao() != null && instrucoesCartaoEmbarque != null
+            && CartaoEmbarqueConfigurado())
+        {
+            instrucoesCartaoEmbarque.text = ModoVR ? "Secondary button: View boarding pass" : "B: View boarding pass";
+            instrucoesCartaoEmbarque.enabled = true;
+        }
+        LiberarControlePlayer();
+    }
+
     private void TentarConcluirMissaoPortao()
     {
         if (cartaoEmbarqueAberto || !aguardandoChegadaPortao || !chegadaPortaoConfirmada)
@@ -1244,8 +1308,18 @@ public class checkinNPC : InteracaoNPC
             Debug.LogError("RevisaoManager não está disponível para finalizar Airport.");
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -1822,6 +1896,13 @@ else if (nivelAtual == "A2-B1")
         }
     );
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -1879,11 +1960,14 @@ else if (nivelAtual == "A2-B1")
         };
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0, false);
+
+    private async Task ExecutarAtendimento(int inicio, bool retomada)
     {
+        int versao = SessaoCenario.Atual.Versao;
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
-        switch (nivelAtual)
+        if (!retomada) switch (nivelAtual)
         {
             case "A1":
                 EmitirEventoMissao("npc_interagido", "checkin_npc");
@@ -1908,26 +1992,8 @@ else if (nivelAtual == "A2-B1")
         if (!catalogoExercicios.Success)
             Debug.LogWarning("checkinNPC: usando exerc?cios locais. " + catalogoExercicios.Error);
 
-        if (nivelAtual == "A1")
-        {
-            await interacaoA1();
-        }
-        else if(nivelAtual == "A1-A2")
-        {
-            await interacaoA1A2();
-        }
-        else if (nivelAtual == "A2")
-        {
-            await interacaoA2();
-        }
-        else if(nivelAtual == "A2-B1")
-        {
-            await interacaoA2B1();
-        }
-        else
-        {
-            await interacaoB1();
-        }
+        ValidarVisita(versao);
+        await CriarRoteiro(versao).Executar(inicio);
 
         // Desativa o estado quando a conversa acabar completamente!
         GameProgress.EstaEmDialogo = false;
@@ -1959,211 +2025,150 @@ else if (nivelAtual == "A2-B1")
                 instrucoesCartaoEmbarque.enabled = true;
             }
         }
+        CapturarCaminhoCheckpoint();
     }
 
-    private async Task interacaoA1()
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++); // Where are you going?
-        await PlayAudioETexto(i++); // Can I see your passport, please?
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
-
-        await PlayAudioETexto(i++); // Boarding pass and gate number
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("gate_number", 1, exAtual);
-
-        await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        var orientacoes = FindAnyObjectByType<AirportInfoNPC>();
+        if (orientacoes != null && nivelAtual != "A2")
+            orientacoes.RetomarAposOrientacoesCheckpoint(versao);
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            TravarControlePlayer();
+            if (cursor.Situacao.Length == 2 && cursor.Situacao[1] == "gate.ready")
+            {
+                if (nivelAtual == "A2" || nivelAtual == "A1-A2")
+                    AguardarChegadaAoPortao(MissaoPortaoCheckpoint(nivelAtual), pontoChegadaPortao18, marcadorPortao18);
+                else if (nivelAtual == "B1")
+                    AguardarChegadaAoPortao(MissaoPortaoCheckpoint(nivelAtual), pontoChegadaPortao24, marcadorPortao24);
+            }
+            await ExecutarAtendimento(cursor.Indice, true);
+        };
     }
 
-    private async Task interacaoA2()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-
-        IniciarMissao("aeroporto_a2_2", "Tell the airport employee your destination", "Informe seu destino ao funcionário");
-
-        await PlayAudioETexto(i++); // Where are you flying today?
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("destination", 1, exAtual);
-
-        ConcluirMissao("aeroporto_a2_2");
-        IniciarMissao("aeroporto_a2_3", "Present your passport and booking confirmation", "Apresente seu passaporte e confirmação da reserva");
-
-        await PlayAudioETexto(i++); // Passport and booking confirmation
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
-
-        ConcluirMissao("aeroporto_a2_3");
-        IniciarMissao("aeroporto_a2_4", "Tell the employee about the luggage you need to check in", "Informe sua bagagem para despacho");
-
-        await PlayAudioETexto(i++); // Bags to check in
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("checked_baggage", 1, exAtual);
-
-        ConcluirMissao("aeroporto_a2_4");
-        IniciarMissao("aeroporto_a2_5", "Find out the boarding time", "Descubra o horário de embarque");
-
-        await PlayAudioETexto(i++); // Gate and boarding time
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("boarding_time", 1, exAtual);
-
-        ConcluirMissao("aeroporto_a2_5");
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("gate_number", 1, exAtual);
-
-        EmitirEventoMissao("marco_fluxo", "portao_liberado");
-        IniciarMissaoChegadaPortao("aeroporto_a2_6", "Find gate 18", "Encontre o portão 18", pontoChegadaPortao18, marcadorPortao18);
-
-        await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoB1()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
 
-        await PlayAudioETexto(i++); // Destination and connecting flight
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => aguardandoChegadaPortao
+            ? new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento), "gate.ready" }
+            : new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento) });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        IniciarMissao("aeroporto_b1_4", "Provide your destination and connecting-flight details", "Informe seu destino e os detalhes do voo de conexão");
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("destination", 1, exAtual);
-
-        ConcluirMissao("aeroporto_b1_4");
-        IniciarMissao("aeroporto_b1_5", "Present your travel documents", "Apresente seus documentos de viagem");
-
-        await PlayAudioETexto(i++); // Passport and booking confirmation
-
-        await AbrirExercicioDoPonto("travel_documents", 1, exerciciosSpeaking[1]);
-
-        ConcluirMissao("aeroporto_b1_5");
-        IniciarMissao("aeroporto_b1_6", "Confirm the checked-baggage information", "Confirme as informações sobre a bagagem despachada");
-
-        await PlayAudioETexto(i++); // Are you checking any bags?
-
-        // O funcionário informa a transferência automática da bagagem nesta fala.
-        await PlayAudioETexto(i++); // Checked bag transfer and gate 24
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("baggage_transfer", 1, exAtual);
-
-        ConcluirMissao("aeroporto_b1_6");
-
-        await PlayAudioETexto(i++); // Check departure screens
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("departure_screens", 1, exAtual);
-
-        EmitirEventoMissao("marco_fluxo", "portao_liberado");
-        IniciarMissaoChegadaPortao("aeroporto_b1_8", "Find gate 24 for your flight", "Encontre o portão 24 para seu voo", pontoChegadaPortao24, marcadorPortao24);
-
-        await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Fala(1);
+                Exercicio("travel_documents", 1, exerciciosSpeaking[0]);
+                Fala(2);
+                Exercicio("gate_number", 1, exerciciosCompletarFrase[0]);
+                Exercicio("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2":
+                roteiro.Acao("IniciarMissao.aeroporto_a2_2", () => { IniciarMissao("aeroporto_a2_2", "Tell the airport employee your destination", "Informe seu destino ao funcionário"); return Task.CompletedTask; });
+                Fala(0);
+                Exercicio("destination", 1, exerciciosCriarFrases[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2_2", () => { ConcluirMissao("aeroporto_a2_2"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2_3", () => { IniciarMissao("aeroporto_a2_3", "Present your passport and booking confirmation", "Apresente seu passaporte e confirmação da reserva"); return Task.CompletedTask; });
+                Fala(1);
+                Exercicio("travel_documents", 1, exerciciosSpeaking[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2_3", () => { ConcluirMissao("aeroporto_a2_3"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2_4", () => { IniciarMissao("aeroporto_a2_4", "Tell the employee about the luggage you need to check in", "Informe sua bagagem para despacho"); return Task.CompletedTask; });
+                Fala(2);
+                Exercicio("checked_baggage", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2_4", () => { ConcluirMissao("aeroporto_a2_4"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2_5", () => { IniciarMissao("aeroporto_a2_5", "Find out the boarding time", "Descubra o horário de embarque"); return Task.CompletedTask; });
+                Fala(3);
+                Exercicio("boarding_time", 1, exerciciosAlternativas[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2_5", () => { ConcluirMissao("aeroporto_a2_5"); return Task.CompletedTask; });
+                Exercicio("gate_number", 1, exerciciosCompletarFrase[0]);
+                roteiro.Acao("EmitirEventoMissao.marco_fluxo.portao_liberado", () => { EmitirEventoMissao("marco_fluxo", "portao_liberado"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissaoChegadaPortao.aeroporto_a2_6", () => { IniciarMissaoChegadaPortao("aeroporto_a2_6", "Find gate 18", "Encontre o portão 18", pontoChegadaPortao18, marcadorPortao18); return Task.CompletedTask; });
+                Exercicio("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "B1":
+                Fala(0);
+                roteiro.Acao("IniciarMissao.aeroporto_b1_4", () => { IniciarMissao("aeroporto_b1_4", "Provide your destination and connecting-flight details", "Informe seu destino e os detalhes do voo de conexão"); return Task.CompletedTask; });
+                Exercicio("destination", 1, exerciciosSpeaking[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_b1_4", () => { ConcluirMissao("aeroporto_b1_4"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_b1_5", () => { IniciarMissao("aeroporto_b1_5", "Present your travel documents", "Apresente seus documentos de viagem"); return Task.CompletedTask; });
+                Fala(1);
+                Exercicio("travel_documents", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("ConcluirMissao.aeroporto_b1_5", () => { ConcluirMissao("aeroporto_b1_5"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_b1_6", () => { IniciarMissao("aeroporto_b1_6", "Confirm the checked-baggage information", "Confirme as informações sobre a bagagem despachada"); return Task.CompletedTask; });
+                Fala(2);
+                Fala(3);
+                Exercicio("baggage_transfer", 1, exerciciosAlternativas[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_b1_6", () => { ConcluirMissao("aeroporto_b1_6"); return Task.CompletedTask; });
+                Fala(4);
+                Exercicio("departure_screens", 1, exerciciosSpeaking[2]);
+                roteiro.Acao("EmitirEventoMissao.marco_fluxo.portao_liberado", () => { EmitirEventoMissao("marco_fluxo", "portao_liberado"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissaoChegadaPortao.aeroporto_b1_8", () => { IniciarMissaoChegadaPortao("aeroporto_b1_8", "Find gate 24 for your flight", "Encontre o portão 24 para seu voo", pontoChegadaPortao24, marcadorPortao24); return Task.CompletedTask; });
+                Exercicio("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("destination", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                roteiro.Acao("EmitirEventoMissao.marco_fluxo.documentos_solicitados", () => { EmitirEventoMissao("marco_fluxo", "documentos_solicitados"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a1a2_4", () => { IniciarMissao( "aeroporto_a1a2_4", "Present your passport and booking confirmation", "Apresente seu passaporte e confirmação da reserva" ); return Task.CompletedTask; });
+                Exercicio("travel_documents", 1, exerciciosSpeaking[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a1a2_4", () => { ConcluirMissao("aeroporto_a1a2_4"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a1a2_5", () => { IniciarMissao( "aeroporto_a1a2_5", "Check your boarding pass and find gate 18", "Consulte seu cartão de embarque e encontre o portão 18" ); return Task.CompletedTask; });
+                Fala(2);
+                Exercicio("gate_number", 1, exerciciosCompletarFrase[0]);
+                Exercicio("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+                roteiro.Acao("AguardarChegadaAoPortao.aeroporto_a1a2_5", () => { AguardarChegadaAoPortao("aeroporto_a1a2_5", pontoChegadaPortao18, marcadorPortao18); return Task.CompletedTask; });
+                break;
+            case "A2-B1":
+                roteiro.Acao("EmitirEventoMissao.npc_interagido.checkin_npc", () => { EmitirEventoMissao("npc_interagido", "checkin_npc"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2b1_destino", () => { IniciarMissao( "aeroporto_a2b1_destino", "Provide your destination and connecting-flight details", "Informe seu destino e os detalhes do voo de conexão" ); return Task.CompletedTask; });
+                Fala(0);
+                Exercicio("destination", 1, exerciciosSpeaking[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2b1_destino", () => { ConcluirMissao("aeroporto_a2b1_destino"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2b1_4", () => { IniciarMissao( "aeroporto_a2b1_4", "Present your travel documents", "Apresente seus documentos de viagem" ); return Task.CompletedTask; });
+                Fala(1);
+                Exercicio("travel_documents", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2b1_4", () => { ConcluirMissao("aeroporto_a2b1_4"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2b1_5", () => { IniciarMissao( "aeroporto_a2b1_5", "Confirm the information about your checked baggage", "Confirme as informações sobre sua bagagem despachada" ); return Task.CompletedTask; });
+                Fala(2);
+                Exercicio("baggage_transfer", 1, exerciciosAlternativas[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2b1_5", () => { ConcluirMissao("aeroporto_a2b1_5"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2b1_6", () => { IniciarMissao( "aeroporto_a2b1_6", "Check the boarding information and connecting gate", "Confira as informações sobre o embarque e o portão de conexão" ); return Task.CompletedTask; });
+                Fala(3);
+                Exercicio("departure_screens", 1, exerciciosSpeaking[2]);
+                Exercicio("checkin_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+        }
+        return roteiro;
     }
-
-    private async Task interacaoA1A2()
-{
-    int i = 0;
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosCriarFrases[0];
-    await AbrirExercicioDoPonto("destination", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    EmitirEventoMissao("marco_fluxo", "documentos_solicitados");
-    IniciarMissao(
-        "aeroporto_a1a2_4",
-        "Present your passport and booking confirmation",
-        "Apresente seu passaporte e confirmação da reserva"
-    );
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a1a2_4");
-    IniciarMissao(
-        "aeroporto_a1a2_5",
-        "Check your boarding pass and find gate 18",
-        "Consulte seu cartão de embarque e encontre o portão 18"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosCompletarFrase[0];
-    await AbrirExercicioDoPonto("gate_number", 1, exAtual);
-
-    await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
-
-    AguardarChegadaAoPortao("aeroporto_a1a2_5", pontoChegadaPortao18, marcadorPortao18);
-
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-    EmitirEventoMissao("npc_interagido", "checkin_npc");
-    IniciarMissao(
-        "aeroporto_a2b1_destino",
-        "Provide your destination and connecting-flight details",
-        "Informe seu destino e os detalhes do voo de conexão"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("destination", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a2b1_destino");
-
-    IniciarMissao(
-        "aeroporto_a2b1_4",
-        "Present your travel documents",
-        "Apresente seus documentos de viagem"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("travel_documents", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a2b1_4");
-
-    IniciarMissao(
-        "aeroporto_a2b1_5",
-        "Confirm the information about your checked baggage",
-        "Confirme as informações sobre sua bagagem despachada"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("baggage_transfer", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a2b1_5");
-
-    IniciarMissao(
-        "aeroporto_a2b1_6",
-        "Check the boarding information and connecting gate",
-        "Confira as informações sobre o embarque e o portão de conexão"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[2];
-    await AbrirExercicioDoPonto("departure_screens", 1, exAtual);
-
-    await AbrirExercicioDoPonto("checkin_vocabulary", 1, exerciciosAssociacao[0]);
-
-}
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {

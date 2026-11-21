@@ -10,6 +10,7 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
     [SerializeField] private Button botaoFechar;
 
     private int visita;
+    internal event System.Action ConsultaConfirmada;
 
     internal bool Disponivel { get; private set; }
     internal bool Consultado { get; private set; }
@@ -72,6 +73,12 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
         return true;
     }
 
+    internal void RestaurarConsulta(bool consultado)
+    {
+        if (Disponivel && SessaoCenario.Atual.Permite("College", visita))
+            Consultado = consultado;
+    }
+
     internal void MostrarBotao(bool mostrar)
     {
         if (botaoAbrir != null)
@@ -97,6 +104,7 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
         {
             Consultado = true;
             MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.Marco, MissoesCollege.DocumentoConsultado);
+            ConsultaConfirmada?.Invoke();
         }
     }
 

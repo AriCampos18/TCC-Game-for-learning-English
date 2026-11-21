@@ -285,7 +285,7 @@ public class ModalSelecaoCenario : MonoBehaviour
             Debug.LogWarning("O objeto modalSelecaoCenario não foi associado.");
     }
 
-    internal async Task RetomarEntradaCheckpoint(string cenario, int visita, CancellationToken ct)
+    internal async Task RetomarEntradaCheckpoint(string cenario, int visita, CancellationToken ct, bool mostrarIntroducao = true)
     {
         Transform destino = ObterPontoDestino(cenario);
         var missoes = MissionManager.Instance;
@@ -300,10 +300,11 @@ public class ModalSelecaoCenario : MonoBehaviour
         TransportarJogador(destino.position);
         if (modalSelecaoCenario != null)
             modalSelecaoCenario.SetActive(false);
-        modalFinalManager.MostrarInicioCenario(cenario);
+        if (mostrarIntroducao)
+            modalFinalManager.MostrarInicioCenario(cenario);
     }
 
-    private Transform ObterPontoDestino(string cenario)
+    internal Transform ObterPontoDestino(string cenario)
     {
         switch (cenario)
         {

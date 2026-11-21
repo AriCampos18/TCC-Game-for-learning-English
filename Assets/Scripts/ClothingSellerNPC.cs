@@ -1163,8 +1163,9 @@ using UnityEngine.Networking;
 using System.IO;
 using TMPro;
 using System;
+using System.Linq;
 
-public class ClothingSellerNPC : InteracaoNPC
+public class ClothingSellerNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -1229,8 +1230,18 @@ public class ClothingSellerNPC : InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -2237,6 +2248,13 @@ respostaCorreta = 2
         }
     });
         }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -2274,15 +2292,7 @@ respostaCorreta = 2
             VincularExerciciosDoBanco();
             roupaExperimentada = false;
 
-            switch (nivelAtual)
-            {
-                case "A1": await interacaoA1(); break;
-                case "A1-A2": await interacaoA1A2(); break;
-                case "A2": await interacaoA2(); break;
-                case "A2-B1": await interacaoA2B1(); break;
-                case "B1": await interacaoB1(); break;
-                default: Debug.LogWarning("Nível de usuário não reconhecido: " + nivelAtual); return;
-            }
+            await ExecutarRoteiro(CriarRoteiro(SessaoCenario.Atual.Versao));
         }
         catch (InvalidOperationException e)
         {
@@ -2308,305 +2318,234 @@ respostaCorreta = 2
             Debug.LogError("Clothing Store: RevisaoManager não configurado.", this);
     }
 
-    private async Task interacaoA1()
+    async Task<Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var roteiro = CriarRoteiro(versao);
+        var cursor = roteiro.Validar(visita);
+        if (cursor.Situacao.Length > 2 || (cursor.Situacao.Length == 2
+            && cursor.Situacao[1] != "fitting.ready" && cursor.Situacao[1] != "fitting.done"))
+            throw new System.IO.InvalidDataException("Estado do provador inválido.");
+        if (cursor.Situacao.Contains("fitting.ready") && (provador == null || !provador.Preparar(nivelAtual)))
+            throw new System.IO.InvalidDataException("O provador do checkpoint precisa estar configurado para a retomada.");
 
-        await PlayAudioETexto(i++);
+        catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual, token);
+        token.ThrowIfCancellationRequested();
+        ValidarVisita(versao);
+        if (!catalogoExercicios.Success)
+            throw new System.IO.InvalidDataException("O catálogo da Clothing Store está indisponível para a retomada.");
+        VincularExerciciosDoBanco();
 
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            ultimaVisitaComInteracao = VisitaAtual;
+            interacaoConcluida = true;
+            roupaExperimentada = cursor.Situacao.Contains("fitting.done");
+            provaDisponivel = false;
+            ultimaFraseDita = "";
+            GameProgress.EstaEmDialogo = true;
+            TravarControlePlayer();
+            try
+            {
+                if (cursor.Situacao.Contains("fitting.ready"))
+                    AbrirProvador();
+                await ExecutarRoteiro(roteiro, cursor.Indice);
+            }
+            finally
+            {
+                if (SessaoCenario.Atual.Permite(Cenario, versao))
+                {
+                    provaDisponivel = false;
+                    GameProgress.EstaEmDialogo = false;
+                    if (modalLegenda != null) modalLegenda.SetActive(false);
+                    if (textoPularDialogo != null) textoPularDialogo.gameObject.SetActive(false);
+                    LiberarControlePlayer();
+                }
+            }
 
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("size_choice", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("color_choice", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        // O vendedor apresenta a camiseta e pergunta se o usuário deseja experimentá-la.
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("fitting", 1, exAtual);
-        AbrirProvador();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
-        await AguardarProvaSeNecessario();
-
-        // O vendedor avisa que vai buscar uma camiseta maior.
-        await PlayAudioETexto(i++);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("purchase", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicioDoPonto("bag_choice", 1, exAtual);
-
-        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+            if (SessaoCenario.Atual.Permite(Cenario, versao) && RevisaoManager.Instance != null)
+                await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+        };
     }
 
-    private async Task interacaoA2()
+    private RoteiroNpcCheckpoint roteiroAtual;
+
+    private async Task ExecutarRoteiro(RoteiroNpcCheckpoint roteiro, int inicio = 0)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("style_preference", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("color_choice", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("size_choice", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("price", 1, exAtual);
-
-        // O usuário pede para experimentar a camisa antes da resposta do vendedor.
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("fitting", 1, exAtual);
-        AbrirProvador();
-
-        await PlayAudioETexto(i++);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
-        await AguardarProvaSeNecessario();
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("fit_feedback", 2, exerciciosCompletarFrase[0]);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicioDoPonto("purchase", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[2];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+        roteiroAtual = roteiro;
+        try { await roteiro.Executar(inicio); }
+        finally { if (roteiroAtual == roteiro) roteiroAtual = null; }
     }
 
-    private async Task interacaoB1()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("style_preference", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("product_recommendation", 1, exAtual);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("garment_care", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("garment_care", 2, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("price", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("purchase", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicioDoPonto("fitting", 1, exAtual);
-        AbrirProvador();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[4];
-        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("fit_feedback", 2, exAtual);
-        await AguardarProvaSeNecessario();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[5];
-        await AbrirExercicioDoPonto("purchase", 2, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        // Primeiro, o usuário informa o valor total; depois, escolhe a forma de pagamento.
-        exAtual = exerciciosSpeaking[6];
-        await AbrirExercicioDoPonto("price", 2, exAtual);
-
-        exAtual = exerciciosAlternativas[2];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoA1A2()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
-        int i = 0;
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
 
-        await PlayAudioETexto(i++);
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () =>
+        {
+            string saudacao = RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento);
+            if (saudacao == null)
+                return null;
+            if (roupaExperimentada)
+                return new[] { saudacao, "fitting.done" };
+            return provaDisponivel ? new[] { saudacao, "fitting.ready" } : new[] { saudacao };
+        });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
+        void Abrir() => roteiro.Acao("fitting.open", () => { AbrirProvador(); return Task.CompletedTask; });
+        void Aguardar() => roteiro.Acao("fitting.wait", AguardarProvaSeNecessario);
 
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("style_preference", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("size_choice", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("fitting", 1, exAtual);
-        AbrirProvador();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
-
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("fit_feedback", 2, exAtual);
-        await AguardarProvaSeNecessario();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("purchase", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[2];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        // Associação sempre ao final.
-        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
-    }
-
-    private async Task interacaoA2B1()
-    {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("shopping_request", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("style_preference", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("product_recommendation", 1, exAtual);
-
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("garment_care", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("garment_care", 2, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("price", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[3];
-        await AbrirExercicioDoPonto("fitting", 1, exAtual);
-        AbrirProvador();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[4];
-        await AbrirExercicioDoPonto("fit_feedback", 1, exAtual);
-        await AguardarProvaSeNecessario();
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosCompletarFrase[0];
-        await AbrirExercicioDoPonto("fit_feedback", 2, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[2];
-        await AbrirExercicioDoPonto("purchase", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[5];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        // Associação sempre ao final.
-        await AbrirExercicioDoPonto("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("size_choice", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                Exercicio("color_choice", 1, exerciciosWriting[0]);
+                Fala(3);
+                Fala(4);
+                Exercicio("fitting", 1, exerciciosSpeaking[1]);
+                Abrir();
+                Fala(5);
+                Exercicio("fit_feedback", 1, exerciciosSpeaking[2]);
+                Aguardar();
+                Fala(6);
+                Fala(7);
+                Exercicio("purchase", 1, exerciciosCriarFrases[0]);
+                Fala(8);
+                Exercicio("bag_choice", 1, exerciciosSpeaking[3]);
+                Exercicio("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                Exercicio("style_preference", 1, exerciciosSpeaking[0]);
+                Fala(2);
+                Exercicio("color_choice", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("size_choice", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("price", 1, exerciciosAlternativas[1]);
+                Exercicio("fitting", 1, exerciciosSpeaking[2]);
+                Abrir();
+                Fala(5);
+                Fala(6);
+                Exercicio("fit_feedback", 1, exerciciosWriting[0]);
+                Aguardar();
+                Fala(7);
+                Exercicio("fit_feedback", 2, exerciciosCompletarFrase[0]);
+                Fala(8);
+                Exercicio("purchase", 1, exerciciosSpeaking[3]);
+                Fala(9);
+                Exercicio("payment", 1, exerciciosAlternativas[2]);
+                Fala(10);
+                Exercicio("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("style_preference", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("product_recommendation", 1, exerciciosAlternativas[0]);
+                Exercicio("garment_care", 1, exerciciosWriting[0]);
+                Fala(3);
+                Exercicio("garment_care", 2, exerciciosAlternativas[1]);
+                Fala(4);
+                Exercicio("price", 1, exerciciosSpeaking[2]);
+                Fala(5);
+                Exercicio("purchase", 1, exerciciosCriarFrases[0]);
+                Fala(6);
+                Exercicio("fitting", 1, exerciciosSpeaking[3]);
+                Abrir();
+                Fala(7);
+                Exercicio("fit_feedback", 1, exerciciosSpeaking[4]);
+                Fala(8);
+                Fala(9);
+                Exercicio("fit_feedback", 2, exerciciosCompletarFrase[0]);
+                Aguardar();
+                Fala(10);
+                Exercicio("purchase", 2, exerciciosSpeaking[5]);
+                Fala(11);
+                Exercicio("price", 2, exerciciosSpeaking[6]);
+                Exercicio("payment", 1, exerciciosAlternativas[2]);
+                Fala(12);
+                Exercicio("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosAlternativas[0]);
+                Fala(1);
+                Exercicio("style_preference", 1, exerciciosAlternativas[1]);
+                Fala(2);
+                Exercicio("size_choice", 1, exerciciosWriting[0]);
+                Fala(3);
+                Exercicio("fitting", 1, exerciciosSpeaking[0]);
+                Abrir();
+                Fala(4);
+                Exercicio("fit_feedback", 1, exerciciosCompletarFrase[0]);
+                Exercicio("fit_feedback", 2, exerciciosCriarFrases[0]);
+                Aguardar();
+                Fala(5);
+                Exercicio("purchase", 1, exerciciosSpeaking[1]);
+                Fala(6);
+                Exercicio("payment", 1, exerciciosAlternativas[2]);
+                Fala(7);
+                Exercicio("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("shopping_request", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("style_preference", 1, exerciciosSpeaking[1]);
+                Fala(2);
+                Exercicio("product_recommendation", 1, exerciciosAlternativas[0]);
+                Exercicio("garment_care", 1, exerciciosWriting[0]);
+                Fala(3);
+                Exercicio("garment_care", 2, exerciciosAlternativas[1]);
+                Fala(4);
+                Exercicio("price", 1, exerciciosSpeaking[2]);
+                Fala(5);
+                Exercicio("fitting", 1, exerciciosSpeaking[3]);
+                Abrir();
+                Fala(6);
+                Exercicio("fit_feedback", 1, exerciciosSpeaking[4]);
+                Aguardar();
+                Fala(7);
+                Exercicio("fit_feedback", 2, exerciciosCompletarFrase[0]);
+                Fala(8);
+                Exercicio("purchase", 1, exerciciosAlternativas[2]);
+                Fala(9);
+                Exercicio("payment", 1, exerciciosSpeaking[5]);
+                Fala(10);
+                Exercicio("clothing_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+        }
+        return roteiro;
     }
 
     private void VincularExerciciosDoBanco()
@@ -2629,6 +2568,9 @@ respostaCorreta = 2
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
+        int visita = SessaoCenario.Atual.Versao;
+        if (pointKey == "clothing_vocabulary")
+            CheckpointJogo.Instance?.CapturarAssociacaoFinal(this, pointKey, ordem);
         CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
@@ -2650,6 +2592,7 @@ respostaCorreta = 2
             alvo = MissoesClothingStore.AlvoExercicio(pointKey, ordem);
         }
 
+        ValidarVisita(visita);
         MissionManager.Instance?.RegistrarEventoClothingStore(MissoesClothingStore.ExercicioEncerrado, alvo);
     }
 
@@ -2695,6 +2638,7 @@ respostaCorreta = 2
         provaDisponivel = false;
         roupaExperimentada = true;
         MissionManager.Instance?.RegistrarEventoClothingStore(MissoesClothingStore.RoupaExperimentada, NpcKey);
+        roteiroAtual?.AtualizarCursor();
         await provador.AguardarLiberacaoDoClique();
     }
 

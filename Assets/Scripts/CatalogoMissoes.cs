@@ -71,7 +71,7 @@ internal sealed class CatalogoMissoes
     internal static bool ChaveDoCenario(string nome, string nivel, string chave) =>
         SessaoCenario.Conhecido(nome) && ChavesEsperadas(nome, nivel).Contains(chave);
 
-    private static HashSet<string> ChavesEsperadas(string nomeCenario, string nivel)
+    internal static HashSet<string> ChavesEsperadas(string nomeCenario, string nivel)
     {
         if (nomeCenario == MissoesVisitorCenter.Cenario)
             return MissoesVisitorCenter.ChavesEsperadas(nivel);
@@ -205,6 +205,130 @@ internal sealed class CatalogoMissoes
             }
         }
 
+        return true;
+    }
+
+    private static string ChaveInicioCheckpoint((string, string) evento) =>
+        "start." + RoteiroNpcCheckpoint.Hash(evento.Item1 + "|" + evento.Item2);
+
+    internal bool InicioRegistradoCheckpoint(string tipo, string alvo) => eventosInicio.Contains((tipo, alvo));
+
+    internal JArray CapturarIniciosCheckpoint() => new JArray(Definicoes.SelectMany(d => d.inicio.eventos)
+        .Select(e => e.Chave).Distinct().Where(eventosInicio.Contains).Select(ChaveInicioCheckpoint));
+
+    internal bool RestaurarRoteiro(JArray missoes, JArray inicios, Action<Definicao> iniciar, Action<string> concluir)
+    {
+        var definicoes = Definicoes.ToDictionary(d => d.mission_key);
+        var inicioPermitido = Definicoes.SelectMany(d => d.inicio.eventos).Select(e => e.Chave).Distinct()
+            .ToDictionary(ChaveInicioCheckpoint);
+        var eventosRestaurados = new HashSet<(string, string)>();
+        foreach (var token in inicios)
+        {
+            if (!inicioPermitido.TryGetValue((string)token ?? "", out var evento) || !eventosRestaurados.Add(evento))
+                return false;
+        }
+
+        var estados = new Dictionary<string, (bool concluida, HashSet<(string, string)> eventos)>();
+        foreach (var token in missoes)
+        {
+            string chave = (string)token["mission_key"] ?? "";
+            string status = (string)token["status"];
+            if (!definicoes.TryGetValue(chave, out var d) || estados.ContainsKey(chave)
+                || (status != "completed" && status != "active") || !(token["satisfied_events"] is JArray eventos)
+                || !d.inicio.eventos.All(e => eventosRestaurados.Contains(e.Chave)))
+                return false;
+
+            var parciais = new HashSet<(string, string)>();
+            foreach (var item in eventos)
+            {
+                var evento = ((string)item["tipo"], (string)item["alvo"]);
+                if (!d.conclusao.eventos.Any(e => e.Chave == evento) || !parciais.Add(evento))
+                    return false;
+            }
+            bool concluida = status == "completed";
+            if (concluida ? parciais.Count != 0 : d.conclusao.eventos.All(e => parciais.Contains(e.Chave)))
+                return false;
+            estados.Add(chave, (concluida, parciais));
+        }
+
+        ativas.Clear();
+        concluidas.Clear();
+        eventosInicio.Clear();
+        eventosInicio.UnionWith(eventosRestaurados);
+        eventosConclusao.Clear();
+        foreach (var token in missoes)
+        {
+            string chave = (string)token["mission_key"];
+            var estado = estados[chave];
+            iniciar(definicoes[chave]);
+            if (estado.concluida)
+            {
+                concluidas.Add(chave);
+                concluir(chave);
+            }
+            else
+            {
+                ativas.Add(chave);
+                eventosConclusao[chave] = estado.eventos;
+            }
+        }
+        return true;
+    }
+
+    internal bool RestaurarMarco(JArray missoes, bool todasConcluidas, Action<Definicao> iniciar, Action<string> concluir,
+        string missaoAtiva = null)
+    {
+        if (Definicoes.Count == 0 || (!todasConcluidas && missaoAtiva == null && Definicoes.Count != 2)
+            || (todasConcluidas && missaoAtiva != null))
+            return false;
+        string chaveAtiva = todasConcluidas ? null : missaoAtiva ?? Definicoes.Last().mission_key;
+        int quantidade = todasConcluidas ? Definicoes.Count
+            : Definicoes.TakeWhile(d => d.mission_key != chaveAtiva).Count() + 1;
+        if (quantidade > Definicoes.Count || missoes.Count != quantidade)
+            return false;
+        var eventosParciais = new HashSet<(string, string)>();
+        for (int i = 0; i < quantidade; i++)
+        {
+            bool ativa = Definicoes[i].mission_key == chaveAtiva;
+            string estado = ativa ? "active" : "completed";
+            var entrada = missoes.OfType<JObject>().FirstOrDefault(m =>
+                (string)m["mission_key"] == Definicoes[i].mission_key);
+            if (entrada == null || (string)entrada["status"] != estado
+                || !(entrada["satisfied_events"] is JArray eventos) || (!ativa && eventos.Count != 0))
+                return false;
+            foreach (var evento in eventos)
+            {
+                if (!(evento is JObject objeto) || objeto.Count != 2)
+                    return false;
+                var chaveEvento = ((string)objeto["tipo"], (string)objeto["alvo"]);
+                if (!Definicoes[i].conclusao.eventos.Any(e => e.Chave == chaveEvento) || !eventosParciais.Add(chaveEvento))
+                    return false;
+            }
+            if (ativa && Definicoes[i].conclusao.eventos.All(e => eventosParciais.Contains(e.Chave)))
+                return false;
+        }
+
+        ativas.Clear();
+        concluidas.Clear();
+        eventosInicio.Clear();
+        eventosConclusao.Clear();
+        foreach (var definicao in Definicoes.Take(quantidade))
+        {
+            iniciar(definicao);
+            foreach (var evento in definicao.inicio.eventos)
+                eventosInicio.Add(evento.Chave);
+            if (definicao.mission_key != chaveAtiva)
+            {
+                concluidas.Add(definicao.mission_key);
+                concluir(definicao.mission_key);
+                eventosInicio.Add(("missao_concluida", definicao.mission_key));
+            }
+            else
+            {
+                ativas.Add(definicao.mission_key);
+                eventosConclusao[definicao.mission_key] = eventosParciais;
+            }
+        }
         return true;
     }
 

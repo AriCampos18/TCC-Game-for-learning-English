@@ -1135,7 +1135,7 @@ using TMPro;
 using System;
 using System.Globalization;
 
-public class RecepcionistHotelNPC: InteracaoNPC
+public class RecepcionistHotelNPC: InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento, periodo, periodoIng;
@@ -1214,15 +1214,34 @@ public class RecepcionistHotelNPC: InteracaoNPC
 
     private void InicializarConteudosPorNivel()
     {
-        // Evita duplicar exercícios caso o jogador interaja com o NPC novamente.
-        exerciciosCompletarFrase.Clear();
-        exerciciosCriarFrases.Clear();
-        exerciciosSpeaking.Clear();
-        exerciciosAlternativas.Clear();
-        exerciciosWriting.Clear();
-        exerciciosAssociacao.Clear();
+        var conteudo = MontarConteudo(nivelAtual, cumprimento, periodo, periodoIng, ObterDataCheckout());
+        dialogoAtual = conteudo.Falas;
+        Preencher(exerciciosCompletarFrase, conteudo.exerciciosCompletarFrase);
+        Preencher(exerciciosCriarFrases, conteudo.exerciciosCriarFrases);
+        Preencher(exerciciosSpeaking, conteudo.exerciciosSpeaking);
+        Preencher(exerciciosAlternativas, conteudo.exerciciosAlternativas);
+        Preencher(exerciciosWriting, conteudo.exerciciosWriting);
+        Preencher(exerciciosAssociacao, conteudo.exerciciosAssociacao);
+    }
 
-        string dataCheckout = ObterDataCheckout();
+    private static void Preencher(List<ExercicioBase> destino, List<ExercicioBase> origem)
+    {
+        destino.Clear();
+        destino.AddRange(origem);
+    }
+
+    private static ConteudoRoteiro MontarConteudo(string nivelAtual, string cumprimento, string periodo,
+        string periodoIng, string dataCheckout)
+    {
+        var descricao = new ConteudoRoteiro();
+        List<string> dialogoAtual = null;
+        var exerciciosCompletarFrase = descricao.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao.exerciciosAlternativas;
+        var exerciciosWriting = descricao.exerciciosWriting;
+        var exerciciosAssociacao = descricao.exerciciosAssociacao;
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -2162,6 +2181,9 @@ else if (nivelAtual == "A2-B1")
         }
     );
 }
+
+        descricao.Falas = dialogoAtual;
+        return descricao;
     }
 
     private string ObterDataCheckout()
@@ -2227,8 +2249,11 @@ else if (nivelAtual == "A2-B1")
         MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.InicioConversa, NpcKey);
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0);
+
+    private async Task ExecutarAtendimento(int inicio, string saudacao = null)
     {
+        int versao = SessaoCenario.Atual.Versao;
         GameProgress.EstaEmDialogo = true;
         nivelAtual = DadosJogador.nivelUsuario;
         CartaoQuartoHotel cartao = cartaoQuarto != null ? cartaoQuarto.GetComponent<CartaoQuartoHotel>() : null;
@@ -2236,29 +2261,25 @@ else if (nivelAtual == "A2-B1")
         {
             if (cartao != null)
                 cartao.Resetar();
-            AtualizarPeriodoDoDia();
+            if (saudacao == null)
+                AtualizarPeriodoDoDia();
+            else
+                RestaurarSaudacaoCheckpoint(saudacao);
             InicializarConteudosPorNivel();
             catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("RecepcionistHotelNPC: usando exercícios locais. " + catalogoExercicios.Error);
 
-            switch (nivelAtual)
-            {
-                case "A1": await interacaoA1(); break;
-                case "A1-A2": await interacaoA1A2(); break;
-                case "A2": await interacaoA2(); break;
-                case "A2-B1": await interacaoA2B1(); break;
-                default: await interacaoB1(); break;
-            }
+            ValidarVisita(versao);
+            await CriarRoteiro(versao).Executar(inicio);
 
             MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.FimConversa, NpcKey);
-            if (MissoesHotel.UsaCartao(nivelAtual))
-            {
-                if (!await AguardarRecolherCartao(cartao))
-                    return;
+            if (MissoesHotel.UsaCartao(nivelAtual)
+                && !await ContinuarAposConversaCheckpoint(cartao, CheckpointJogo.HotelCartao))
+                return;
 
-                await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
-            }
+            if (!MissoesHotel.UsaCartao(nivelAtual))
+                CheckpointJogo.Instance?.CapturarMarcoHotel(CheckpointJogo.HotelRevisao);
         }
         finally
         {
@@ -2273,6 +2294,96 @@ else if (nivelAtual == "A2-B1")
             await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
         else
             Debug.LogError("RevisaoManager não está disponível para finalizar Hotel.");
+    }
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
+    {
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        string saudacao = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        RestaurarSaudacaoCheckpoint(saudacao);
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        if (cursor.Situacao.Length != 1)
+            throw new System.IO.InvalidDataException("Estado do roteiro do Hotel inválido.");
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ultimaVisitaHotel = VisitaAtual;
+            TravarControlePlayer();
+            await ExecutarAtendimento(cursor.Indice, saudacao);
+        };
+    }
+
+    private void RestaurarSaudacaoCheckpoint(string saudacao)
+    {
+        cumprimento = saudacao;
+        bool manha = saudacao == "Good morning!";
+        bool tarde = saudacao == "Good afternoon!";
+        periodo = manha ? "de manhã" : tarde ? "a tarde" : "a noite";
+        periodoIng = manha ? "this morning" : tarde ? "this afternoon" : "tonight";
+    }
+
+    private async Task<bool> ContinuarAposConversaCheckpoint(CartaoQuartoHotel cartao, string passo)
+    {
+        if (passo == CheckpointJogo.HotelRevisao)
+            return true;
+
+        if (passo == CheckpointJogo.HotelCartao)
+        {
+            if (!await AguardarRecolherCartao(cartao))
+                return false;
+            CheckpointJogo.Instance?.CapturarMarcoHotel(CheckpointJogo.HotelAssociacao);
+        }
+
+        await AbrirExercicioDoPonto(VocabularioHotel, 1, exerciciosAssociacao[0]);
+        CheckpointJogo.Instance?.CapturarMarcoHotel(CheckpointJogo.HotelRevisao);
+        return true;
+    }
+
+    internal async Task RetomarMarcoCheckpoint(string passo, int versao)
+    {
+        if (!SessaoCenario.Atual.Permite(MissoesHotel.Cenario, versao))
+            return;
+
+        AtualizarVisita();
+        ultimaVisitaHotel = VisitaAtual;
+        interacaoConcluida = true;
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        GameProgress.EstaEmDialogo = true;
+        TravarControlePlayer();
+        var cartao = cartaoQuarto != null ? cartaoQuarto.GetComponent<CartaoQuartoHotel>() : null;
+        try
+        {
+            cartao?.Resetar();
+            if (passo != CheckpointJogo.HotelRevisao)
+            {
+                AtualizarPeriodoDoDia();
+                InicializarConteudosPorNivel();
+                catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual);
+                if (this == null || !SessaoCenario.Atual.Permite(MissoesHotel.Cenario, versao))
+                    return;
+            }
+
+            if (!await ContinuarAposConversaCheckpoint(cartao, passo))
+                return;
+        }
+        finally
+        {
+            if (this != null && SessaoCenario.Atual.Permite(MissoesHotel.Cenario, versao))
+            {
+                cartao?.Resetar();
+                OcultarInterfaceDaConversa();
+                GameProgress.EstaEmDialogo = false;
+                LiberarControlePlayer();
+            }
+        }
+
+        if (this != null && SessaoCenario.Atual.Permite(MissoesHotel.Cenario, versao)
+            && RevisaoManager.Instance != null)
+            await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
     }
 
     private void OcultarInterfaceDaConversa()
@@ -2294,10 +2405,13 @@ else if (nivelAtual == "A2-B1")
 
         // O raio aceita somente o cartão durante esta etapa, com o movimento liberado para alcançá-lo.
         LiberarControlePlayer();
-        while (cartao != null && CartaoQuartoHotel.Disponivel == cartao)
+        int visita = SessaoCenario.Atual.Versao;
+        CheckpointJogo.Instance?.CapturarMarcoHotel(CheckpointJogo.HotelCartao);
+        while (cartao != null && CartaoQuartoHotel.Disponivel == cartao
+            && SessaoCenario.Atual.Permite(MissoesHotel.Cenario, visita))
             await Task.Yield();
 
-        if (cartao == null || !cartao.Recolhido)
+        if (!SessaoCenario.Atual.Permite(MissoesHotel.Cenario, visita) || cartao == null || !cartao.Recolhido)
             return false;
 
         MissionManager.Instance?.RegistrarEventoHotel(MissoesHotel.Marco, MissoesHotel.CartaoRecolhido);
@@ -2305,205 +2419,141 @@ else if (nivelAtual == "A2-B1")
         return true;
     }
 
-    private async Task interacaoA1()
+
+    internal const string VocabularioHotel = "hotel_vocabulary";
+
+    internal static RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-
-        // Conversa inicial e identificação do hóspede.
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("reservation", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("guest_name", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        // Informações do quarto, café da manhã e checkout.
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("breakfast", 1, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("checkout", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("stay_duration", 1, exAtual);
-
-        // A recepcionista encerra oferecendo ajuda; o usuário agradece em seguida.
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("farewell", 1, exAtual);
-
-        await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
+        var conteudo = MontarConteudo(nivel, "{{greeting}}", "{{periodo}}", "{{periodo_ing}}", "{{checkout_date}}");
+        return MontarRoteiro(0, nivel, null, conteudo);
     }
 
-    private async Task interacaoA2()
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita) => MontarRoteiro(visita, nivelAtual, this);
+
+    private static RoteiroNpcCheckpoint MontarRoteiro(int visita, string nivelAtual, RecepcionistHotelNPC npc,
+        ConteudoRoteiro descricao = null)
     {
-        int i = 0;
+        var dialogoAtual = descricao?.Falas ?? npc.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? npc.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? npc.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? npc.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? npc.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? npc.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? npc.exerciciosAssociacao;
 
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("reservation", 1, exAtual);
+        var roteiro = npc == null ? new RoteiroNpcCheckpoint(NpcKey)
+            : new RoteiroNpcCheckpoint(npc, visita, () => new[] { RoteiroNpcCheckpoint.ChaveSaudacao(npc.cumprimento) });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => npc.PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => npc.AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosWriting[0];
-        await AbrirExercicioDoPonto("guest_name", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("stay_duration", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        // Informações sobre café da manhã e checkout.
-        exAtual = exerciciosWriting[1];
-        await AbrirExercicioDoPonto("breakfast", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 1, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 2, exerciciosCompletarFrase[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("farewell", 1, exerciciosSpeaking[2]);
-
-        await PlayAudioETexto(i++);
-
-    }
-
-    private async Task interacaoB1()
-    {
-        int i = 0;
-
-        // Reserva, identificação e confirmação dos dados.
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("reservation", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("reservation", 2, exAtual);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("payment", 1, exAtual);
-
-        // Cartão do quarto, elevador e café da manhã.
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosCriarFrases[0];
-        await AbrirExercicioDoPonto("elevator", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("breakfast", 1, exerciciosSpeaking[2]);
-
-        await PlayAudioETexto(i++);
-        exAtual = exerciciosAlternativas[1];
-        await AbrirExercicioDoPonto("breakfast", 2, exAtual);
-
-        // Checkout: primeiro pergunta o horário; depois solicita a saída tardia.
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 1, exerciciosWriting[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 2, exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 3, exerciciosCompletarFrase[0]);
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("hotel_vocabulary", 1, exerciciosAssociacao[0]);
-    }
-
-    private async Task interacaoA1A2()
-    {
-        int i = 0;
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("reservation", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("stay_duration", 1, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("room_key", 1, exerciciosSpeaking[2]);
-
-        // Informações sobre o café da manhã.
-        await AbrirExercicioDoPonto("breakfast", 1, exerciciosCriarFrases[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
-
-        // Checkout e encerramento.
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("farewell", 1, exerciciosSpeaking[3]);
-
-    }
-
-    private async Task interacaoA2B1()
-    {
-        int i = 0;
-
-        // Reserva e confirmação dos dados.
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("reservation", 1, exerciciosSpeaking[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("guest_name", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("reservation", 2, exerciciosSpeaking[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("payment", 1, exerciciosAlternativas[0]);
-
-        // Cartão do quarto.
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("room_key", 1, exerciciosSpeaking[2]);
-
-        // Orientações sobre o hotel.
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("wifi", 1, exerciciosCriarFrases[0]);
-
-        await AbrirExercicioDoPonto("elevator", 1, exerciciosSpeaking[3]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("breakfast", 1, exerciciosWriting[1]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("breakfast", 2, exerciciosAlternativas[1]);
-
-        // Checkout e solicitação de saída tardia.
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 1, exerciciosWriting[2]);
-
-        await PlayAudioETexto(i++);
-        await AbrirExercicioDoPonto("checkout", 2, exerciciosSpeaking[4]);
-
-        await AbrirExercicioDoPonto("checkout", 3, exerciciosCompletarFrase[0]);
-
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("reservation", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("guest_name", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("payment", 1, exerciciosAlternativas[0]);
+                Fala(3);
+                Exercicio("breakfast", 1, exerciciosCriarFrases[0]);
+                Fala(4);
+                Exercicio("checkout", 1, exerciciosSpeaking[1]);
+                Fala(5);
+                Exercicio("stay_duration", 1, exerciciosAlternativas[1]);
+                Fala(6);
+                Exercicio("farewell", 1, exerciciosSpeaking[2]);
+                Exercicio("hotel_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("reservation", 1, exerciciosCriarFrases[0]);
+                Fala(1);
+                Exercicio("guest_name", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("stay_duration", 1, exerciciosSpeaking[0]);
+                Fala(3);
+                Exercicio("payment", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("breakfast", 1, exerciciosWriting[1]);
+                Fala(5);
+                Exercicio("breakfast", 2, exerciciosAlternativas[1]);
+                Fala(6);
+                Exercicio("checkout", 1, exerciciosSpeaking[1]);
+                Fala(7);
+                Exercicio("checkout", 2, exerciciosCompletarFrase[0]);
+                Fala(8);
+                Exercicio("farewell", 1, exerciciosSpeaking[2]);
+                Fala(9);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("reservation", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("guest_name", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("reservation", 2, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("payment", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("elevator", 1, exerciciosCriarFrases[0]);
+                Fala(5);
+                Exercicio("breakfast", 1, exerciciosSpeaking[2]);
+                Fala(6);
+                Exercicio("breakfast", 2, exerciciosAlternativas[1]);
+                Fala(7);
+                Exercicio("checkout", 1, exerciciosWriting[1]);
+                Fala(8);
+                Exercicio("checkout", 2, exerciciosSpeaking[3]);
+                Fala(9);
+                Exercicio("checkout", 3, exerciciosCompletarFrase[0]);
+                Fala(10);
+                Exercicio("hotel_vocabulary", 1, exerciciosAssociacao[0]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("reservation", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("guest_name", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("stay_duration", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("payment", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("room_key", 1, exerciciosSpeaking[2]);
+                Exercicio("breakfast", 1, exerciciosCriarFrases[0]);
+                Fala(5);
+                Exercicio("breakfast", 2, exerciciosAlternativas[1]);
+                Fala(6);
+                Exercicio("farewell", 1, exerciciosSpeaking[3]);
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("reservation", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("guest_name", 1, exerciciosWriting[0]);
+                Fala(2);
+                Exercicio("reservation", 2, exerciciosSpeaking[1]);
+                Fala(3);
+                Exercicio("payment", 1, exerciciosAlternativas[0]);
+                Fala(4);
+                Exercicio("room_key", 1, exerciciosSpeaking[2]);
+                Fala(5);
+                Exercicio("wifi", 1, exerciciosCriarFrases[0]);
+                Exercicio("elevator", 1, exerciciosSpeaking[3]);
+                Fala(6);
+                Exercicio("breakfast", 1, exerciciosWriting[1]);
+                Fala(7);
+                Exercicio("breakfast", 2, exerciciosAlternativas[1]);
+                Fala(8);
+                Exercicio("checkout", 1, exerciciosWriting[2]);
+                Fala(9);
+                Exercicio("checkout", 2, exerciciosSpeaking[4]);
+                Exercicio("checkout", 3, exerciciosCompletarFrase[0]);
+                break;
+        }
+        return roteiro;
     }
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
@@ -2539,11 +2589,22 @@ else if (nivelAtual == "A2-B1")
 
     private ExercicioBlocos PreencherPeriodo(ExercicioBlocos blocos)
     {
+        return PreencherPeriodo(blocos, periodoIng == "this morning" ? "morning"
+            : periodoIng == "this afternoon" ? "afternoon" : "night");
+    }
+
+    internal static ExercicioBlocos PreencherPeriodo(ExercicioBlocos blocos, string periodoCheckpoint)
+    {
+        string periodo = periodoCheckpoint == "morning" ? "de manhã"
+            : periodoCheckpoint == "afternoon" ? "a tarde" : "a noite";
+        string periodoIng = periodoCheckpoint == "morning" ? "this morning"
+            : periodoCheckpoint == "afternoon" ? "this afternoon" : "tonight";
         string Preencher(string texto) => texto?.Replace(PeriodoToken, periodo).Replace(PeriodoIngToken, periodoIng);
 
         // O catálogo é compartilhado pelo cache. Os textos preenchidos são locais à interação.
         return new ExercicioBlocos
         {
+            reviewPeriod = periodoCheckpoint,
             idExercise = blocos.idExercise,
             idTipoBanco = blocos.idTipoBanco,
             nomeTipoBanco = blocos.nomeTipoBanco,

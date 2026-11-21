@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Threading;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public class ExercicioRevisao
@@ -18,6 +21,9 @@ public class RevisaoManager : MonoBehaviour
 
     private readonly List<ExercicioRevisao> exerciciosErrados =
         new List<ExercicioRevisao>();
+
+    private readonly JArray revisadosCheckpoint = new JArray();
+    internal JArray CapturarRevisadosCheckpoint() => (JArray)revisadosCheckpoint.DeepClone();
 
     private string cenarioAtual;
     private int visitaAtual;
@@ -56,6 +62,7 @@ public class RevisaoManager : MonoBehaviour
         finalizacaoEmAndamento = false;
         cenarioFinalizado = false;
         exerciciosErrados.Clear();
+        revisadosCheckpoint.RemoveAll();
     }
 
     public bool DeveAdiarAssociacoes
@@ -136,6 +143,98 @@ public class RevisaoManager : MonoBehaviour
             item.cenario == cenario && !item.aguardandoAssociacao);
     }
 
+    internal JArray CapturarFilaCheckpoint(string cenario)
+    {
+        var fila = new JArray();
+        foreach (var item in GetExerciciosErrados(cenario))
+        {
+            var ex = item.exercicio;
+            var chave = CheckpointJogo.ChaveExercicio(ex, item.npcOrigem, false);
+            if (chave == null || ex.idExercise <= 0 || ex.nivelBanco != SessaoCenario.Atual.Nivel
+                || item.contextoNpc?.Length > 2048 || item.contextoNpc?.Contains("\0") == true)
+                return null;
+            var dados = new JObject();
+            if (item.contextoNpc != null) dados["npc_line"] = item.contextoNpc;
+            if (ex.reviewGreeting != null) dados["greeting"] = ex.reviewGreeting;
+            if (ex.reviewTotal != null) dados["total"] = ex.reviewTotal;
+            if (ex.reviewPeriod != null) dados["period"] = ex.reviewPeriod;
+            if (dados.HasValues) chave["context"] = dados;
+            fila.Add(chave);
+        }
+        return fila;
+    }
+
+    internal async Task<bool> RestaurarFilaCheckpoint(string cenario, int visita, JArray fila, JArray revisados, CancellationToken token)
+    {
+        var itens = new List<ExercicioRevisao>();
+        var chaves = new HashSet<string>();
+        foreach (var chave in fila)
+        {
+            if (!SessaoCenario.Atual.Permite(cenario, visita) || token.IsCancellationRequested)
+                return false;
+            string npcKey = (string)chave["npc_key"];
+            string ponto = (string)chave["point_key"];
+            string nivel = SessaoCenario.Atual.Nivel;
+            int ordem = (int)chave["ordem"];
+            if (!chaves.Add($"{npcKey}/{ponto}/{ordem}") || ExerciseManager.Instance == null)
+                return false;
+            var npc = FindObjectsByType<InteracaoNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(n => n.Cenario == cenario && n.CheckpointNpcKey == npcKey);
+            if (npc == null)
+                return false;
+
+            var catalogo = await ExerciseManager.Instance.LoadForPointAsync(npcKey, ponto, nivel, token);
+            if (!SessaoCenario.Atual.Permite(cenario, visita) || token.IsCancellationRequested
+                || !catalogo.Success || !catalogo.ByPoint.TryGetValue(ponto, out var exercicios))
+                return false;
+            int? id = (int?)chave["exercise_id"];
+            var item = exercicios.SingleOrDefault(e => e.Exercise.ordemBanco == ordem
+                && e.Exercise.nivelBanco == nivel && (!id.HasValue || e.Exercise.idExercise == id.Value));
+            if (item == null)
+                return false;
+
+            var ex = item.Exercise.CopiarParaRevisaoCheckpoint();
+            var dados = chave["context"];
+            if (ex is ExercicioSpeaking speaking && npc is CashierNPC)
+            {
+                string saudacao = (string)dados?["greeting"];
+                string total = (string)dados?["total"];
+                if (saudacao != null && (ponto != "greeting" || ordem != 1
+                    || (nivel != "A1-A2" && nivel != "A2" && nivel != "B1")
+                    || (saudacao != "Good morning!" && saudacao != "Good afternoon!" && saudacao != "Good evening!")))
+                    return false;
+                if (total != null && (ponto != "purchase_total" || ordem != 2 || (nivel != "A2" && nivel != "B1")
+                    || !System.Text.RegularExpressions.Regex.IsMatch(total, @"\A[0-9]{1,8}(?:[.,][0-9]{1,2})?\z")))
+                    return false;
+                speaking = CashierNPC.PreencherSpeaking(speaking, saudacao, total);
+                bool TemMarcador(string texto) => texto?.Contains("{{total}}") == true || texto?.Contains("{{greeting}}") == true;
+                if (TemMarcador(speaking.enunciado) || speaking.opcoesFala?.Any(TemMarcador) == true)
+                    return false;
+                ex = speaking;
+            }
+            if (ex is ExercicioBlocos blocos && npc is RecepcionistHotelNPC
+                && ponto == "reservation" && nivel == "A2" && ordem == 1)
+            {
+                string periodo = (string)dados?["period"];
+                if (periodo != "morning" && periodo != "afternoon" && periodo != "night")
+                    return false;
+                ex = RecepcionistHotelNPC.PreencherPeriodo(blocos, periodo);
+            }
+            if (ex is ExercicioWriting writing)
+                writing.respostaJogador = null;
+
+            itens.Add(new ExercicioRevisao { tipo = item.Tipo, exercicio = ex, contextoNpc = (string)dados?["npc_line"],
+                cenario = cenario, npcOrigem = npc });
+        }
+
+        if (!SessaoCenario.Atual.Permite(cenario, visita) || token.IsCancellationRequested || visitaAtual != visita)
+            return false;
+        exerciciosErrados.AddRange(itens);
+        foreach (var chave in revisados)
+            revisadosCheckpoint.Add(chave.DeepClone());
+        return true;
+    }
+
     public bool TemRevisao(string cenario)
     {
         return exerciciosErrados.Exists(item =>
@@ -194,6 +293,7 @@ public class RevisaoManager : MonoBehaviour
             exerciciosErrados.Remove(item);
         }
 
+        CheckpointJogo.Instance?.CapturarRevisao(cenario, visita);
         List<ExercicioRevisao> revisoes =
             GetExerciciosErrados(cenarioAtual);
 
@@ -233,8 +333,12 @@ public class RevisaoManager : MonoBehaviour
                 if (npcDoExercicio == null)
                     return false;
 
-                if (item.tipo == TipoExercicio.Speaking
-                    || item.tipo == TipoExercicio.Alternativas)
+                bool speakingLivre = item.tipo == TipoExercicio.Speaking
+                    && item.exercicio is ExercicioSpeaking speaking && speaking.modoLivre;
+                bool contextoVisual = item.tipo == TipoExercicio.Alternativas
+                    || item.tipo == TipoExercicio.Writing
+                    || (item.tipo == TipoExercicio.Speaking && !speakingLivre);
+                if (speakingLivre)
                 {
                     item.exercicio.enunciado =
                         "Context: " + item.contextoNpc + "\n\n" + enunciadoOriginal;
@@ -247,17 +351,23 @@ public class RevisaoManager : MonoBehaviour
                             npcDoExercicio,
                             modalLegenda,
                             item.tipo,
-                            item.exercicio))
+                            item.exercicio,
+                            contextoVisual: contextoVisual ? item.contextoNpc : null))
                     {
                         return false;
                     }
 
                     exerciciosErrados.Remove(item);
+                    var chave = CheckpointJogo.ChaveExercicio(item.exercicio, item.npcOrigem, false);
+                    if (chave != null)
+                        revisadosCheckpoint.Add(chave);
                 }
                 finally
                 {
                     item.exercicio.enunciado = enunciadoOriginal;
                 }
+
+                CheckpointJogo.Instance?.CapturarRevisao(cenario, visita);
             }
         }
 
@@ -266,7 +376,10 @@ public class RevisaoManager : MonoBehaviour
     }
 
     public async Task<bool> ExecutarRevisaoEExibirModalFinal(
-        InteracaoNPC npcApresentador)
+        InteracaoNPC npcApresentador,
+        ModalExercicio modalOverride = null,
+        GameObject avisoRevisaoOverride = null,
+        GameObject legendaOverride = null)
     {
         int visita = visitaAtual;
         if (!SessaoCenario.Atual.Permite(cenarioAtual, visita) || finalizacaoEmAndamento || cenarioFinalizado)
@@ -303,7 +416,7 @@ public class RevisaoManager : MonoBehaviour
         bool revisaoConcluida = false;
         try
         {
-            revisaoConcluida = await FazerRevisao(npcApresentador);
+            revisaoConcluida = await FazerRevisao(npcApresentador, modalOverride, avisoRevisaoOverride, legendaOverride);
         }
         finally
         {
@@ -424,7 +537,8 @@ public class RevisaoManager : MonoBehaviour
         TipoExercicio tipo,
         ExercicioBase exercicio,
         bool revisao = true,
-        bool faseAssociacao = false)
+        bool faseAssociacao = false,
+        string contextoVisual = null)
     {
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
@@ -443,8 +557,23 @@ public class RevisaoManager : MonoBehaviour
             exercicio,
             npcApresentador,
             revisao,
-            faseAssociacao);
+            faseAssociacao,
+            contextoVisual);
 
+        int abertura = modalExercicio.VersaoAbertura;
+        try
+        {
+            return await AguardarExercicioRevisao(modalExercicio);
+        }
+        finally
+        {
+            if (contextoVisual != null && modalExercicio != null)
+                modalExercicio.RestaurarEnunciadoExibido(abertura);
+        }
+    }
+
+    private async Task<bool> AguardarExercicioRevisao(ModalExercicio modalExercicio)
+    {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 

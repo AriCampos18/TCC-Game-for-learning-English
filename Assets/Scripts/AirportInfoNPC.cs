@@ -543,7 +543,7 @@ using TMPro;
 using System;
 using System.Runtime.CompilerServices;
 
-public class AirportInfoNPC : InteracaoNPC
+public class AirportInfoNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
     string nivelAtual;
     string cumprimento;
@@ -607,8 +607,18 @@ public class AirportInfoNPC : InteracaoNPC
         }
     }
 
-    private void InicializarConteudosPorNivel()
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
     {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.FrasesTipadas ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+        var exerciciosAssociacao = descricao?.exerciciosAssociacao ?? this.exerciciosAssociacao;
+        var cumprimento = descricao == null ? this.cumprimento : "{{greeting}}";
+
         exerciciosCompletarFrase.Clear();
         exerciciosCriarFrases.Clear();
         exerciciosSpeaking.Clear();
@@ -859,6 +869,13 @@ else if (nivelAtual == "A2-B1")
         }
     );
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -896,8 +913,11 @@ else if (nivelAtual == "A2-B1")
             MissionManager.ConcluirMissaoNPC(id);
     }
 
-    protected override async Task IniciarInteracao()
+    protected override Task IniciarInteracao() => ExecutarAtendimento(0, false);
+
+    private async Task ExecutarAtendimento(int inicio, bool retomada)
     {
+        int versao = SessaoCenario.Atual.Versao;
         GameProgress.EstaEmDialogo = true;
 
         if (instrucoesJaApresentadas)
@@ -907,7 +927,7 @@ else if (nivelAtual == "A2-B1")
         else
         {
             nivelAtual = DadosJogador.nivelUsuario;
-            switch (nivelAtual)
+            if (!retomada) switch (nivelAtual)
             {
                 case "A1":
                     EmitirEventoMissao("npc_interagido", "airport_info_npc");
@@ -931,22 +951,8 @@ else if (nivelAtual == "A2-B1")
             if (!catalogoExercicios.Success)
                 Debug.LogWarning("AirportInfoNPC: usando exerc?cios locais. " + catalogoExercicios.Error);
 
-            if (nivelAtual == "A1")
-            {
-                await interacaoA1();
-            }
-            else if(nivelAtual=="A1-A2")
-                await interacaoA1A2();
-            else if (nivelAtual == "A2")
-            {
-                await interacaoA2();
-            }
-            else if(nivelAtual=="A2-B1")
-                await interacaoA2B1();
-            else
-            {
-                await interacaoB1();
-            }
+            ValidarVisita(versao);
+            await CriarRoteiro(versao).Executar(inicio);
 
             switch (nivelAtual)
             {
@@ -979,141 +985,110 @@ else if (nivelAtual == "A2-B1")
         LiberarControlePlayer();
     }
 
-    private async Task interacaoA1()
+
+    async Task<System.Func<Task>> IRoteiroNpcCheckpoint.PrepararRetomada(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        int i = 0;
-
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
-
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosAlternativas[0];
-        await AbrirExercicioDoPonto("travel_document", 1, exAtual);
-
-        EmitirEventoMissao("conversa_encerrada", "airport_info_npc");
-        ConcluirMissao("aeroporto_a1_2");
+        ValidarVisita(versao);
+        AtualizarVisita();
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
+        InicializarConteudosPorNivel();
+        var cursor = CriarRoteiro(versao).Validar(visita);
+        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        return async () =>
+        {
+            ValidarVisita(versao);
+            instrucoesJaApresentadas = false;
+            TravarControlePlayer();
+            await ExecutarAtendimento(cursor.Indice, true);
+        };
     }
 
-    private async Task interacaoA2()
+    internal void RetomarAposOrientacoesCheckpoint(int versao)
     {
-        int i = 0;
-
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("checkin_directions", 1, exAtual);
-
-        await AbrirExercicioDoPonto("walking_time", 1, exerciciosWriting[0]);
-
-        await PlayAudioETexto(i++);
-
+        MarcarAtendimentoRestaurado(versao);
+        instrucoesJaApresentadas = true;
+        nivelAtual = SessaoCenario.Atual.Nivel;
+        InicializarConteudosPorNivel();
     }
 
-    private async Task interacaoB1()
+    internal RoteiroNpcCheckpoint DescreverRoteiro(string nivel)
     {
-        int i = 0;
-
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[0];
-        await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
-
-        ConcluirMissao("aeroporto_b1_2");
-
-
-        await PlayAudioETexto(i++);
-
-        await AbrirExercicioDoPonto("checkin_directions", 1, exerciciosAlternativas[0]);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[1];
-        await AbrirExercicioDoPonto("walking_time", 1, exAtual);
-
-        await PlayAudioETexto(i++);
-
-        await PlayAudioETexto(i++);
-
-        exAtual = exerciciosSpeaking[2];
-        await AbrirExercicioDoPonto("further_assistance", 1, exAtual);
-
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private async Task interacaoA1A2()
-{
-    int i = 0;
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
 
+        var roteiro = new RoteiroNpcCheckpoint(this, visita, () => new[] { RoteiroNpcCheckpoint.ChaveSaudacao(cumprimento) });
+        void Fala(int indice) => roteiro.Fala(dialogoAtual[indice], () => PlayAudioETexto(indice));
+        void Exercicio(string ponto, int ordem, ExercicioBase fallback) =>
+            roteiro.Exercicio(ponto, ordem, () => AbrirExercicioDoPonto(ponto, ordem, fallback), modelo: fallback);
 
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
-
-
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("checkin_directions", 1, exAtual);
-
-    await PlayAudioETexto(i++);
-
-    EmitirEventoMissao("conversa_encerrada", "airport_info_npc");
-    ConcluirMissao("aeroporto_a1a2_2");
-}
-
-private async Task interacaoA2B1()
-{
-    int i = 0;
-
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[0];
-    await AbrirExercicioDoPonto("checkin_location", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a2b1_1");
-
-    IniciarMissao(
-        "aeroporto_a2b1_2",
-        "Find out how to reach the second floor",
-        "Descubra o caminho para chegar ao segundo andar"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosAlternativas[0];
-    await AbrirExercicioDoPonto("checkin_directions", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a2b1_2");
-
-    IniciarMissao(
-        "aeroporto_a2b1_3",
-        "Find out how long it will take to reach the check-in desks",
-        "Confirme quanto tempo levará para chegar ao check-in"
-    );
-
-    await PlayAudioETexto(i++);
-
-    exAtual = exerciciosSpeaking[1];
-    await AbrirExercicioDoPonto("walking_time", 1, exAtual);
-
-    ConcluirMissao("aeroporto_a2b1_3");
-
-    await PlayAudioETexto(i++);
-}
+        switch (nivelAtual)
+        {
+            case "A1":
+                Fala(0);
+                Exercicio("checkin_location", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("travel_document", 1, exerciciosAlternativas[0]);
+                roteiro.Acao("EmitirEventoMissao.conversa_encerrada.airport_info_npc", () => { EmitirEventoMissao("conversa_encerrada", "airport_info_npc"); return Task.CompletedTask; });
+                roteiro.Acao("ConcluirMissao.aeroporto_a1_2", () => { ConcluirMissao("aeroporto_a1_2"); return Task.CompletedTask; });
+                break;
+            case "A2":
+                Fala(0);
+                Exercicio("checkin_location", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("checkin_directions", 1, exerciciosSpeaking[1]);
+                Exercicio("walking_time", 1, exerciciosWriting[0]);
+                Fala(2);
+                break;
+            case "B1":
+                Fala(0);
+                Exercicio("checkin_location", 1, exerciciosSpeaking[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_b1_2", () => { ConcluirMissao("aeroporto_b1_2"); return Task.CompletedTask; });
+                Fala(1);
+                Exercicio("checkin_directions", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                Exercicio("walking_time", 1, exerciciosSpeaking[1]);
+                Fala(3);
+                Fala(4);
+                Exercicio("further_assistance", 1, exerciciosSpeaking[2]);
+                break;
+            case "A1-A2":
+                Fala(0);
+                Exercicio("checkin_location", 1, exerciciosSpeaking[0]);
+                Fala(1);
+                Exercicio("checkin_directions", 1, exerciciosAlternativas[0]);
+                Fala(2);
+                roteiro.Acao("EmitirEventoMissao.conversa_encerrada.airport_info_npc", () => { EmitirEventoMissao("conversa_encerrada", "airport_info_npc"); return Task.CompletedTask; });
+                roteiro.Acao("ConcluirMissao.aeroporto_a1a2_2", () => { ConcluirMissao("aeroporto_a1a2_2"); return Task.CompletedTask; });
+                break;
+            case "A2-B1":
+                Fala(0);
+                Exercicio("checkin_location", 1, exerciciosSpeaking[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2b1_1", () => { ConcluirMissao("aeroporto_a2b1_1"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2b1_2", () => { IniciarMissao( "aeroporto_a2b1_2", "Find out how to reach the second floor", "Descubra o caminho para chegar ao segundo andar" ); return Task.CompletedTask; });
+                Fala(1);
+                Exercicio("checkin_directions", 1, exerciciosAlternativas[0]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2b1_2", () => { ConcluirMissao("aeroporto_a2b1_2"); return Task.CompletedTask; });
+                roteiro.Acao("IniciarMissao.aeroporto_a2b1_3", () => { IniciarMissao( "aeroporto_a2b1_3", "Find out how long it will take to reach the check-in desks", "Confirme quanto tempo levará para chegar ao check-in" ); return Task.CompletedTask; });
+                Fala(2);
+                Exercicio("walking_time", 1, exerciciosSpeaking[1]);
+                roteiro.Acao("ConcluirMissao.aeroporto_a2b1_3", () => { ConcluirMissao("aeroporto_a2b1_3"); return Task.CompletedTask; });
+                Fala(3);
+                break;
+        }
+        return roteiro;
+    }
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {

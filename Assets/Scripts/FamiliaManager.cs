@@ -33,29 +33,13 @@ public class FamiliaManager : MonoBehaviour
                     pai.PrepararParaFamilia(nivel),
                     irmao.PrepararParaFamilia(nivel));
 
-                if (nivel == "A1")
-                    await InteracaoA1();
-                else if (nivel == "A1-A2")
-                    await InteracaoA1A2();
-                else if (nivel == "A2")
-                    await InteracaoA2();
-                else if (nivel == "A2-B1")
-                    await InteracaoA2B1();
-                else
-                    await InteracaoB1();
+                await CriarRoteiro(nivel, visita, mae, pai, irmao, this).Executar();
 
                 if (nivel != "B1")
                 {
                     Emitir("marco_fluxo", "dialogos_concluidos");
-                    await AguardarComMovimento(ObterInteracaoHome().AguardarTravessiaDaSaida);
-                    Emitir("marco_fluxo", "saida_home");
-                    string despedida = MissoesHome.UltimaMissao(nivel);
-                    if (MissionManager.Instance?.MissaoConcluida(despedida) != true)
-                        throw new InvalidOperationException("A miss?o de despedida precisa estar conclu?da antes da Associa??o.");
-
-                    visitaComAssociacaoAposSaida = visita;
-                    int ordem = nivel == "A1" ? 9 : nivel == "A2" ? 10 : 13;
-                    await mae.ExecutarExercicio("farewell", ordem, mae.exerciciosAssociacao[0]);
+                    CheckpointJogo.Instance?.CapturarCaminhoHome();
+                    await ConcluirSaidaEAbrirAssociacao(nivel, visita);
                 }
             }
             catch (InvalidOperationException e)
@@ -82,6 +66,50 @@ public class FamiliaManager : MonoBehaviour
         {
             visitaEmAndamento = false;
         }
+    }
+
+    internal async Task RetomarSaidaCheckpoint(int visita)
+    {
+        if (!SessaoCenario.Atual.Permite("Home", visita) || visitaEmAndamento)
+            return;
+        visitaEmAndamento = true;
+        GameProgress.EstaEmDialogo = true;
+        try
+        {
+            string nivel = SessaoCenario.Atual.Nivel;
+            mae.AtualizarVisita();
+            await mae.PrepararParaFamilia(nivel);
+            if (!SessaoCenario.Atual.Permite("Home", visita))
+                return;
+            await ConcluirSaidaEAbrirAssociacao(nivel, visita);
+        }
+        finally
+        {
+            visitaEmAndamento = false;
+            if (SessaoCenario.Atual.Permite("Home", visita))
+            {
+                GameProgress.EstaEmDialogo = false;
+                mae.FinalizarInteracaoFamilia();
+            }
+        }
+        if (SessaoCenario.Atual.Permite("Home", visita))
+            await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(mae);
+    }
+
+    private async Task ConcluirSaidaEAbrirAssociacao(string nivel, int visita)
+    {
+        await AguardarComMovimento(ObterInteracaoHome().AguardarTravessiaDaSaida);
+        if (!SessaoCenario.Atual.Permite("Home", visita))
+            throw new OperationCanceledException();
+        Emitir("marco_fluxo", "saida_home");
+        string despedida = MissoesHome.UltimaMissao(nivel);
+        if (MissionManager.Instance?.MissaoConcluida(despedida) != true)
+            throw new InvalidOperationException("A missão de despedida precisa estar concluída antes da Associação.");
+
+        visitaComAssociacaoAposSaida = visita;
+        int ordem = nivel == "A1" ? 9 : nivel == "A2" ? 10 : 13;
+        CheckpointJogo.Instance?.CapturarAssociacaoFinal(mae, "farewell", ordem);
+        await mae.ExecutarExercicio("farewell", ordem, mae.exerciciosAssociacao[0]);
     }
 
     private static void Emitir(string tipo, string alvo)
@@ -112,219 +140,251 @@ public class FamiliaManager : MonoBehaviour
 
     private async Task Visitar(string comodo)
     {
+        int visita = SessaoCenario.Atual.Versao;
         InteracaoHome interacao = ObterInteracaoHome();
         await AguardarComMovimento(() => interacao.AguardarPermanencia(comodo));
+        mae.ValidarRoteiroCheckpoint(visita);
         Emitir("permanencia_confirmada", comodo);
     }
 
     private async Task Jantar()
     {
+        int visita = SessaoCenario.Atual.Versao;
         InteracaoHome interacao = ObterInteracaoHome();
         await AguardarComMovimento(interacao.AguardarMesa);
         await interacao.SimularJantar();
+        mae.ValidarRoteiroCheckpoint(visita);
         Emitir("marco_fluxo", "jantar_concluido");
     }
 
-    private async Task InteracaoA1()
+    internal async Task<Func<Task>> PrepararRetomadaRoteiro(Newtonsoft.Json.Linq.JObject visita,
+        int versao, System.Threading.CancellationToken token)
     {
-        await pai.ExecutarFala(0);
-        await irmao.ExecutarFala(0);
-        await mae.ExecutarFala(0);
-        await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
-        Emitir("exercicio_encerrado", "mother_npc/greeting/1");
+        string nivel = SessaoCenario.Atual.Nivel;
+        if (visitaEmAndamento || mae == null || pai == null || irmao == null)
+            throw new System.IO.InvalidDataException("A família não está disponível para retomar Home.");
+        mae.AtualizarVisita();
+        pai.AtualizarVisita();
+        irmao.AtualizarVisita();
+        await Task.WhenAll(mae.PrepararParaFamilia(nivel), pai.PrepararParaFamilia(nivel), irmao.PrepararParaFamilia(nivel));
+        token.ThrowIfCancellationRequested();
+        mae.ValidarRoteiroCheckpoint(versao);
+        var roteiro = CriarRoteiro(nivel, versao, mae, pai, irmao, this);
+        var cursor = roteiro.Validar(visita);
+        if (cursor.Situacao.Length != 0)
+            throw new System.IO.InvalidDataException("Estado inesperado no roteiro da família.");
 
-        await mae.ExecutarFala(1);
-        await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosAlternativas[0]);
-        Emitir("exercicio_encerrado", "mother_npc/day_conversation/2");
-
-        await mae.ExecutarFala(2);
-        await Visitar("banheiro");
-        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosSpeaking[1]);
-
-        await mae.ExecutarFala(3);
-        await mae.ExecutarExercicio("work_conversation", 4, mae.exerciciosSpeaking[2]);
-        Emitir("exercicio_encerrado", "mother_npc/work_conversation/4");
-
-        await irmao.ExecutarExercicio("school_and_dog", 5, irmao.exerciciosSpeaking[0]);
-        await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosCompletarFrase[0]);
-        await irmao.ExecutarFala(2);
-        await irmao.ExecutarExercicio("school_and_dog", 7, irmao.exerciciosAlternativas[0]);
-        Emitir("conversa_encerrada", "brother_npc");
-
-        await mae.ExecutarFala(4);
-        await Jantar();
-
-        await pai.ExecutarFala(1);
-        await mae.ExecutarExercicio("farewell", 8, mae.exerciciosSpeaking[3]);
-
+        return async () =>
+        {
+            mae.ValidarRoteiroCheckpoint(versao);
+            visitaEmAndamento = true;
+            GameProgress.EstaEmDialogo = true;
+            mae.TravarControlePlayer();
+            try
+            {
+                await roteiro.Executar(cursor.Indice);
+                if (nivel != "B1")
+                {
+                    Emitir("marco_fluxo", "dialogos_concluidos");
+                    CheckpointJogo.Instance?.CapturarCaminhoHome();
+                    await ConcluirSaidaEAbrirAssociacao(nivel, versao);
+                }
+            }
+            finally
+            {
+                visitaEmAndamento = false;
+                if (SessaoCenario.Atual.Permite("Home", versao))
+                {
+                    GameProgress.EstaEmDialogo = false;
+                    mae.FinalizarInteracaoFamilia();
+                }
+            }
+            if (SessaoCenario.Atual.Permite("Home", versao) && RevisaoManager.Instance != null)
+                await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(mae);
+        };
     }
 
-    private async Task InteracaoA1A2()
+    internal static RoteiroNpcCheckpoint DescreverRoteiro(string nivel, motherNPC mae, fatherNPC pai, brotherNPC irmao) =>
+        CriarRoteiro(nivel, 0, mae, pai, irmao, null);
+
+    private static RoteiroNpcCheckpoint CriarRoteiro(string nivel, int visita, motherNPC mae, fatherNPC pai,
+        brotherNPC irmao, FamiliaManager origem)
     {
-        await pai.ExecutarFala(0);
-        await irmao.ExecutarFala(0);
-        await mae.ExecutarFala(0);
+        var roteiro = new RoteiroNpcCheckpoint(mae, visita);
+        var maeDescricao = origem == null ? mae.DescreverConteudo(nivel) : null;
+        var paiDescricao = origem == null ? pai.DescreverConteudo(nivel) : null;
+        var irmaoDescricao = origem == null ? irmao.DescreverConteudo(nivel) : null;
+        void Evento(string tipo, string alvo) => roteiro.Acao("event." + tipo + "." + alvo.Replace('/', '.'), () =>
+        {
+            Emitir(tipo, alvo);
+            return Task.CompletedTask;
+        });
+        void FalaMae(int indice) => roteiro.Fala(maeDescricao?.Falas[indice] ?? mae.TextoFalaCheckpoint(indice), () => mae.ExecutarFala(indice), mae);
+        void FalaPai(int indice) => roteiro.Fala(paiDescricao?.Falas[indice] ?? pai.TextoFalaCheckpoint(indice), () => pai.ExecutarFala(indice), pai);
+        void FalaIrmao(int indice) => roteiro.Fala(irmaoDescricao?.Falas[indice] ?? irmao.TextoFalaCheckpoint(indice), () => irmao.ExecutarFala(indice), irmao);
+        void ExercicioMae(string ponto, int ordem, ExercicioBase ex) =>
+            roteiro.Exercicio(ponto, ordem, () => mae.ExecutarExercicio(ponto, ordem, ex), mae, modelo: ex);
+        void ExercicioPai(string ponto, int ordem, ExercicioBase ex) =>
+            roteiro.Exercicio(ponto, ordem, () => pai.ExecutarExercicio(ponto, ordem, ex), pai, modelo: ex);
+        void ExercicioIrmao(string ponto, int ordem, ExercicioBase ex) =>
+            roteiro.Exercicio(ponto, ordem, () => irmao.ExecutarExercicio(ponto, ordem, ex), irmao, modelo: ex);
+        void Explorar(string comodo) => roteiro.Acao("explore." + comodo, () => origem.Visitar(comodo));
+        void Mesa() => roteiro.Acao("dinner", () => origem.Jantar());
 
-        await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
-        Emitir("exercicio_encerrado", "mother_npc/greeting/1");
-
-        await mae.ExecutarFala(1);
-        await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
-        Emitir("exercicio_encerrado", "mother_npc/day_conversation/2");
-
-        await mae.ExecutarFala(2);
-        await Visitar("banheiro");
-        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
-        await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
-
-        await mae.ExecutarExercicio("work_conversation", 5, mae.exerciciosSpeaking[2]);
-        await mae.ExecutarFala(3);
-        Emitir("marco_fluxo", "mae_fala_3");
-
-        await pai.ExecutarFala(1);
-        Emitir("marco_fluxo", "pai_fala_1");
-        await pai.ExecutarExercicio("work_conversation", 7, pai.exerciciosSpeaking[0]);
-
-        await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosSpeaking[0]);
-        await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[1]);
-        await irmao.ExecutarFala(2);
-        await irmao.ExecutarExercicio("school_and_dog", 10, irmao.exerciciosSpeaking[2]);
-        await irmao.ExecutarExercicio("school_and_dog", 11, irmao.exerciciosAlternativas[0]);
-        Emitir("conversa_encerrada", "brother_npc");
-
-        await mae.ExecutarFala(4);
-        await Jantar();
-        await pai.ExecutarFala(2);
-
-        await pai.ExecutarExercicio("farewell", 12, pai.exerciciosSpeaking[1]);
-
-    }
-
-    private async Task InteracaoA2()
-    {
-        await irmao.ExecutarFala(0);
-        await mae.ExecutarFala(0);
-        await mae.ExecutarExercicio("greeting", 1, mae.exerciciosSpeaking[0]);
-        Emitir("exercicio_encerrado", "mother_npc/greeting/1");
-
-        await mae.ExecutarFala(1);
-        await mae.ExecutarExercicio("day_conversation", 2, mae.exerciciosWriting[0]);
-        Emitir("exercicio_encerrado", "mother_npc/day_conversation/2");
-
-        await mae.ExecutarFala(2);
-        await Visitar("quarto");
-        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosAlternativas[0]);
-        await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosSpeaking[1]);
-
-        await pai.ExecutarExercicio("work_conversation", 5, pai.exerciciosSpeaking[0]);
-        await pai.ExecutarFala(0);
-        Emitir("marco_fluxo", "pai_fala_0");
-
-        await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosSpeaking[0]);
-        await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio("school_and_dog", 7, irmao.exerciciosSpeaking[1]);
-        await irmao.ExecutarFala(2);
-        Emitir("marco_fluxo", "irmao_fala_2");
-
-        await irmao.ExecutarExercicio("pets", 8, irmao.exerciciosSpeaking[2]);
-        Emitir("exercicio_encerrado", "brother_npc/pets/8");
-
-        await mae.ExecutarFala(3);
-        await Jantar();
-
-        await pai.ExecutarFala(1);
-        await mae.ExecutarExercicio("farewell", 9, mae.exerciciosCriarFrases[0]);
-
-    }
-
-    private async Task InteracaoA2B1()
-    {
-        await irmao.ExecutarFala(0);
-        await pai.ExecutarFala(0);
-
-        await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
-
-        await mae.ExecutarFala(0);
-        await mae.ExecutarExercicio("routine", 3, mae.exerciciosSpeaking[0]);
-        Emitir("exercicio_encerrado", "mother_npc/routine/3");
-        await pai.ExecutarExercicio("greeting", 2, pai.exerciciosCompletarFrase[0]);
-        Emitir("exercicio_encerrado", "father_npc/greeting/2");
-
-        await mae.ExecutarFala(1);
-        await Visitar("banheiro");
-        await mae.ExecutarExercicio("home_changes", 4, mae.exerciciosWriting[0]);
-        await mae.ExecutarExercicio("home_changes", 5, mae.exerciciosCriarFrases[0]);
-        Emitir("exercicio_encerrado", "mother_npc/home_changes/5");
-
-        await pai.ExecutarExercicio("work_conversation", 6, pai.exerciciosSpeaking[1]);
-        await pai.ExecutarFala(1);
-        Emitir("marco_fluxo", "pai_fala_1");
-
-        await mae.ExecutarExercicio("work_conversation", 7, mae.exerciciosSpeaking[1]);
-        Emitir("exercicio_encerrado", "mother_npc/work_conversation/7");
-        await mae.ExecutarFala(2);
-
-        await irmao.ExecutarExercicio("school_and_dog", 8, irmao.exerciciosCriarFrases[0]);
-        await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio("school_and_dog", 9, irmao.exerciciosSpeaking[0]);
-
-        await irmao.ExecutarFala(2);
-        await irmao.ExecutarExercicio("pets", 10, irmao.exerciciosWriting[0]);
-        Emitir("exercicio_encerrado", "brother_npc/pets/10");
-        await irmao.ExecutarExercicio("pets", 11, irmao.exerciciosSpeaking[1]);
-        Emitir("conversa_encerrada", "brother_npc");
-
-        await mae.ExecutarFala(3);
-        await Jantar();
-        await pai.ExecutarFala(2);
-        await pai.ExecutarExercicio("dinner_plans", 12, pai.exerciciosSpeaking[2]);
-
-        await mae.ExecutarFala(4);
-
-    }
-
-    private async Task InteracaoB1()
-    {
-        await irmao.ExecutarFala(0);
-        await mae.ExecutarFala(0);
-        await pai.ExecutarFala(0);
-        await pai.ExecutarExercicio("greeting", 1, pai.exerciciosSpeaking[0]);
-        Emitir("exercicio_encerrado", "father_npc/greeting/1");
-
-        await pai.ExecutarExercicio("routine", 2, pai.exerciciosSpeaking[1]);
-
-        await pai.ExecutarFala(1);
-        Emitir("marco_fluxo", "pai_fala_1");
-
-        await mae.ExecutarFala(1);
-        await Visitar("cozinha");
-        await mae.ExecutarExercicio("home_changes", 3, mae.exerciciosWriting[0]);
-
-        await mae.ExecutarExercicio("work_conversation", 4, mae.exerciciosSpeaking[0]);
-        Emitir("exercicio_encerrado", "mother_npc/work_conversation/4");
-        await mae.ExecutarFala(2);
-
-        await irmao.ExecutarExercicio("school_and_dog", 5, irmao.exerciciosCriarFrases[0]);
-        await irmao.ExecutarFala(1);
-        await irmao.ExecutarExercicio("school_and_dog", 6, irmao.exerciciosSpeaking[0]);
-        await irmao.ExecutarFala(2);
-        Emitir("marco_fluxo", "irmao_fala_2");
-
-        await irmao.ExecutarExercicio("pets", 7, irmao.exerciciosWriting[0]);
-        Emitir("exercicio_encerrado", "brother_npc/pets/7");
-
-        await mae.ExecutarFala(3);
-        await Jantar();
-        await pai.ExecutarFala(2);
-        await pai.ExecutarExercicio("dinner_plans", 8, pai.exerciciosCompletarFrase[0]);
-        Emitir("exercicio_encerrado", "father_npc/dinner_plans/8");
-
-        await mae.ExecutarFala(4);
-        await mae.ExecutarExercicio("farewell", 9, mae.exerciciosSpeaking[1]);
-        Emitir("exercicio_encerrado", "mother_npc/farewell/9");
-        await mae.ExecutarExercicio("farewell", 10, mae.exerciciosAssociacao[0]);
-
+        switch (nivel)
+        {
+            case "A1":
+                FalaPai(0);
+                FalaIrmao(0);
+                FalaMae(0);
+                ExercicioMae("greeting", 1, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[0]);
+                Evento("exercicio_encerrado", "mother_npc/greeting/1");
+                FalaMae(1);
+                ExercicioMae("day_conversation", 2, (maeDescricao?.exerciciosAlternativas ?? mae.exerciciosAlternativas)[0]);
+                Evento("exercicio_encerrado", "mother_npc/day_conversation/2");
+                FalaMae(2);
+                Explorar("banheiro");
+                ExercicioMae("home_changes", 3, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[1]);
+                FalaMae(3);
+                ExercicioMae("work_conversation", 4, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[2]);
+                Evento("exercicio_encerrado", "mother_npc/work_conversation/4");
+                ExercicioIrmao("school_and_dog", 5, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[0]);
+                FalaIrmao(1);
+                ExercicioIrmao("school_and_dog", 6, (irmaoDescricao?.exerciciosCompletarFrase ?? irmao.exerciciosCompletarFrase)[0]);
+                FalaIrmao(2);
+                ExercicioIrmao("school_and_dog", 7, (irmaoDescricao?.exerciciosAlternativas ?? irmao.exerciciosAlternativas)[0]);
+                Evento("conversa_encerrada", "brother_npc");
+                FalaMae(4);
+                Mesa();
+                FalaPai(1);
+                ExercicioMae("farewell", 8, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[3]);
+                break;
+            case "A1-A2":
+                FalaPai(0);
+                FalaIrmao(0);
+                FalaMae(0);
+                ExercicioMae("greeting", 1, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[0]);
+                Evento("exercicio_encerrado", "mother_npc/greeting/1");
+                FalaMae(1);
+                ExercicioMae("day_conversation", 2, (maeDescricao?.exerciciosWriting ?? mae.exerciciosWriting)[0]);
+                Evento("exercicio_encerrado", "mother_npc/day_conversation/2");
+                FalaMae(2);
+                Explorar("banheiro");
+                ExercicioMae("home_changes", 3, (maeDescricao?.exerciciosAlternativas ?? mae.exerciciosAlternativas)[0]);
+                ExercicioMae("home_changes", 4, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[1]);
+                ExercicioMae("work_conversation", 5, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[2]);
+                FalaMae(3);
+                Evento("marco_fluxo", "mae_fala_3");
+                FalaPai(1);
+                Evento("marco_fluxo", "pai_fala_1");
+                ExercicioPai("work_conversation", 7, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[0]);
+                ExercicioIrmao("school_and_dog", 8, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[0]);
+                FalaIrmao(1);
+                ExercicioIrmao("school_and_dog", 9, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[1]);
+                FalaIrmao(2);
+                ExercicioIrmao("school_and_dog", 10, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[2]);
+                ExercicioIrmao("school_and_dog", 11, (irmaoDescricao?.exerciciosAlternativas ?? irmao.exerciciosAlternativas)[0]);
+                Evento("conversa_encerrada", "brother_npc");
+                FalaMae(4);
+                Mesa();
+                FalaPai(2);
+                ExercicioPai("farewell", 12, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[1]);
+                break;
+            case "A2":
+                FalaIrmao(0);
+                FalaMae(0);
+                ExercicioMae("greeting", 1, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[0]);
+                Evento("exercicio_encerrado", "mother_npc/greeting/1");
+                FalaMae(1);
+                ExercicioMae("day_conversation", 2, (maeDescricao?.exerciciosWriting ?? mae.exerciciosWriting)[0]);
+                Evento("exercicio_encerrado", "mother_npc/day_conversation/2");
+                FalaMae(2);
+                Explorar("quarto");
+                ExercicioMae("home_changes", 3, (maeDescricao?.exerciciosAlternativas ?? mae.exerciciosAlternativas)[0]);
+                ExercicioMae("home_changes", 4, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[1]);
+                ExercicioPai("work_conversation", 5, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[0]);
+                FalaPai(0);
+                Evento("marco_fluxo", "pai_fala_0");
+                ExercicioIrmao("school_and_dog", 6, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[0]);
+                FalaIrmao(1);
+                ExercicioIrmao("school_and_dog", 7, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[1]);
+                FalaIrmao(2);
+                Evento("marco_fluxo", "irmao_fala_2");
+                ExercicioIrmao("pets", 8, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[2]);
+                Evento("exercicio_encerrado", "brother_npc/pets/8");
+                FalaMae(3);
+                Mesa();
+                FalaPai(1);
+                ExercicioMae("farewell", 9, (maeDescricao?.exerciciosCriarFrases ?? mae.exerciciosCriarFrases)[0]);
+                break;
+            case "A2-B1":
+                FalaIrmao(0);
+                FalaPai(0);
+                ExercicioPai("greeting", 1, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[0]);
+                FalaMae(0);
+                ExercicioMae("routine", 3, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[0]);
+                Evento("exercicio_encerrado", "mother_npc/routine/3");
+                ExercicioPai("greeting", 2, (paiDescricao?.exerciciosCompletarFrase ?? pai.exerciciosCompletarFrase)[0]);
+                Evento("exercicio_encerrado", "father_npc/greeting/2");
+                FalaMae(1);
+                Explorar("banheiro");
+                ExercicioMae("home_changes", 4, (maeDescricao?.exerciciosWriting ?? mae.exerciciosWriting)[0]);
+                ExercicioMae("home_changes", 5, (maeDescricao?.exerciciosCriarFrases ?? mae.exerciciosCriarFrases)[0]);
+                Evento("exercicio_encerrado", "mother_npc/home_changes/5");
+                ExercicioPai("work_conversation", 6, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[1]);
+                FalaPai(1);
+                Evento("marco_fluxo", "pai_fala_1");
+                ExercicioMae("work_conversation", 7, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[1]);
+                Evento("exercicio_encerrado", "mother_npc/work_conversation/7");
+                FalaMae(2);
+                ExercicioIrmao("school_and_dog", 8, (irmaoDescricao?.exerciciosCriarFrases ?? irmao.exerciciosCriarFrases)[0]);
+                FalaIrmao(1);
+                ExercicioIrmao("school_and_dog", 9, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[0]);
+                FalaIrmao(2);
+                ExercicioIrmao("pets", 10, (irmaoDescricao?.exerciciosWriting ?? irmao.exerciciosWriting)[0]);
+                Evento("exercicio_encerrado", "brother_npc/pets/10");
+                ExercicioIrmao("pets", 11, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[1]);
+                Evento("conversa_encerrada", "brother_npc");
+                FalaMae(3);
+                Mesa();
+                FalaPai(2);
+                ExercicioPai("dinner_plans", 12, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[2]);
+                FalaMae(4);
+                break;
+            case "B1":
+                FalaIrmao(0);
+                FalaMae(0);
+                FalaPai(0);
+                ExercicioPai("greeting", 1, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[0]);
+                Evento("exercicio_encerrado", "father_npc/greeting/1");
+                ExercicioPai("routine", 2, (paiDescricao?.exerciciosSpeaking ?? pai.exerciciosSpeaking)[1]);
+                FalaPai(1);
+                Evento("marco_fluxo", "pai_fala_1");
+                FalaMae(1);
+                Explorar("cozinha");
+                ExercicioMae("home_changes", 3, (maeDescricao?.exerciciosWriting ?? mae.exerciciosWriting)[0]);
+                ExercicioMae("work_conversation", 4, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[0]);
+                Evento("exercicio_encerrado", "mother_npc/work_conversation/4");
+                FalaMae(2);
+                ExercicioIrmao("school_and_dog", 5, (irmaoDescricao?.exerciciosCriarFrases ?? irmao.exerciciosCriarFrases)[0]);
+                FalaIrmao(1);
+                ExercicioIrmao("school_and_dog", 6, (irmaoDescricao?.exerciciosSpeaking ?? irmao.exerciciosSpeaking)[0]);
+                FalaIrmao(2);
+                Evento("marco_fluxo", "irmao_fala_2");
+                ExercicioIrmao("pets", 7, (irmaoDescricao?.exerciciosWriting ?? irmao.exerciciosWriting)[0]);
+                Evento("exercicio_encerrado", "brother_npc/pets/7");
+                FalaMae(3);
+                Mesa();
+                FalaPai(2);
+                ExercicioPai("dinner_plans", 8, (paiDescricao?.exerciciosCompletarFrase ?? pai.exerciciosCompletarFrase)[0]);
+                Evento("exercicio_encerrado", "father_npc/dinner_plans/8");
+                FalaMae(4);
+                ExercicioMae("farewell", 9, (maeDescricao?.exerciciosSpeaking ?? mae.exerciciosSpeaking)[1]);
+                Evento("exercicio_encerrado", "mother_npc/farewell/9");
+                roteiro.Acao("association.ready", () => { CheckpointJogo.Instance?.CapturarAssociacaoFinal(mae, "farewell", 10); return Task.CompletedTask; });
+                ExercicioMae("farewell", 10, (maeDescricao?.exerciciosAssociacao ?? mae.exerciciosAssociacao)[0]);
+                break;
+        }
+        return roteiro;
     }
 }

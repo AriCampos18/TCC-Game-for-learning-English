@@ -561,8 +561,23 @@ public class brotherNPC : InteracaoNPC
         exerciciosAssociacao = GarantirListaExercicios(exerciciosAssociacao);
     }
 
-    private void InicializarConteudosPorNivel()
+    internal ConteudoRoteiro DescreverConteudo(string nivel)
     {
+        var conteudo = new ConteudoRoteiro();
+        InicializarConteudosPorNivel(conteudo, nivel);
+        return conteudo;
+    }
+
+    private void InicializarConteudosPorNivel(ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    {
+        string nivelAtual = nivelDescricao ?? this.nivelAtual;
+        var dialogoAtual = this.dialogoAtual;
+        var exerciciosCompletarFrase = descricao?.exerciciosCompletarFrase ?? this.exerciciosCompletarFrase;
+        var exerciciosCriarFrases = descricao?.exerciciosCriarFrases ?? this.exerciciosCriarFrases;
+        var exerciciosSpeaking = descricao?.exerciciosSpeaking ?? this.exerciciosSpeaking;
+        var exerciciosAlternativas = descricao?.exerciciosAlternativas ?? this.exerciciosAlternativas;
+        var exerciciosWriting = descricao?.exerciciosWriting ?? this.exerciciosWriting;
+
         if (nivelAtual == "A1")
         {
             dialogoAtual = new List<string>()
@@ -824,6 +839,13 @@ else if (nivelAtual == "A2-B1")
         enunciado = "Ask your brother what activities he and the dog have been doing together."
     });
 }
+
+        if (descricao != null)
+            descricao.Falas = dialogoAtual;
+        else
+        {
+            this.dialogoAtual = dialogoAtual;
+        }
     }
 
     private TipoExercicio ObterTipoExercicio(ExercicioBase exercicio)
@@ -976,6 +998,8 @@ else if (nivelAtual == "A2-B1")
         if (!catalogoExercicios.Success)
             Debug.LogWarning("brotherNPC: usando exercícios locais. " + catalogoExercicios.Error);
     }
+
+    internal string TextoFalaCheckpoint(int indice) => dialogoAtual[indice];
 
     public async Task ExecutarFala(int indice)
     {

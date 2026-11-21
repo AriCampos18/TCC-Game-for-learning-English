@@ -25,6 +25,12 @@ internal static class MissoesCollege
         }
     }
 
+    internal static string ChaveSegundaMissao(string nivel)
+    {
+        string[] chaves = Chaves(nivel);
+        return chaves.Length >= 2 ? chaves[1] : null;
+    }
+
     internal static HashSet<string> ChavesEsperadas(string nivel) => new HashSet<string>(Chaves(nivel));
 
     internal static bool ValidaEvento(CatalogoMissoes.Evento evento)

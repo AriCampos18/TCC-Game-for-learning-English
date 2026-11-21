@@ -73,7 +73,7 @@ public class GerenciadorProgressao : MonoBehaviour
         exerciciosAcertados = (int)progresso["visit_totals"]["correct"];
         ultimosCenarios.Clear();
         ultimosCenarios.AddRange(progresso["recent_scenario_ids"].Values<int>().Select(CheckpointJogo.NomeCenario));
-        visitaCenario = SessaoCenario.Atual.EmResultado ? SessaoCenario.Atual.Versao : 0;
+        visitaCenario = SessaoCenario.Atual.EmResultado || SessaoCenario.Atual.EmJogo ? SessaoCenario.Atual.Versao : 0;
         cenarioFinalizado = jaFinalizado;
         exerciciosRegistrados.Clear();
         resultadosCheckpoint.RemoveAll();

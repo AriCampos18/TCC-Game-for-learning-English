@@ -594,6 +594,31 @@ public class InteracaoNPC : MonoBehaviour
     private int visitaInteracao;
     internal bool PertenceAoCenarioAtivo => SessaoCenario.Atual.Permite(Cenario);
 
+    internal void MarcarAtendimentoRestaurado(int visita)
+    {
+        ValidarVisita(visita);
+        AtualizarVisita();
+        interacaoConcluida = true;
+    }
+
+    internal void ValidarRoteiroCheckpoint(int visita) => ValidarVisita(visita);
+
+    internal async Task ExecutarRoteiroRetomado(int visita, System.Func<Task> executar)
+    {
+        ValidarVisita(visita);
+        if (interagindo)
+            throw new System.InvalidOperationException("O NPC já está executando outra interação.");
+        interagindo = true;
+        MostrarAviso(false);
+        try { await executar(); }
+        finally
+        {
+            interagindo = false;
+            if (this != null && SessaoCenario.Atual.Permite(Cenario, visita))
+                interacaoConcluida = true;
+        }
+    }
+
     protected void ValidarVisita(int visita)
     {
         if (this == null || !SessaoCenario.Atual.Permite(Cenario, visita))
