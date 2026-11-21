@@ -32,7 +32,7 @@ public class BotaoConfiguracoes : MonoBehaviour
         botaoConfiguracoes.gameObject.SetActive(true);
 
         // O PULO DO GATO: Checa se o player estava conversando antes de liberar a câmera
-        if (GameProgress.EstaEmDialogo)
+        if (!SessaoCenario.Atual.EmJogo || GameProgress.EstaEmDialogo)
         {
             // Se está em diálogo, mantemos o controle desativado e o mouse solto
             if (firstPlayerControllerScript != null)

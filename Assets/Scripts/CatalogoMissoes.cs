@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 internal sealed class CatalogoMissoes
 {
@@ -36,12 +37,20 @@ internal sealed class CatalogoMissoes
 
     public IReadOnlyList<Definicao> Definicoes { get; }
 
+    internal JArray CapturarEventosCheckpoint(string chave)
+    {
+        return eventosConclusao.TryGetValue(chave, out var eventos)
+            ? new JArray(eventos.OrderBy(e => e.Item1).ThenBy(e => e.Item2)
+                .Select(e => new JObject { ["tipo"] = e.Item1, ["alvo"] = e.Item2 }))
+            : new JArray();
+    }
+
     public CatalogoMissoes(List<Definicao> definicoes, string nivel, string nomeCenario = "Airport",
         bool catalogoLocal = false)
     {
         var chaves = ChavesEsperadas(nomeCenario, nivel);
         if (definicoes == null || definicoes.Count == 0 || definicoes.Count != chaves.Count
-            || !definicoes.All(d => d != null && d.nivel == nivel && (catalogoLocal || d.id_cenario > 0)
+            || !definicoes.All(d => d != null && d.nivel == nivel && (catalogoLocal || d.id_cenario == SessaoCenario.Id(nomeCenario))
                 && !string.IsNullOrWhiteSpace(d.texto) && !string.IsNullOrWhiteSpace(d.traducao)
                 && chaves.Remove(d.mission_key)))
             throw new InvalidOperationException("Catálogo incompleto ou inválido.");
@@ -58,6 +67,9 @@ internal sealed class CatalogoMissoes
             anteriores.Add(d.mission_key);
         }
     }
+
+    internal static bool ChaveDoCenario(string nome, string nivel, string chave) =>
+        SessaoCenario.Conhecido(nome) && ChavesEsperadas(nome, nivel).Contains(chave);
 
     private static HashSet<string> ChavesEsperadas(string nomeCenario, string nivel)
     {

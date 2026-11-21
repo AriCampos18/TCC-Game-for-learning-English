@@ -27,6 +27,7 @@ public sealed class InteracaoRestaurant : MonoBehaviour
     private bool confirmado;
     private bool sentado;
     private int quadroLiberado;
+    private int visitaEtapa;
 
     private void Awake()
     {
@@ -66,6 +67,7 @@ public sealed class InteracaoRestaurant : MonoBehaviour
             colisor.enabled = true;
         confirmado = false;
         quadroLiberado = Time.frameCount;
+        visitaEtapa = SessaoCenario.Atual.Versao;
         Pendente = this;
         try
         {
@@ -101,7 +103,7 @@ public sealed class InteracaoRestaurant : MonoBehaviour
 
     internal void TentarConfirmar(Collider colisor)
     {
-        if (Pendente == this && !confirmado && colisor == alvo && Time.frameCount > quadroLiberado)
+        if (SessaoCenario.Atual.Permite("Restaurant", visitaEtapa) && Pendente == this && !confirmado && colisor == alvo && Time.frameCount > quadroLiberado)
             confirmado = true;
     }
 
@@ -205,11 +207,12 @@ public sealed class InteracaoRestaurant : MonoBehaviour
 
     private async Task ProximoFrame()
     {
+        int visita = SessaoCenario.Atual.Versao;
         int quadro = Time.frameCount;
         do
         {
             await Task.Yield();
-            if (this == null || !isActiveAndEnabled || MissionManager.Instance?.UsaCatalogoRestaurant != true)
+            if (!SessaoCenario.Atual.Permite("Restaurant", visita) || this == null || !isActiveAndEnabled || MissionManager.Instance?.UsaCatalogoRestaurant != true)
                 throw new OperationCanceledException();
         }
         while (Time.frameCount == quadro);

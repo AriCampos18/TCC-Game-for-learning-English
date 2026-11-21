@@ -730,7 +730,7 @@ public class ModalExercicio : MonoBehaviour
 
         if (confirmarResposta != null)
         {
-            confirmarResposta.onClick.AddListener(() => Confirmar());
+            confirmarResposta.onClick.AddListener(Confirmar);
         }
 
         if (botaoRepetirFalaNPC != null)
@@ -741,8 +741,29 @@ public class ModalExercicio : MonoBehaviour
         }
     }
 
+    private int visitaExercicio;
+    private int versaoExercicio;
+
+    private bool ExercicioDaVisita(int versao) =>
+        this != null && versao == versaoExercicio && npcAtual != null && CheckpointJogo.PodeAvancar
+        && SessaoCenario.Atual.Permite(npcAtual.Cenario, visitaExercicio);
+
+    private bool ExercicioVigente(int versao) =>
+        ExercicioDaVisita(versao) && panel != null && panel.activeInHierarchy;
+
+    private void OnDestroy()
+    {
+        if (confirmarResposta != null)
+            confirmarResposta.onClick.RemoveListener(Confirmar);
+        if (botaoRepetirFalaNPC != null)
+            botaoRepetirFalaNPC.onClick.RemoveListener(RepetirUltimaFala);
+    }
+
     public async void Confirmar()
     {
+        int versao = versaoExercicio;
+        if (!ExercicioVigente(versao) || exercicioFinalizado || !confirmarResposta.interactable)
+            return;
         if (tipoAtual == TipoExercicio.Associacao &&
             exercicioAssociacao != null &&
             exercicioAssociacao.activeSelf)
@@ -750,14 +771,11 @@ public class ModalExercicio : MonoBehaviour
             if (associacaoUI == null || !associacaoUI.PodeContinuar)
                 return;
 
-            if (!associacaoUI.TodasAssociacoesConcluidas
-                && associacaoUI.TentativasEsgotadas)
-            {
+            bool acertouAssociacao = associacaoUI.TodasAssociacoesConcluidas;
+            if (!acertouAssociacao && associacaoUI.TentativasEsgotadas)
                 RegistrarErroParaRevisao();
-            }
-            else if (associacaoUI.TodasAssociacoesConcluidas
-                && ProgressoNivelManager.Instance != null)
-                ProgressoNivelManager.Instance.RegistrarAcerto(exercicioAtual);
+
+            RegistrarResultadoExercicio(acertouAssociacao);
 
             if (RevisaoManager.Instance != null)
                 RevisaoManager.Instance.ConcluirAssociacao(exercicioAtual);
@@ -831,7 +849,9 @@ public class ModalExercicio : MonoBehaviour
             {
                 if (speakingUI != null)
                 {
-                    SpeakingResult resultado = await speakingUI.VerificarRespostaWhisper();
+                    SpeakingResult resultado = await speakingUI.VerificarRespostaWhisper(() => ExercicioVigente(versao));
+                    if (!ExercicioVigente(versao))
+                        return;
 
                     if (resultado == null)
                     {
@@ -1045,6 +1065,9 @@ public class ModalExercicio : MonoBehaviour
                     DadosJogador.nivelUsuario
                 );
 
+                if (!ExercicioVigente(versao))
+                    return;
+
                 if (string.IsNullOrWhiteSpace(respostaJson))
                 {
                     writingUI.MostrarFeedback("The answer could not be evaluated. Please try again.");
@@ -1088,16 +1111,19 @@ public class ModalExercicio : MonoBehaviour
                     acertouExercicio = true;
                 }
             }
-            if (acertouExercicio)
-            {
-                if (ProgressoNivelManager.Instance != null)
-                {
-                    ProgressoNivelManager.Instance.RegistrarAcerto(exercicioAtual);
-                }
-            }
+            RegistrarResultadoExercicio(acertouExercicio);
             confirmarResposta.interactable = true;
             MudarBotaoParaOK();
         }
+    }
+
+    private void RegistrarResultadoExercicio(bool acertou)
+    {
+        if (!modoRevisao)
+            GerenciadorProgressao.Instance?.RegistrarResultado(exercicioAtual, acertou, npcAtual);
+
+        if (acertou)
+            ProgressoNivelManager.Instance?.RegistrarAcerto(exercicioAtual, npcAtual);
     }
 
     private void MudarBotaoParaOK()
@@ -1130,7 +1156,9 @@ public class ModalExercicio : MonoBehaviour
 
     private async void RepetirUltimaFala()
     {
-        if (npcAtual == null) return;
+        int versao = versaoExercicio;
+        if (!ExercicioVigente(versao) || exercicioFinalizado)
+            return;
 
         botaoRepetirFalaNPC.interactable = false;
 
@@ -1157,9 +1185,18 @@ public class ModalExercicio : MonoBehaviour
             legenda.textoLegenda.text = npcAtual.ultimaFraseDita;
         }
 
-        await npcAtual.FalarFraseCustomizada(npcAtual.ultimaFraseDita);
-
-        botaoRepetirFalaNPC.interactable =  true;
+        try
+        {
+            await npcAtual.FalarFraseCustomizada(npcAtual.ultimaFraseDita);
+        }
+        catch (System.OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (ExercicioDaVisita(versao) && botaoRepetirFalaNPC != null)
+                botaoRepetirFalaNPC.interactable = true;
+        }
     }
 
     private void RegistrarErroParaRevisao()
@@ -1206,6 +1243,11 @@ public class ModalExercicio : MonoBehaviour
         bool revisao = false,
         bool faseAssociacao = false)
     {
+        if (npc == null || !npc.PertenceAoCenarioAtivo)
+            throw new System.OperationCanceledException("Exercício de uma visita inativa.");
+
+        visitaExercicio = SessaoCenario.Atual.Versao;
+        versaoExercicio++;
         tipoAtual = tipo;
         exercicioAtual = ex;
         npcAtual = npc;
@@ -1267,6 +1309,7 @@ public class ModalExercicio : MonoBehaviour
 
         if (botaoRepetirFalaNPC != null)
         {
+            botaoRepetirFalaNPC.interactable = true;
             botaoRepetirFalaNPC.gameObject.SetActive(false);
         }
         if (modalAvisoCampoVazio != null)
@@ -1358,8 +1401,13 @@ public class ModalExercicio : MonoBehaviour
 
     public void Fechar()
     {
+        if (exercicioFinalizado || !ExercicioDaVisita(versaoExercicio))
+            return;
+
+        versaoExercicio++;
         exercicioFinalizado = true;
-        panel.SetActive(false);
+        if (panel != null)
+            panel.SetActive(false);
         Time.timeScale = 1f;
 
         // Esconde a legenda pequena do Repeat

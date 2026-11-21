@@ -1,4 +1,5 @@
 
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,6 +11,8 @@ public class ModalConfiguracoes : MonoBehaviour
     public Button botaoGerenciarExs, botaoFecharConfig;
 
 
+    private TMP_Text textoSave;
+
     private void Awake()
     {
         if (botaoLogout != null)
@@ -19,7 +22,10 @@ public class ModalConfiguracoes : MonoBehaviour
             botaoInstrucoes.onClick.AddListener(AbrirInstrcoes);
 
         if (botaoSave != null)
+        {
+            textoSave = botaoSave.GetComponentInChildren<TMP_Text>(true);
             botaoSave.onClick.AddListener(Save);
+        }
 
         if (botaoSairJogo != null)
             botaoSairJogo.onClick.AddListener(SairJogo);
@@ -52,19 +58,36 @@ public class ModalConfiguracoes : MonoBehaviour
             gameObject.SetActive(true);
     }
 
+    private void Update()
+    {
+        if (textoSave != null && CheckpointJogo.Instance != null)
+        {
+            string texto = "Salvar • " + CheckpointJogo.Instance.Status;
+            if (SessaoCenario.Atual.EmJogo && CheckpointJogo.PodeAvancar)
+                texto += " • retomada na entrada";
+            if (textoSave.text != texto)
+                textoSave.text = texto;
+        }
+    }
+
     public void Logout()
     {
-        // Implementar a lógica de logout aqui
+        if (CheckpointJogo.Instance != null)
+            _ = CheckpointJogo.Instance.Logout();
     }
 
     public void Save()
     {
-        // Implementar a lógica de salvar configurações aqui
+        if (CheckpointJogo.Instance != null)
+            _ = CheckpointJogo.Instance.SalvarManual();
     }
 
     public void SairJogo()
     {
-        // Implementar a lógica de sair do jogo aqui
+        if (CheckpointJogo.Instance != null)
+            _ = CheckpointJogo.Instance.Sair();
+        else
+            Application.Quit();
     }
 
     public void MudarModoTurn()

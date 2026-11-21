@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public class GerenciadorProgressao : MonoBehaviour
@@ -26,6 +29,57 @@ public class GerenciadorProgressao : MonoBehaviour
         new HashSet<ExercicioBase>();
 
     private bool cenarioFinalizado;
+    private int visitaCenario;
+    private string checkpointCiclo;
+    private readonly List<string> visitasContabilizadas = new List<string>();
+    private readonly JArray resultadosCheckpoint = new JArray();
+
+    internal JObject CapturarProgressaoCheckpoint(bool incluirVisita, JObject decisao, JArray processadas)
+    {
+        if (!cicloInicializado)
+            IniciarCiclo();
+        return new JObject
+        {
+            ["cycle_id"] = checkpointCiclo,
+            ["completed_visit_ids"] = new JArray(visitasContabilizadas),
+            ["initial_scenario_count"] = quantidadeCenariosIniciais,
+            ["cycle_totals"] = Totais(totalExerciciosCiclo, exerciciosAcertadosCiclo),
+            ["visit_totals"] = incluirVisita ? Totais(totalExercicios, exerciciosAcertados) : Totais(0, 0),
+            ["extra_pending"] = cenarioExtraSolicitado,
+            ["recent_scenario_ids"] = new JArray(ultimosCenarios.Select(SessaoCenario.Id)),
+            ["bar_correct_keys"] = ProgressoNivelManager.Instance?.CapturarCheckpoint() ?? new JArray(),
+            ["decision"] = decisao == null ? JValue.CreateNull() : (JToken)decisao.DeepClone(),
+            ["processed_decision_ids"] = processadas.DeepClone()
+        };
+    }
+
+    private static JObject Totais(int total, int acertos) => new JObject { ["graded"] = total, ["correct"] = acertos };
+
+    internal JArray ResultadosCheckpoint() => (JArray)resultadosCheckpoint.DeepClone();
+
+    internal void RestaurarCheckpoint(JObject progresso, JArray resultados, bool jaFinalizado)
+    {
+        nivelAtual = DadosJogador.nivelUsuario;
+        cicloInicializado = true;
+        checkpointCiclo = (string)progresso["cycle_id"];
+        visitasContabilizadas.Clear();
+        visitasContabilizadas.AddRange(progresso["completed_visit_ids"].Values<string>());
+        cenariosConcluidos = visitasContabilizadas.Count;
+        quantidadeCenariosIniciais = (int)progresso["initial_scenario_count"];
+        totalExerciciosCiclo = (int)progresso["cycle_totals"]["graded"];
+        exerciciosAcertadosCiclo = (int)progresso["cycle_totals"]["correct"];
+        cenarioExtraSolicitado = (bool)progresso["extra_pending"];
+        totalExercicios = (int)progresso["visit_totals"]["graded"];
+        exerciciosAcertados = (int)progresso["visit_totals"]["correct"];
+        ultimosCenarios.Clear();
+        ultimosCenarios.AddRange(progresso["recent_scenario_ids"].Values<int>().Select(CheckpointJogo.NomeCenario));
+        visitaCenario = SessaoCenario.Atual.EmResultado ? SessaoCenario.Atual.Versao : 0;
+        cenarioFinalizado = jaFinalizado;
+        exerciciosRegistrados.Clear();
+        resultadosCheckpoint.RemoveAll();
+        foreach (var resultado in resultados)
+            resultadosCheckpoint.Add(resultado.DeepClone());
+    }
 
     private void Awake()
     {
@@ -61,6 +115,8 @@ public class GerenciadorProgressao : MonoBehaviour
     // Inicia um novo ciclo de avaliação.
     public void IniciarCiclo()
     {
+        checkpointCiclo = Guid.NewGuid().ToString();
+        visitasContabilizadas.Clear();
         cenariosConcluidos = 0;
         totalExerciciosCiclo = 0;
         exerciciosAcertadosCiclo = 0;
@@ -99,6 +155,9 @@ public class GerenciadorProgressao : MonoBehaviour
     // Chamado quando um cenário começa.
     public void IniciarCenario()
     {
+        if (!SessaoCenario.Atual.EmJogo || SessaoCenario.Atual.Corresponde(visitaCenario))
+            return;
+        visitaCenario = SessaoCenario.Atual.Versao;
         if (!cicloInicializado)
             IniciarCiclo();
 
@@ -109,6 +168,7 @@ public class GerenciadorProgressao : MonoBehaviour
         exerciciosAcertados = 0;
 
         exerciciosRegistrados.Clear();
+        resultadosCheckpoint.RemoveAll();
         cenarioFinalizado = false;
 
         nivelAtual = DadosJogador.nivelUsuario;
@@ -116,15 +176,25 @@ public class GerenciadorProgressao : MonoBehaviour
 
     public void RegistrarResultado(
         ExercicioBase exercicio,
-        bool acertou)
+        bool acertou,
+        InteracaoNPC origem = null)
     {
-        if (cenarioFinalizado || exercicio == null)
+        if (!SessaoCenario.Atual.EmJogo || !SessaoCenario.Atual.Corresponde(visitaCenario)
+            || cenarioFinalizado || exercicio == null)
             return;
 
         if (!exerciciosRegistrados.Add(exercicio))
             return;
 
         totalExercicios++;
+        var chave = CheckpointJogo.ChaveExercicio(exercicio, origem, incluirCenario: false);
+        if (chave != null)
+        {
+            var resultado = new JObject { ["key"] = chave, ["outcome"] = acertou ? "correct" : "failed" };
+            if (!acertou)
+                resultado["incorrect_attempts"] = 3;
+            resultadosCheckpoint.Add(resultado);
+        }
 
         if (acertou)
             exerciciosAcertados++;
@@ -158,7 +228,7 @@ public class GerenciadorProgressao : MonoBehaviour
     // Chamado ao fechar o modal final do cenário.
     public string FinalizarCenario()
     {
-        if (cenarioFinalizado)
+        if (!SessaoCenario.Atual.EmResultado || !SessaoCenario.Atual.Corresponde(visitaCenario) || cenarioFinalizado)
             return "CenarioJaFinalizado";
 
         cenarioFinalizado = true;
@@ -205,6 +275,9 @@ public class GerenciadorProgressao : MonoBehaviour
         totalExerciciosCiclo += totalExercicios;
         exerciciosAcertadosCiclo += exerciciosAcertados;
         cenariosConcluidos++;
+        string visitaId = CheckpointJogo.Instance?.VisitaId;
+        if (visitaId != null)
+            visitasContabilizadas.Add(visitaId);
 
         Debug.Log(
             $"Cenários iniciais concluídos: {cenariosConcluidos} | " +
@@ -214,7 +287,7 @@ public class GerenciadorProgressao : MonoBehaviour
         // Ainda faltam cenários iniciais.
         if (cenariosConcluidos < quantidadeCenariosIniciais)
         {
-            MostrarResultadoNoModal("ContinuarCenarios",nivelAtual,nivelAtual);
+            AbrirSelecaoCenario();
 
             return "ContinuarCenarios";
         }
@@ -274,6 +347,7 @@ public class GerenciadorProgressao : MonoBehaviour
     private void SolicitarCenarioExtra()
     {
         cenarioExtraSolicitado = true;
+        visitasContabilizadas.Clear();
 
         // Zera os contadores da avaliação inicial.
         // A acurácia do extra será calculada individualmente.
@@ -385,6 +459,13 @@ public class GerenciadorProgressao : MonoBehaviour
 
     public void AbrirSelecaoCenario()
     {
+        if (SessaoCenario.Atual.EmJogo)
+            return;
+
+        SessaoCenario.Atual.Encerrar();
+        MissionManager.Instance?.EncerrarCenario();
+        modalFinalManager?.LimparVisita();
+        GameProgress.EstaEmDialogo = false;
         if (modalSelecaoCenario != null)
         {
             modalSelecaoCenario.SetActive(true);
@@ -480,7 +561,7 @@ public class GerenciadorProgressao : MonoBehaviour
 
     public bool PodeSelecionarCenario(string cenario)
     {
-        return !ultimosCenarios.Contains(cenario);
+        return SessaoCenario.Conhecido(cenario) && !ultimosCenarios.Contains(cenario);
     }
 
     // Mantém compatibilidade com chamadas antigas.

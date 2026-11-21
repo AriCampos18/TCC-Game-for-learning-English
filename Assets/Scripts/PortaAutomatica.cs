@@ -53,7 +53,8 @@ public class PortaAutomatica : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (SessaoCenario.Atual.Permite("Market") && other.CompareTag("Player")
+            && pontoDentroMercado != null && pontoForaMercado != null)
         {
             abrindo = true;
 
@@ -78,22 +79,27 @@ public class PortaAutomatica : MonoBehaviour
         {
             abrindo = false;
 
-            if (cashier == null || !cashier.MissaoSacolaLiberada())
+            if (!SessaoCenario.Atual.Permite("Market") || cashier == null || !cashier.MissaoSacolaLiberada())
                 return;
 
             // Só verifica se ele estava vindo de dentro
             if (!jogadorEntrouPeloLadoDeDentro)
                 return;
 
-            StartCoroutine(VerificarSaidaDepois(other.transform));
+            StartCoroutine(VerificarSaidaDepois(other.transform, SessaoCenario.Atual.Versao));
         }
     }
 
-    private IEnumerator VerificarSaidaDepois(Transform player)
+    internal void ReiniciarMarket()
+    {
+        abrindo = finalJaMostrado = jogadorEntrouPeloLadoDeDentro = false;
+    }
+
+    private IEnumerator VerificarSaidaDepois(Transform player, int visita)
     {
         yield return new WaitForSeconds(0.2f);
 
-        if (finalJaMostrado)
+        if (!SessaoCenario.Atual.Permite("Market", visita) || finalJaMostrado || player == null)
             yield break;
 
         if (!JogadorSaiuDoMercado(player.position))
@@ -115,6 +121,9 @@ public class PortaAutomatica : MonoBehaviour
         while (!atividades.IsCompleted)
             yield return null;
 
+        if (!SessaoCenario.Atual.Permite("Market", visita))
+            yield break;
+
         if (atividades.Status != System.Threading.Tasks.TaskStatus.RanToCompletion || !atividades.Result)
         {
             Debug.LogError("Market: falha ao concluir a Associa??o ou a revis?o ap?s a sa?da.", this);
@@ -131,8 +140,8 @@ public class PortaAutomatica : MonoBehaviour
 
         if (modalFinalManager != null)
         {
-            modalFinalManager.MostrarResultado(
-                "ContinuarCenarios",
+            modalFinalManager.MostrarResultadoDaVisita(
+                visita, "ContinuarCenarios",
                 DadosJogador.nivelUsuario,
                 DadosJogador.nivelUsuario
             );

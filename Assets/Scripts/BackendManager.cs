@@ -12,6 +12,9 @@ public class BackendManager
     // 1. ADICIONADO O PARÂMETRO 'npcId' NA ASSINATURA
     public async Task<byte[]> GerarAudio(string texto, string npcId)
     {
+        var sessao = SessaoCenario.Atual;
+        int visita = sessao.EmJogo ? sessao.Versao : 0;
+        byte[] audio = null;
         try
         {
             var dados = new { texto = texto, npc = npcId };
@@ -24,20 +27,23 @@ public class BackendManager
 
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadAsByteArrayAsync();
+                audio = await response.Content.ReadAsByteArrayAsync();
             }
             else
             {
                 string erro = await response.Content.ReadAsStringAsync();
                 Debug.LogError($"Erro no Servidor: {response.StatusCode} | {erro}");
-                return null;
             }
         }
         catch (Exception ex)
         {
             Debug.LogError($"Erro de Conexão: {ex.Message}");
-            return null;
         }
+
+        if (visita != 0 && (!sessao.Corresponde(visita) || !sessao.EmJogo))
+            throw new OperationCanceledException("Áudio de uma visita encerrada.");
+
+        return audio;
     }
 
     public async Task<string> EnviarAudioWhisperFast(byte[] audioBytes, string jsonFrases)

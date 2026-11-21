@@ -304,6 +304,7 @@
 
 using UnityEngine;
 using UnityEngine.XR;
+using Newtonsoft.Json.Linq;
 using UnityEngine.UI;
 using TMPro;
 
@@ -325,6 +326,7 @@ public class ModalFinalManager : MonoBehaviour
 
     private string modoAtual;
     private string cenarioAtual;
+    private int visita;
 
     [Header("Modo de teste")]
     public bool modoTesteSemExercicios = false;
@@ -346,8 +348,30 @@ public class ModalFinalManager : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        if (botaoContinuar != null)
+            botaoContinuar.onClick.RemoveListener(Continuar);
+    }
+
+    internal void LimparVisita()
+    {
+        modoAtual = null;
+        cenarioAtual = null;
+        if (modalFinal != null)
+            modalFinal.SetActive(false);
+        if (modalMissoes != null)
+            modalMissoes.SetActive(false);
+        if (botaoAjuda != null)
+            botaoAjuda.gameObject.SetActive(false);
+    }
+
     public void MostrarInicioCenario(string cenario)
     {
+        var sessao = SessaoCenario.Atual;
+        if (sessao.Nome != cenario || sessao.EmJogo || sessao.EmResultado)
+            return;
+        visita = sessao.Versao;
         modoAtual = "InicioCenario";
         cenarioAtual = cenario;
 
@@ -440,7 +464,51 @@ public class ModalFinalManager : MonoBehaviour
 
     public void MostrarResultado(string resultado, string nivelAnterior, string nivelNovo)
     {
-        modoAtual = "FimCenario";
+        var sessao = SessaoCenario.Atual;
+        if (!sessao.EmResultado)
+            return;
+
+        ExibirResultado(sessao.Versao, resultado, nivelAnterior, nivelNovo, avaliarAoContinuar: false);
+        CheckpointJogo.Instance?.ResultadoProgressao(resultado, nivelAnterior, nivelNovo);
+    }
+
+    internal void MostrarResultadoDaVisita(int visitaOrigem, string resultado, string nivelAnterior, string nivelNovo)
+    {
+        var sessao = SessaoCenario.Atual;
+        if (!sessao.MostrarResultado(visitaOrigem))
+            return;
+
+        foreach (var npc in FindObjectsByType<InteracaoNPC>(FindObjectsSortMode.None))
+        {
+            if (npc.Cenario == sessao.Nome && npc.TryGetComponent<AudioSource>(out var voz))
+                voz.Stop();
+        }
+
+        ExibirResultado(visitaOrigem, resultado, nivelAnterior, nivelNovo, avaliarAoContinuar: resultado != "Teste");
+        if (resultado != "Teste")
+            CheckpointJogo.Instance?.Resultado();
+    }
+
+    internal void RetomarResultadoCheckpoint(int visitaOrigem, string fase, JObject decisao)
+    {
+        bool avaliar = fase == "scenario_result";
+        string resultado = avaliar ? "ContinuarCenarios" : (string)decisao["kind"] switch
+        {
+            "advance" => "Avancar", "regress" => "Regredir", "maintain" => "Manter",
+            "extra" => "CenarioExtra", "complete" => "Concluido",
+            _ => throw new System.InvalidOperationException("Decisão de progresso desconhecida.")
+        };
+        if (modalBarraProgressao != null)
+            modalBarraProgressao.SetActive(true);
+        ExibirResultado(visitaOrigem, resultado, (string)decisao?["previous_level"] ?? DadosJogador.nivelUsuario,
+            (string)decisao?["new_level"] ?? DadosJogador.nivelUsuario, avaliar);
+    }
+
+    private void ExibirResultado(int visitaOrigem, string resultado, string nivelAnterior, string nivelNovo,
+        bool avaliarAoContinuar)
+    {
+        visita = visitaOrigem;
+        modoAtual = avaliarAoContinuar ? "ConclusaoCenario" : "FimCenario";
 
         switch (resultado)
         {
@@ -550,18 +618,31 @@ public class ModalFinalManager : MonoBehaviour
 
     public void Continuar()
     {
+        var sessao = SessaoCenario.Atual;
+        if (!CheckpointJogo.PodeAvancar || !sessao.Corresponde(visita) || modalFinal == null || !modalFinal.activeInHierarchy)
+            return;
+
+        string modo = modoAtual;
+        modoAtual = null;
         if (modalFinal != null)
             modalFinal.SetActive(false);
         
-        if (modoAtual == "InicioCenario")
+        if (modo == "InicioCenario")
         {
+            if (!sessao.Iniciar(visita))
+                return;
+
+            GerenciadorProgressao.Instance?.RegistrarCenarioEscolhido(cenarioAtual);
+            GameProgress.EstaEmDialogo = false;
+            if (cenarioAtual == "Market")
+                GameProgress.Instance?.ReiniciarMarket();
             // Os outros cenários ainda estão em modo de teste.
             if (cenarioAtual != "Market" && modoTesteSemExercicios)
             {
                 modoAtual = "FimCenario";
 
-                MostrarResultado(
-                    "Teste",
+                MostrarResultadoDaVisita(
+                    visita, "Teste",
                     DadosJogador.nivelUsuario,
                     DadosJogador.nivelUsuario
                 );
@@ -582,6 +663,7 @@ public class ModalFinalManager : MonoBehaviour
 
             if (gerenciador != null)
                 gerenciador.IniciarCenario();
+            CheckpointJogo.Instance?.Inicio();
 
             if (modalBarraProgressao != null)
                 modalBarraProgressao.SetActive(true);
@@ -612,15 +694,21 @@ public class ModalFinalManager : MonoBehaviour
             return;
         }
 
-        // O botão do modal final sempre encaminha
-        // o jogador para a seleção de cenários.
-        if (modoAtual == "FimCenario")
-        {
-            GerenciadorProgressao gerenciador =
-                GerenciadorProgressao.Instance;
+        if (!sessao.EmResultado)
+            return;
 
-            if (gerenciador != null)
-                gerenciador.ContinuarParaSelecao();
+        var progressao = GerenciadorProgressao.Instance;
+        if (progressao == null)
+            return;
+
+        if (modo == "ConclusaoCenario")
+        {
+            if (progressao.FinalizarCenario() == "CenarioJaFinalizado")
+                progressao.ContinuarParaSelecao();
+        }
+        else if (modo == "FimCenario")
+        {
+            progressao.ContinuarParaSelecao();
         }
     }
 }

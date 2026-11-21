@@ -134,6 +134,8 @@
 //     }
 // }
 
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR;
@@ -180,6 +182,7 @@ public class ModalSelecaoCenario : MonoBehaviour
         }
 
         AtualizarCards();
+        CheckpointJogo.Instance?.Selecionando();
     }
 
     // Mostra somente os cenários permitidos.
@@ -215,26 +218,10 @@ public class ModalSelecaoCenario : MonoBehaviour
         }
     }
 
-    private bool selecionandoCenario;
-
     public async void SelecionarCenario(string cenario)
     {
-        if (selecionandoCenario)
+        if (!CheckpointJogo.PodeAvancar)
             return;
-
-        selecionandoCenario = true;
-        try
-        {
-            await SelecionarCenarioAsync(cenario);
-        }
-        finally
-        {
-            selecionandoCenario = false;
-        }
-    }
-
-    private async Task SelecionarCenarioAsync(string cenario)
-    {
         GerenciadorProgressao gerenciador = GerenciadorProgressao.Instance;
 
         if (gerenciador == null)
@@ -271,34 +258,49 @@ public class ModalSelecaoCenario : MonoBehaviour
         // No VR, player deve ser a raiz do XR Origin.
         // Assim, o rig inteiro é deslocado e a posição local da câmera
         // (altura e deslocamento do headset) é preservada.
-        if (MissionManager.Instance != null
-            && (cenario == "Airport" || cenario == "Market" || cenario == MissoesClothingStore.Cenario
-                || cenario == MissoesCollege.Cenario || cenario == MissoesHotel.Cenario || cenario == MissoesHome.Cenario
-                || cenario == MissoesRestaurant.Cenario || cenario == MissoesVisitorCenter.Cenario))
-            await MissionManager.Instance.PrepararCatalogoAsync(cenario);
-        else if (MissionManager.Instance != null
-            && (MissionManager.Instance.UsaCatalogoClothingStore || MissionManager.Instance.UsaCatalogoCollege
-                || MissionManager.Instance.UsaCatalogoHotel || MissionManager.Instance.UsaCatalogoHome
-                || MissionManager.Instance.UsaCatalogoRestaurant || MissionManager.Instance.UsaCatalogoVisitorCenter))
-            MissionManager.Instance.ConfigurarCenario(cenario);
-
-        TransportarJogador(destino.position);
-
-        // Registra somente depois de validar e transportar para o destino.
-        gerenciador.RegistrarCenarioEscolhido(cenario);
-
-        if (modalFinalManager == null)
+        if (modalFinalManager == null || MissionManager.Instance == null)
         {
-            Debug.LogError("ModalFinalManager não foi associado.");
+            Debug.LogError("A seleção requer ModalFinalManager e MissionManager.");
             return;
         }
 
+        var sessao = SessaoCenario.Atual;
+        int visita = sessao.Preparar(cenario, DadosJogador.nivelUsuario);
+        if (visita == 0)
+            return;
+
+        MissionManager missoes = MissionManager.Instance;
+        await missoes.PrepararCatalogoAsync(cenario);
+        if (this == null || player == null || destino == null || modalFinalManager == null
+            || !CheckpointJogo.PodeAvancar || !sessao.Corresponde(visita) || MissionManager.Instance != missoes)
+            return;
+
+        TransportarJogador(destino.position);
         modalFinalManager.MostrarInicioCenario(cenario);
+        CheckpointJogo.Instance?.Entrada(cenario);
 
         if (modalSelecaoCenario != null)
             modalSelecaoCenario.SetActive(false);
         else
             Debug.LogWarning("O objeto modalSelecaoCenario não foi associado.");
+    }
+
+    internal async Task RetomarEntradaCheckpoint(string cenario, int visita, CancellationToken ct)
+    {
+        Transform destino = ObterPontoDestino(cenario);
+        var missoes = MissionManager.Instance;
+        if (missoes == null || player == null || destino == null || modalFinalManager == null)
+            throw new InvalidOperationException("Entrada do cenário não está configurada.");
+
+        await missoes.PrepararCatalogoAsync(cenario);
+        ct.ThrowIfCancellationRequested();
+        if (this == null || !SessaoCenario.Atual.Corresponde(visita))
+            throw new OperationCanceledException();
+
+        TransportarJogador(destino.position);
+        if (modalSelecaoCenario != null)
+            modalSelecaoCenario.SetActive(false);
+        modalFinalManager.MostrarInicioCenario(cenario);
     }
 
     private Transform ObterPontoDestino(string cenario)

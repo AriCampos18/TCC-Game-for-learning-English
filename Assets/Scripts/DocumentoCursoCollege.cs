@@ -9,6 +9,8 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
     [SerializeField] private TMP_Text textoDocumento;
     [SerializeField] private Button botaoFechar;
 
+    private int visita;
+
     internal bool Disponivel { get; private set; }
     internal bool Consultado { get; private set; }
     internal bool Aberto => painel != null && painel.activeInHierarchy;
@@ -42,7 +44,7 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
 
     internal bool Disponibilizar(string nivel)
     {
-        if (!isActiveAndEnabled || botaoAbrir == null || painel == null || textoDocumento == null || botaoFechar == null
+        if (!SessaoCenario.Atual.Permite("College") || !isActiveAndEnabled || botaoAbrir == null || painel == null || textoDocumento == null || botaoFechar == null
             || botaoAbrir.transform.IsChildOf(painel.transform)
             || !botaoFechar.transform.IsChildOf(painel.transform)
             || !textoDocumento.transform.IsChildOf(painel.transform)
@@ -65,6 +67,7 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
             return false;
 
         textoDocumento.text = $"Course: Computer Science\nTuition: R$ 500 per month\nClasses start: {data}\nFirst class: {sala}";
+        visita = SessaoCenario.Atual.Versao;
         Disponivel = true;
         return true;
     }
@@ -75,13 +78,13 @@ public sealed class DocumentoCursoCollege : MonoBehaviour
             botaoAbrir.gameObject.SetActive(mostrar && Disponivel && !Aberto);
     }
 
-    internal bool PodeAguardarConsulta => isActiveAndEnabled && Disponivel
+    internal bool PodeAguardarConsulta => SessaoCenario.Atual.Permite("College", visita) && isActiveAndEnabled && Disponivel
         && ((botaoAbrir != null && botaoAbrir.isActiveAndEnabled && botaoAbrir.IsInteractable())
             || (Aberto && botaoFechar != null && botaoFechar.isActiveAndEnabled && botaoFechar.IsInteractable()));
 
     private void Abrir()
     {
-        if (!isActiveAndEnabled || !Disponivel || Aberto || !botaoAbrir.isActiveAndEnabled)
+        if (!SessaoCenario.Atual.Permite("College", visita) || !isActiveAndEnabled || !Disponivel || Aberto || !botaoAbrir.isActiveAndEnabled)
             return;
 
         painel.SetActive(true);

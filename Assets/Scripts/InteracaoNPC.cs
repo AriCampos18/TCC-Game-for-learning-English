@@ -243,6 +243,7 @@ public class InteracaoNPC : MonoBehaviour
     protected bool interacaoConcluida = false;
 
     private bool interagindo = false;
+    private static InteracaoNPC iniciandoInteracao;
     public float alturaFocoCamera = 0.82f;
     public GameObject crosshair;
 
@@ -342,9 +343,11 @@ public class InteracaoNPC : MonoBehaviour
 
     public async Task Interagir()
     {
-        if (!PodeInteragir())
+        if (iniciandoInteracao != null || !PodeInteragir() || (GameProgress.EstaEmDialogo && !PodeIniciarComDialogo))
             return;
 
+        int visita = SessaoCenario.Atual.Versao;
+        iniciandoInteracao = this;
         interagindo = true;
 
         try
@@ -364,13 +367,30 @@ public class InteracaoNPC : MonoBehaviour
             }
 
             await VirarParaPlayer();
+            if (this == null || !SessaoCenario.Atual.Permite(Cenario, visita))
+                return;
+
+            iniciandoInteracao = null;
             await IniciarInteracao();
 
-            interacaoConcluida = true;
-            MostrarAviso(false);
+            if (this != null && SessaoCenario.Atual.Corresponde(visita))
+            {
+                interacaoConcluida = true;
+                MostrarAviso(false);
+            }
+        }
+        catch (System.OperationCanceledException)
+        {
+            if (this != null && SessaoCenario.Atual.Permite(Cenario, visita))
+            {
+                GameProgress.EstaEmDialogo = false;
+                LiberarControlePlayer();
+            }
         }
         finally
         {
+            if (iniciandoInteracao == this)
+                iniciandoInteracao = null;
             interagindo = false;
         }
     }
@@ -558,9 +578,49 @@ public class InteracaoNPC : MonoBehaviour
         return exercicios ?? new List<ExercicioBase>();
     }
 
+    internal string Cenario => SessaoCenario.CenarioDoNpc(CheckpointNpcKey);
+
+    internal string CheckpointNpcKey => this switch
+    {
+        ShelfNPC _ => "shelf_npc", BakeryNPC _ => "bakery_npc", CashierNPC _ => "cashier_npc",
+        AirportInfoNPC _ => "airport_info_npc", checkinNPC _ => "checkin_npc",
+        ClothingSellerNPC _ => "clothing_seller_npc", RecepcionistHotelNPC _ => "recepcionist_hotel_npc",
+        motherNPC _ => "mother_npc", fatherNPC _ => "father_npc", brotherNPC _ => "brother_npc",
+        VisitorCenterNPC _ => "visitor_center_npc", RestaurantWaiterNPC _ => "restaurant_waiter_npc",
+        RestaurantClient _ => "restaurant_client", RecepcionistCollegeNPC _ => "recepcionist_college_npc",
+        SecretaryCollegeNPC _ => "secretary_college_npc", _ => null
+    };
+
+    private int visitaInteracao;
+    internal bool PertenceAoCenarioAtivo => SessaoCenario.Atual.Permite(Cenario);
+
+    protected void ValidarVisita(int visita)
+    {
+        if (this == null || !SessaoCenario.Atual.Permite(Cenario, visita))
+            throw new System.OperationCanceledException("A interação pertence a uma visita encerrada.");
+    }
+
+    protected virtual void ReiniciarVisita() { }
+    protected virtual bool PodeIniciarComDialogo => false;
+
     public virtual bool PodeInteragir()
     {
+        if (!PertenceAoCenarioAtivo || !isActiveAndEnabled)
+            return false;
+
+        AtualizarVisita();
         return (!interacaoConcluida || PermitirReinteracaoAposConclusao) && !interagindo;
+    }
+
+    protected internal void AtualizarVisita()
+    {
+        int visita = SessaoCenario.Atual.Versao;
+        if (visitaInteracao != visita && !interagindo)
+        {
+            visitaInteracao = visita;
+            interacaoConcluida = false;
+            ReiniciarVisita();
+        }
     }
 
     protected virtual bool PermitirReinteracaoAposConclusao => false;

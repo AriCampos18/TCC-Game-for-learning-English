@@ -906,6 +906,7 @@ public class CashierNPC : InteracaoNPC
 
     private List<GameObject> produtosInstanciadosNoCaixa = new List<GameObject>();
     private bool checkoutVisualJaFeito = false;
+    private bool chocolateFoiOcultado;
 
     public ExercicioBase exAtual;
     public GameObject modalLegenda;
@@ -1810,14 +1811,16 @@ private async Task interacaoA2B1()
     {
         await Task.Delay(1500);
 
-        if (produtoChocolate != null)
+        if (produtoChocolate != null && produtoChocolate.activeSelf)
         {
+            chocolateFoiOcultado = true;
             produtoChocolate.SetActive(false);
         }
     }
 
     private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback, bool faseAssociacao = false)
     {
+        CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
@@ -1987,8 +1990,20 @@ private async Task interacaoA2B1()
         }
     }
 
+    internal void ReiniciarMarket()
+    {
+        sacolaFoiPega = aguardandoPegarSacola = missaoSacolaLiberada = checkoutVisualJaFeito = false;
+        if (sacolaFinal != null)
+            sacolaFinal.SetActive(false);
+        if (chocolateFoiOcultado && produtoChocolate != null)
+            produtoChocolate.SetActive(true);
+        chocolateFoiOcultado = false;
+    }
+
     public void SacolaFoiPega()
     {
+        if (!PertenceAoCenarioAtivo || !missaoSacolaLiberada || sacolaFoiPega)
+            return;
         sacolaFoiPega = true;
         MissionManager.Instance?.RegistrarEventoMarket("marco_fluxo", "sacola_coletada");
     }
@@ -2065,8 +2080,11 @@ private async Task interacaoA2B1()
     public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
+        int visita = SessaoCenario.Atual.Versao;
+        ValidarVisita(visita);
 
         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        ValidarVisita(visita);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2079,6 +2097,7 @@ private async Task interacaoA2B1()
             while (!operation.isDone)
                 await Task.Yield();
 
+            ValidarVisita(visita);
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
             if (modalLegenda != null && modalLegenda.activeSelf)
@@ -2093,6 +2112,7 @@ private async Task interacaoA2B1()
             {
                 await Task.Yield();
             }
+            ValidarVisita(visita);
         }
     }
     public override bool PodeInteragir()

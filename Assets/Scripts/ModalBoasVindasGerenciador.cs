@@ -56,6 +56,14 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
             crosshair.SetActive(false);
     }
 
+    internal void OcultarParaCheckpoint()
+    {
+        foreach (var painel in new[] { modalBoasVindas, modalNivelamento, modalResultadoNivelmento,
+            modalInstrucoes, modalSelecaoCenario, modalSelecaoAvatar, modalAvisoRevisao, modalLegenda })
+            if (painel != null)
+                painel.SetActive(false);
+    }
+
     public void AbrirModal(TipoModal tipo, string resultado = "", string nivelAnterior = "", string nivelNovo = "")
     {
         modalBoasVindas.SetActive(true);

@@ -102,6 +102,7 @@ public sealed class ExerciseManager : MonoBehaviour
     private readonly Dictionary<string, Task<ExerciseLoadResult>> inFlight =
         new Dictionary<string, Task<ExerciseLoadResult>>();
     private readonly object cacheLock = new object();
+    private int visitaCache;
 
     private void Awake()
     {
@@ -134,17 +135,58 @@ public sealed class ExerciseManager : MonoBehaviour
         return LoadAsync(npcKey, pointKey, level, cancellationToken);
     }
 
-    private Task<ExerciseLoadResult> LoadAsync(string npcKey, string pointKey, string level,
+    private async Task<ExerciseLoadResult> LoadAsync(string npcKey, string pointKey, string level,
         CancellationToken cancellationToken)
+    {
+        var sessao = SessaoCenario.Atual;
+        string cenario = SessaoCenario.CenarioDoNpc(npcKey);
+        int visita = sessao.Versao;
+        if (!sessao.Permite(cenario, visita) || level != sessao.Nivel)
+            throw new OperationCanceledException("Consulta de exercícios fora da visita ativa.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        ResolveAuthenticationController();
+        string url = authenticationController != null ? authenticationController.BackendBaseUrl : null;
+        var carregamento = LoadCatalogAsync(visita, url, SessaoCenario.Id(cenario), npcKey, pointKey, level);
+        var resultado = await AguardarCatalogoAsync(carregamento, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!sessao.Permite(cenario, visita))
+            throw new OperationCanceledException("A visita mudou durante a consulta de exercícios.");
+
+        return resultado;
+    }
+
+    private static async Task<ExerciseLoadResult> AguardarCatalogoAsync(
+        Task<ExerciseLoadResult> carregamento, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.CanBeCanceled && !carregamento.IsCompleted)
+        {
+            var cancelado = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => cancelado.TrySetResult(true)))
+                await Task.WhenAny(carregamento, cancelado.Task);
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        return await carregamento;
+    }
+
+    private Task<ExerciseLoadResult> LoadCatalogAsync(int visita, string url, int scenarioId, string npcKey, string pointKey, string level)
     {
         if (string.IsNullOrWhiteSpace(npcKey))
             return Task.FromResult(ExerciseLoadResult.Failed("npc_key não pode ser vazio."));
         if (string.IsNullOrWhiteSpace(level))
             return Task.FromResult(ExerciseLoadResult.Failed("nivel não pode ser vazio."));
 
-        string cacheKey = npcKey + "|" + (pointKey ?? "*") + "|" + level;
+        string cacheKey = visita + "|" + url + "|" + scenarioId + "|" + npcKey + "|" + (pointKey ?? "*") + "|" + level;
         lock (cacheLock)
         {
+            if (visitaCache != visita)
+            {
+                cache.Clear();
+                visitaCache = visita;
+            }
+
             ExerciseLoadResult cached;
             if (cache.TryGetValue(cacheKey, out cached)) return Task.FromResult(cached);
             Task<ExerciseLoadResult> pending;
@@ -152,19 +194,19 @@ public sealed class ExerciseManager : MonoBehaviour
             var completion = new TaskCompletionSource<ExerciseLoadResult>();
             pending = completion.Task;
             inFlight[cacheKey] = pending;
-            CompleteLoadAsync(cacheKey, npcKey, pointKey, level, cancellationToken, completion);
+            CompleteLoadAsync(cacheKey, visita, url, scenarioId, npcKey, pointKey, level, completion);
             return pending;
         }
     }
 
-    private async void CompleteLoadAsync(string cacheKey, string npcKey,
-        string pointKey, string level, CancellationToken cancellationToken,
+    private async void CompleteLoadAsync(string cacheKey, int visita, string url, int scenarioId, string npcKey,
+        string pointKey, string level,
         TaskCompletionSource<ExerciseLoadResult> completion)
     {
         ExerciseLoadResult result;
         try
         {
-            result = await FetchAsync(npcKey, pointKey, level, cancellationToken);
+            result = await FetchAsync(url, scenarioId, npcKey, pointKey, level, CancellationToken.None);
         }
         catch (OperationCanceledException)
         {
@@ -178,12 +220,13 @@ public sealed class ExerciseManager : MonoBehaviour
         lock (cacheLock)
         {
             inFlight.Remove(cacheKey);
-            if (result.Success) cache[cacheKey] = result;
+            if (result.Success && visitaCache == visita && SessaoCenario.Atual.Corresponde(visita))
+                cache[cacheKey] = result;
         }
         completion.SetResult(result);
     }
 
-    private async Task<ExerciseLoadResult> FetchAsync(string npcKey, string pointKey, string level,
+    private async Task<ExerciseLoadResult> FetchAsync(string baseUrl, int scenarioId, string npcKey, string pointKey, string level,
         CancellationToken cancellationToken)
     {
         ResolveAuthenticationController();
@@ -201,12 +244,11 @@ public sealed class ExerciseManager : MonoBehaviour
             token = session.AccessToken;
         }
 
-        string baseUrl = authenticationController.BackendBaseUrl;
         if (string.IsNullOrWhiteSpace(baseUrl))
             return ExerciseLoadResult.Failed("Backend Base Url não foi configurada.");
 
         string query = "api/exercises?npc_key=" + Uri.EscapeDataString(npcKey)
-            + "&nivel=" + Uri.EscapeDataString(level);
+            + "&id_cenario=" + scenarioId + "&nivel=" + Uri.EscapeDataString(level);
         if (!string.IsNullOrWhiteSpace(pointKey))
             query += "&point_key=" + Uri.EscapeDataString(pointKey);
         Uri baseUri = new Uri(baseUrl.EndsWith("/") ? baseUrl : baseUrl + "/", UriKind.Absolute);
@@ -256,8 +298,9 @@ public sealed class ExerciseManager : MonoBehaviour
                     {
                         foreach (ExerciseApiDTO dto in envelope.data)
                         {
-                            if (dto == null || string.IsNullOrWhiteSpace(dto.pointKey))
-                                throw new InvalidOperationException("Um exercício não contém point_key.");
+                            if (dto == null || dto.idCenario != scenarioId || dto.nivel != level
+                                || string.IsNullOrWhiteSpace(dto.pointKey) || (pointKey != null && dto.pointKey != pointKey))
+                                throw new InvalidOperationException("Exercício fora do cenário, nível ou ponto solicitado.");
                             ExercicioBase exercise;
                             TipoExercicio type = dto.ConvertToExecutable(out exercise);
                             List<ExerciseCatalogItem> pointItems;

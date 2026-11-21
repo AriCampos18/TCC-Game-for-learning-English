@@ -1176,6 +1176,7 @@ public class BakeryNPC : InteracaoNPC
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
+        CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio expectedType = fallback == null
             ? (TipoExercicio)(-1)
             : ObterTipoExercicio(fallback);
@@ -1423,7 +1424,17 @@ private async Task interacaoA2B1()
     await AbrirExercicioDoPonto("order_completion", 1, exAtual);
 }
 
-   private async Task PegarProduto(GameObject produto, bool falar = true)
+    private readonly HashSet<GameObject> produtosExibidos = new HashSet<GameObject>();
+
+    protected override void ReiniciarVisita()
+    {
+        foreach (GameObject produto in produtosExibidos)
+            if (produto != null)
+                produto.SetActive(true);
+        produtosExibidos.Clear();
+    }
+
+    private async Task PegarProduto(GameObject produto, bool falar = true)
     {
         if (produto != null)
         {
@@ -1433,6 +1444,8 @@ private async Task interacaoA2B1()
             }
 
             await Task.Delay(1500);
+            if (produto.activeSelf)
+                produtosExibidos.Add(produto);
             produto.SetActive(false);
         }
     }
@@ -1544,8 +1557,11 @@ private async Task interacaoA2B1()
     public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
+        int visita = SessaoCenario.Atual.Versao;
+        ValidarVisita(visita);
 
         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        ValidarVisita(visita);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -1558,6 +1574,7 @@ private async Task interacaoA2B1()
             while (!operation.isDone)
                 await Task.Yield();
 
+            ValidarVisita(visita);
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
             if (modalLegenda != null)
@@ -1577,6 +1594,7 @@ private async Task interacaoA2B1()
             {
                 await Task.Yield();
             }
+            ValidarVisita(visita);
 
             if (modalLegenda != null)
             {

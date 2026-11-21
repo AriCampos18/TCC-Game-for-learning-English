@@ -7,6 +7,7 @@ public sealed class CartaoQuartoHotel : MonoBehaviour
     internal static CartaoQuartoHotel Disponivel { get; private set; }
     internal bool Recolhido { get; private set; }
     private int quadroDisponibilizacao;
+    private int visita;
 
     internal void Resetar()
     {
@@ -16,7 +17,7 @@ public sealed class CartaoQuartoHotel : MonoBehaviour
 
     internal bool Disponibilizar()
     {
-        if (Disponivel != null)
+        if (!SessaoCenario.Atual.Permite("Hotel") || Disponivel != null)
             return false;
 
         gameObject.SetActive(true);
@@ -26,6 +27,7 @@ public sealed class CartaoQuartoHotel : MonoBehaviour
             return false;
         }
 
+        visita = SessaoCenario.Atual.Versao;
         quadroDisponibilizacao = Time.frameCount;
         Disponivel = this;
         return true;
@@ -33,7 +35,7 @@ public sealed class CartaoQuartoHotel : MonoBehaviour
 
     internal bool TentarRecolher()
     {
-        if (Disponivel != this || Recolhido || Time.frameCount <= quadroDisponibilizacao)
+        if (!SessaoCenario.Atual.Permite("Hotel", visita) || Disponivel != this || Recolhido || Time.frameCount <= quadroDisponibilizacao)
             return false;
 
         Recolhido = true;

@@ -20,7 +20,7 @@ public class ProdutoManager : MonoBehaviour
     public GameObject prefabSalgadinho;
     public GameObject prefabLegume;
     public GameObject prefabRefrigerante;
-    private MissionManager missaoManager; 
+    private readonly HashSet<ProdutoInterativo> produtosOcultados = new HashSet<ProdutoInterativo>();
 
     private string nivelAtual;
     private bool marketIntermediario;
@@ -30,8 +30,13 @@ public class ProdutoManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
-        missaoManager = MissionManager.Instance;
         DesativarTodos();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     public List<TipoProdutoMercado> GetProdutosPegos()
@@ -65,8 +70,21 @@ public class ProdutoManager : MonoBehaviour
         return null;
     }
 
+    internal void ReiniciarMarket()
+    {
+        produtosPegos.Clear();
+        nivelAtual = null;
+        foreach (var produto in produtosOcultados)
+            if (produto != null)
+                produto.gameObject.SetActive(true);
+        produtosOcultados.Clear();
+        DesativarTodos();
+    }
+
     public void LiberarProdutos(string nivel)
     {
+        if (!SessaoCenario.Atual.Permite("Market"))
+            return;
         marketIntermediario = MissionManager.NivelMarketIntermediario(nivel);
         nivelAtual = marketIntermediario ? "A2" : nivel;
         produtosPegos.Clear();
@@ -93,7 +111,10 @@ public class ProdutoManager : MonoBehaviour
 
     public void RegistrarProduto(ProdutoInterativo produto)
     {
-        if (produto == null || !produto.podePegar) return;
+        if (!SessaoCenario.Atual.Permite("Market") || produto == null || !produto.podePegar) return;
+
+        if (produto.gameObject.activeSelf)
+            produtosOcultados.Add(produto);
 
         if (marketIntermediario)
         {

@@ -27,6 +27,7 @@ public sealed class InteracaoHome : MonoBehaviour
     internal static InteracaoHome MesaDisponivel { get; private set; }
     private int quadroDisponibilidade;
     private bool mesaConfirmada;
+    private int visitaMesa;
 
     internal async Task AguardarPermanencia(string comodo)
     {
@@ -88,6 +89,7 @@ public sealed class InteracaoHome : MonoBehaviour
 
         quadroDisponibilidade = Time.frameCount;
         mesaConfirmada = false;
+        visitaMesa = SessaoCenario.Atual.Versao;
         MesaDisponivel = this;
         try
         {
@@ -103,6 +105,8 @@ public sealed class InteracaoHome : MonoBehaviour
 
     internal void TentarInteragirComMesa(Collider alvo)
     {
+        if (!SessaoCenario.Atual.Permite("Home", visitaMesa))
+            return;
         if (MesaDisponivel != this || mesaConfirmada || alvo != mesa || Time.frameCount <= quadroDisponibilidade)
             return;
 
@@ -171,11 +175,12 @@ public sealed class InteracaoHome : MonoBehaviour
 
     private async Task ProximoFrame()
     {
+        int visita = SessaoCenario.Atual.Versao;
         int quadro = Time.frameCount;
         do
         {
             await Task.Yield();
-            if (this == null || !isActiveAndEnabled)
+            if (!SessaoCenario.Atual.Permite("Home", visita) || this == null || !isActiveAndEnabled)
                 throw new OperationCanceledException();
         }
         while (Time.frameCount == quadro);

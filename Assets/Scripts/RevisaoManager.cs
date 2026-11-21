@@ -20,12 +20,24 @@ public class RevisaoManager : MonoBehaviour
         new List<ExercicioRevisao>();
 
     private string cenarioAtual;
+    private int visitaAtual;
     private bool finalizacaoEmAndamento;
     private bool cenarioFinalizado;
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+            return;
+        }
         Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     public void IniciarCenario(string cenario)
@@ -36,10 +48,14 @@ public class RevisaoManager : MonoBehaviour
             return;
         }
 
+        if (!SessaoCenario.Atual.Permite(cenario))
+            return;
+
         cenarioAtual = cenario;
+        visitaAtual = SessaoCenario.Atual.Versao;
         finalizacaoEmAndamento = false;
         cenarioFinalizado = false;
-        exerciciosErrados.RemoveAll(item => item.cenario == cenarioAtual);
+        exerciciosErrados.Clear();
     }
 
     public bool DeveAdiarAssociacoes
@@ -132,13 +148,15 @@ public class RevisaoManager : MonoBehaviour
         GameObject avisoRevisaoOverride = null,
         GameObject legendaOverride = null)
     {
-        if (string.IsNullOrWhiteSpace(cenarioAtual))
+        int visita = visitaAtual;
+        string cenario = cenarioAtual;
+        if (!SessaoCenario.Atual.Permite(cenario, visita))
         {
             Debug.LogError("Não é possível executar a revisão sem identificar o cenário atual.");
             return false;
         }
 
-        if (npcApresentador == null)
+        if (npcApresentador == null || npcApresentador.Cenario != cenarioAtual)
         {
             Debug.LogError("Não é possível executar a revisão sem um NPC apresentador.");
             return false;
@@ -193,8 +211,16 @@ public class RevisaoManager : MonoBehaviour
             {
                 modalAvisoRevisao.SetActive(true);
 
-                while (modalAvisoRevisao.activeSelf)
+                while (modalAvisoRevisao != null && modalAvisoRevisao.activeSelf
+                    && SessaoCenario.Atual.Permite(cenario, visita))
                     await Task.Yield();
+
+                if (!SessaoCenario.Atual.Permite(cenario, visita))
+                {
+                    if (visitaAtual == visita && modalAvisoRevisao != null)
+                        modalAvisoRevisao.SetActive(false);
+                    return false;
+                }
             }
 
             foreach (ExercicioRevisao item in revisoes)
@@ -242,10 +268,11 @@ public class RevisaoManager : MonoBehaviour
     public async Task<bool> ExecutarRevisaoEExibirModalFinal(
         InteracaoNPC npcApresentador)
     {
-        if (finalizacaoEmAndamento || cenarioFinalizado)
+        int visita = visitaAtual;
+        if (!SessaoCenario.Atual.Permite(cenarioAtual, visita) || finalizacaoEmAndamento || cenarioFinalizado)
             return false;
 
-        if (npcApresentador == null)
+        if (npcApresentador == null || npcApresentador.Cenario != cenarioAtual)
         {
             Debug.LogError("Não é possível finalizar o cenário sem um NPC apresentador.");
             return false;
@@ -280,10 +307,10 @@ public class RevisaoManager : MonoBehaviour
         }
         finally
         {
-            GameProgress.EstaEmDialogo = false;
-            if (!cenarioFinalizado)
+            if (SessaoCenario.Atual.Permite(cenarioAtual, visita) && !cenarioFinalizado)
             {
                 finalizacaoEmAndamento = false;
+                GameProgress.EstaEmDialogo = false;
                 jogador.AtivarControle();
 
                 if (npcApresentador.crosshair != null)
@@ -291,12 +318,12 @@ public class RevisaoManager : MonoBehaviour
             }
         }
 
-        if (!revisaoConcluida)
+        if (!revisaoConcluida || !SessaoCenario.Atual.Permite(cenarioAtual, visita))
             return false;
 
         cenarioFinalizado = true;
-        gerenciador.modalFinalManager.MostrarResultado(
-            "ContinuarCenarios",
+        gerenciador.modalFinalManager.MostrarResultadoDaVisita(
+            visita, "ContinuarCenarios",
             DadosJogador.nivelUsuario,
             DadosJogador.nivelUsuario
         );
@@ -313,7 +340,7 @@ public class RevisaoManager : MonoBehaviour
         ExercicioBase exercicio,
         InteracaoNPC npcOrigem)
     {
-        if (string.IsNullOrWhiteSpace(cenarioAtual))
+        if (!SessaoCenario.Atual.Permite(cenarioAtual, visitaAtual))
         {
             Debug.LogError("Não é possível registrar exercício sem identificar o cenário atual.");
             return false;
@@ -325,7 +352,7 @@ public class RevisaoManager : MonoBehaviour
             return false;
         }
 
-        if (npcOrigem == null)
+        if (npcOrigem == null || npcOrigem.Cenario != cenarioAtual)
         {
             Debug.LogError("Não é possível registrar exercício sem identificar o NPC de origem.");
             return false;
@@ -421,8 +448,12 @@ public class RevisaoManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        while (!modalExercicio.exercicioFinalizado)
+        int visita = visitaAtual;
+        while (modalExercicio != null && !modalExercicio.exercicioFinalizado && SessaoCenario.Atual.Permite(cenarioAtual, visita))
             await Task.Yield();
+
+        if (modalExercicio == null || !SessaoCenario.Atual.Permite(cenarioAtual, visita))
+            return false;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;

@@ -9,10 +9,15 @@ public class SacolaInterativaScript : MonoBehaviour
         caixa = cashier;
     }
 
+    internal bool PodeRecolher => SessaoCenario.Atual.Permite("Market") && caixa != null
+        && caixa.MissaoSacolaLiberada() && !caixa.JogadorPegouSacola();
+
     public void PegarSacola()
     {
-        if (caixa != null)
-            caixa.SacolaFoiPega();
+        if (!PodeRecolher)
+            return;
+
+        caixa.SacolaFoiPega();
 
         gameObject.SetActive(false);
     }

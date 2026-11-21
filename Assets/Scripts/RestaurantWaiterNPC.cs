@@ -1026,10 +1026,12 @@ public class RestaurantWaiterNPC : InteracaoNPC
 
     protected override bool PermitirReinteracaoAposConclusao => mesaAtual != null;
 
+    protected override bool PodeIniciarComDialogo => mesaAtual != null;
+
     public override bool PodeInteragir() => mesaAtual != null && VisitaAtual == ultimaVisita && base.PodeInteragir();
 
     internal bool PodeIniciarAtendimento() =>
-        isActiveAndEnabled && VisitaAtual != 0 && ultimaVisita != VisitaAtual && mesaAtual == null;
+        isActiveAndEnabled && PertenceAoCenarioAtivo && !GameProgress.EstaEmDialogo && VisitaAtual != 0 && ultimaVisita != VisitaAtual && mesaAtual == null;
 
     internal async void IniciarAtendimento(InteracaoRestaurant mesa)
     {
@@ -2259,6 +2261,7 @@ else if (nivelAtual == "A2-B1")
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
+        CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
@@ -2343,7 +2346,7 @@ else if (nivelAtual == "A2-B1")
 
     public void FinalizarConversaComCliente()
     {
-        if (aguardandoConversaComCliente)
+        if (PertenceAoCenarioAtivo && VisitaAtual == ultimaVisita && aguardandoConversaComCliente)
             conversaClienteConcluida = true;
     }
 
@@ -2411,8 +2414,11 @@ else if (nivelAtual == "A2-B1")
     public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
+        int visita = SessaoCenario.Atual.Versao;
+        ValidarVisita(visita);
 
         byte[] audioBytes = await backendManagerComum.GerarAudio(textoParaFalar, idNpcParaVoz);
+        ValidarVisita(visita);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2425,6 +2431,7 @@ else if (nivelAtual == "A2-B1")
             while (!operation.isDone)
                 await Task.Yield();
 
+            ValidarVisita(visita);
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSourceComum.clip = clip;
             if (modalLegenda != null)
@@ -2444,6 +2451,7 @@ else if (nivelAtual == "A2-B1")
             {
                 await Task.Yield();
             }
+            ValidarVisita(visita);
 
             if (modalLegenda != null)
             {

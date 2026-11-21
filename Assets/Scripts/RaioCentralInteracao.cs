@@ -20,14 +20,35 @@ public class RaioCentralInteracao : MonoBehaviour
     private InteracaoNPC lastNPC;
     private GameObject objetoAtual;
 
+    private readonly System.Collections.Generic.List<GameObject> cestasRecolhidas =
+        new System.Collections.Generic.List<GameObject>();
+
+    internal void RestaurarCestas()
+    {
+        foreach (var cesta in cestasRecolhidas)
+            if (cesta != null)
+                cesta.SetActive(true);
+        cestasRecolhidas.Clear();
+        ClearLast();
+    }
+
     private bool ModoVR => XRSettings.isDeviceActive;
 
     private void Update()
     {
+        var sessao = SessaoCenario.Atual;
+        if (!sessao.EmJogo || !CheckpointJogo.PodeAvancar)
+        {
+            ClearLast();
+            if (modalAvisoMouse != null)
+                modalAvisoMouse.SetActive(false);
+            return;
+        }
+
         // Enquanto houver diálogo/exercício ativo, não permite novas interações.
-        CartaoQuartoHotel cartaoHotel = CartaoQuartoHotel.Disponivel;
-        InteracaoHome mesaHome = InteracaoHome.MesaDisponivel;
-        InteracaoRestaurant etapaRestaurant = InteracaoRestaurant.Pendente;
+        CartaoQuartoHotel cartaoHotel = sessao.Permite("Hotel") ? CartaoQuartoHotel.Disponivel : null;
+        InteracaoHome mesaHome = sessao.Permite("Home") ? InteracaoHome.MesaDisponivel : null;
+        InteracaoRestaurant etapaRestaurant = sessao.Permite("Restaurant") ? InteracaoRestaurant.Pendente : null;
         if (GameProgress.EstaEmDialogo && cartaoHotel == null && mesaHome == null && etapaRestaurant == null)
         {
             if (modalAvisoMouse != null)
@@ -165,15 +186,19 @@ public class RaioCentralInteracao : MonoBehaviour
                     npc = null;
                 }
             }
-            else if (h != null)
+            else if (h != null && sessao.Permite("Market") && AlvoMarket(obj))
             {
                 novoObjeto = obj;
                 podeInteragirObjeto = true;
             }
+            else
+            {
+                h = null;
+            }
         }
 
         // Atualiza o destaque e os avisos quando o alvo muda.
-        if (h != lastHighlighted)
+        if (h != lastHighlighted || npc != lastNPC || novoObjeto != objetoAtual)
         {
             ClearLast();
 
@@ -230,9 +255,28 @@ public class RaioCentralInteracao : MonoBehaviour
         }
     }
 
+    private static GameObject EncontrarCesta(GameObject objeto)
+    {
+        for (Transform alvo = objeto.transform; alvo != null; alvo = alvo.parent)
+        {
+            if (alvo.name == "shopping_basket" || alvo.name.StartsWith("shopping_basket (", System.StringComparison.Ordinal))
+                return alvo.gameObject;
+        }
+        return null;
+    }
+
+    private static bool AlvoMarket(GameObject objeto)
+    {
+        var sacola = objeto.GetComponentInParent<SacolaInterativaScript>();
+        var produto = objeto.GetComponentInParent<ProdutoInterativo>();
+        return (sacola != null && sacola.PodeRecolher)
+            || (produto != null && produto.podePegar)
+            || (MissionManager.Instance?.MissaoAtiva("pegar_cesta") == true && EncontrarCesta(objeto) != null);
+    }
+
     private void PegarObjetoAtual()
     {
-        if (objetoAtual == null)
+        if (!SessaoCenario.Atual.Permite("Market") || objetoAtual == null || !AlvoMarket(objetoAtual))
             return;
 
         SacolaInterativaScript sacola =
@@ -252,19 +296,7 @@ public class RaioCentralInteracao : MonoBehaviour
         ProdutoInterativo produto =
             objetoAtual.GetComponentInParent<ProdutoInterativo>();
 
-        GameObject cesta = null;
-        if (produto == null && MissionManager.NivelMarketIntermediario(DadosJogador.nivelUsuario))
-        {
-            // A cesta da entrada já está na camada de interação da cena.
-            for (Transform alvo = objetoAtual.transform; alvo != null; alvo = alvo.parent)
-            {
-                if (alvo.name == "shopping_basket" || alvo.name.StartsWith("shopping_basket (", System.StringComparison.Ordinal))
-                {
-                    cesta = alvo.gameObject;
-                    break;
-                }
-            }
-        }
+        GameObject cesta = produto == null ? EncontrarCesta(objetoAtual) : null;
 
         if (produto != null)
         {
@@ -273,9 +305,10 @@ public class RaioCentralInteracao : MonoBehaviour
 
             produto.gameObject.SetActive(false);
         }
-        else
+        else if (cesta != null)
         {
-            Destroy(cesta != null ? cesta : objetoAtual);
+            cestasRecolhidas.Add(cesta);
+            cesta.SetActive(false);
         }
 
         if (MissionManager.NivelMarketIntermediario(DadosJogador.nivelUsuario))
@@ -284,8 +317,7 @@ public class RaioCentralInteracao : MonoBehaviour
                 MissionManager.Instance?.RegistrarCestaMarketIntermediario();
         }
         // Mantém a lógica original de conclusão da primeira missão nos demais níveis.
-        else if (MissionManager.Instance != null &&
-            !MissionManager.Instance.MissaoConcluida("pegar_cesta"))
+        else if (cesta != null && MissionManager.Instance?.MissaoAtiva("pegar_cesta") == true)
         {
             MissionManager.Instance.ConcluirMissaoMarket("pegar_cesta", "marco_fluxo", "cesta_coletada");
             if (!MissionManager.Instance.UsaCatalogoMarket)

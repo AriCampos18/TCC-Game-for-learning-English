@@ -32,7 +32,7 @@ public class CardCenarioManager : MonoBehaviour
 
     void Start()
     {
-        modal = FindObjectOfType<ModalSelecaoCenario>();
+        modal = GetComponentInParent<ModalSelecaoCenario>(true);
 
         if (botao != null)
         {
@@ -46,6 +46,12 @@ public class CardCenarioManager : MonoBehaviour
                 gameObject.name
             );
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (botao != null)
+            botao.onClick.RemoveListener(AoClicar);
     }
 
     public void AoClicar()

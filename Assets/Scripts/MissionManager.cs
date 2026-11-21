@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -15,9 +16,37 @@ public class MissionManager : MonoBehaviour
 
     private List<Missao> missoes = new List<Missao>();
 
+    internal JArray CapturarMissoesCheckpoint() => new JArray(missoes.Select(m => new JObject
+    {
+        ["mission_key"] = m.id,
+        ["status"] = m.concluida ? "completed" : "active",
+        ["satisfied_events"] = catalogoMissoes?.CapturarEventosCheckpoint(m.id) ?? new JArray()
+    }));
+
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+            return;
+        }
         Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance != this)
+            return;
+
+        Instance = null;
+        SessaoCenario.Atual.Encerrar();
+    }
+
+    internal void EncerrarCenario()
+    {
+        LimparMissoes();
+        catalogoMissoes = null;
+        cenarioCatalogo = null;
     }
 
     private static readonly HttpClient catalogClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
@@ -26,7 +55,7 @@ public class MissionManager : MonoBehaviour
     private string cenarioCatalogo;
 
     private int visitasVisitorCenter;
-    internal bool UsaCatalogoVisitorCenter => cenarioCatalogo == MissoesVisitorCenter.Cenario;
+    internal bool UsaCatalogoVisitorCenter => TemCatalogo(MissoesVisitorCenter.Cenario);
     internal int VisitaVisitorCenter => UsaCatalogoVisitorCenter ? visitasVisitorCenter : 0;
 
     internal void RegistrarEventoVisitorCenter(string tipo, string alvo)
@@ -36,7 +65,7 @@ public class MissionManager : MonoBehaviour
     }
 
     private int visitasRestaurant;
-    internal bool UsaCatalogoRestaurant => cenarioCatalogo == MissoesRestaurant.Cenario;
+    internal bool UsaCatalogoRestaurant => TemCatalogo(MissoesRestaurant.Cenario);
     internal int VisitaRestaurant => UsaCatalogoRestaurant ? visitasRestaurant : 0;
 
     internal void RegistrarEventoRestaurant(string tipo, string alvo)
@@ -46,7 +75,7 @@ public class MissionManager : MonoBehaviour
     }
 
     private int visitasHome;
-    internal bool UsaCatalogoHome => cenarioCatalogo == MissoesHome.Cenario;
+    internal bool UsaCatalogoHome => TemCatalogo(MissoesHome.Cenario);
     internal int VisitaHome => UsaCatalogoHome ? visitasHome : 0;
 
     internal void RegistrarEventoHome(string tipo, string alvo)
@@ -56,7 +85,7 @@ public class MissionManager : MonoBehaviour
     }
 
     private int visitasHotel;
-    internal bool UsaCatalogoHotel => cenarioCatalogo == MissoesHotel.Cenario;
+    internal bool UsaCatalogoHotel => TemCatalogo(MissoesHotel.Cenario);
     internal int VisitaHotel => UsaCatalogoHotel ? visitasHotel : 0;
 
     internal void RegistrarEventoHotel(string tipo, string alvo)
@@ -66,7 +95,7 @@ public class MissionManager : MonoBehaviour
     }
 
     private int visitasCollege;
-    internal bool UsaCatalogoCollege => cenarioCatalogo == MissoesCollege.Cenario;
+    internal bool UsaCatalogoCollege => TemCatalogo(MissoesCollege.Cenario);
     internal int VisitaCollege => UsaCatalogoCollege ? visitasCollege : 0;
     internal bool PodeAtenderSecretariaCollege => UsaCatalogoCollege && catalogoMissoes != null
         && MissaoConcluida(catalogoMissoes.Definicoes[0].mission_key);
@@ -78,7 +107,7 @@ public class MissionManager : MonoBehaviour
     }
 
     private int visitasClothingStore;
-    internal bool UsaCatalogoClothingStore => cenarioCatalogo == MissoesClothingStore.Cenario;
+    internal bool UsaCatalogoClothingStore => TemCatalogo(MissoesClothingStore.Cenario);
     internal int VisitaClothingStore => UsaCatalogoClothingStore ? visitasClothingStore : 0;
 
     internal void RegistrarEventoClothingStore(string tipo, string alvo)
@@ -87,12 +116,21 @@ public class MissionManager : MonoBehaviour
             AvaliarEvento(tipo, alvo);
     }
 
-    public bool UsaCatalogoAirport => cenarioCatalogo == "Airport";
-    public bool UsaCatalogoMarket => cenarioCatalogo == "Market";
+    private bool TemCatalogo(string cenario) =>
+        cenarioCatalogo == cenario && SessaoCenario.Atual.Permite(cenario);
+
+    public bool UsaCatalogoAirport => TemCatalogo("Airport");
+    public bool UsaCatalogoMarket => TemCatalogo("Market");
 
     public async Task PrepararCatalogoAsync(string cenario)
     {
-        string nivel = DadosJogador.nivelUsuario;
+        var sessao = SessaoCenario.Atual;
+        int visita = sessao.Versao;
+        if (sessao.Nome != cenario || sessao.EmJogo || sessao.EmResultado)
+            return;
+
+        EncerrarCenario();
+        string nivel = sessao.Nivel;
         CatalogoMissoes novoCatalogo = null;
         try
         {
@@ -110,6 +148,9 @@ public class MissionManager : MonoBehaviour
             Debug.LogWarning(cenario + ": usando missões locais nesta visita. " + e.Message);
         }
 
+        if (this == null || Instance != this || !sessao.Corresponde(visita))
+            return;
+
         if (novoCatalogo == null)
         {
             ConfigurarCenario(cenario);
@@ -119,17 +160,17 @@ public class MissionManager : MonoBehaviour
         LimparMissoes();
         catalogoMissoes = novoCatalogo;
         cenarioCatalogo = cenario;
-        if (UsaCatalogoClothingStore)
+        if (cenario == MissoesClothingStore.Cenario)
             visitasClothingStore++;
-        if (UsaCatalogoCollege)
+        if (cenario == MissoesCollege.Cenario)
             visitasCollege++;
-        if (UsaCatalogoHotel)
+        if (cenario == MissoesHotel.Cenario)
             visitasHotel++;
-        if (UsaCatalogoHome)
+        if (cenario == MissoesHome.Cenario)
             visitasHome++;
-        if (UsaCatalogoRestaurant)
+        if (cenario == MissoesRestaurant.Cenario)
             visitasRestaurant++;
-        if (UsaCatalogoVisitorCenter)
+        if (cenario == MissoesVisitorCenter.Cenario)
             visitasVisitorCenter++;
         AvaliarEvento("cenario_iniciado", cenario);
     }
@@ -148,6 +189,9 @@ public class MissionManager : MonoBehaviour
 
     public void IniciarMissaoMarket(string id, string texto, string traducao)
     {
+        if (!SessaoCenario.Atual.Permite("Market"))
+            return;
+
         if (!UsaCatalogoMarket)
         {
             AdicionarMissao(id, texto, traducao);
@@ -164,6 +208,9 @@ public class MissionManager : MonoBehaviour
 
     public void ConcluirMissaoMarket(string id, string tipo, string alvo)
     {
+        if (!SessaoCenario.Atual.Permite("Market"))
+            return;
+
         if (UsaCatalogoMarket)
             RegistrarEventoMarket(tipo, alvo);
         else
@@ -172,6 +219,10 @@ public class MissionManager : MonoBehaviour
 
     private void AvaliarEvento(string tipo, string alvo)
     {
+        var sessao = SessaoCenario.Atual;
+        if (sessao.Nome != cenarioCatalogo || (!sessao.EmJogo && tipo != "cenario_iniciado"))
+            return;
+
         catalogoMissoes?.Registrar(tipo, alvo, AdicionarDoCatalogo, ConcluirMissao);
     }
 
@@ -187,7 +238,7 @@ public class MissionManager : MonoBehaviour
     }
 
     // Chamado quando o jogador seleciona um cenário.
-    public void ConfigurarCenario(string cenario)
+    private void ConfigurarCenario(string cenario)
     {
         LimparMissoes();
         catalogoMissoes = null;
@@ -298,7 +349,7 @@ public class MissionManager : MonoBehaviour
 
     public void RegistrarCestaMarketIntermediario()
     {
-        if (!MissaoAtiva("pegar_cesta"))
+        if (!SessaoCenario.Atual.Permite("Market") || !MissaoAtiva("pegar_cesta"))
             return;
 
         ConcluirMissaoMarket("pegar_cesta", "marco_fluxo", "cesta_coletada");
@@ -322,7 +373,7 @@ public class MissionManager : MonoBehaviour
 
     public void TentarLiberarCaixaMarket()
     {
-        if (UsaCatalogoMarket || !MissaoConcluida("falar_padaria") || !MissaoConcluida("falar_atendente")
+        if (!SessaoCenario.Atual.Permite("Market") || UsaCatalogoMarket || !MissaoConcluida("falar_padaria") || !MissaoConcluida("falar_atendente")
             || !MissaoConcluida("interagir_produtos") || GameProgress.Instance?.PodeFalarComCaixa() != true)
             return;
 
@@ -346,7 +397,10 @@ public class MissionManager : MonoBehaviour
         foreach (Missao missao in missoes)
         {
             if (missao.itemUI != null)
+            {
+                missao.itemUI.gameObject.SetActive(false);
                 Destroy(missao.itemUI.gameObject);
+            }
         }
 
         missoes.Clear();
@@ -367,7 +421,11 @@ public class MissionManager : MonoBehaviour
 
     public void AdicionarMissao(string id, string texto, string traducao)
     {
-        if (missoes.Exists(m => m.id == id))
+        var sessao = SessaoCenario.Atual;
+        bool chaveValida = cenarioCatalogo == sessao.Nome && catalogoMissoes != null
+            ? catalogoMissoes.Definicoes.Any(d => d.mission_key == id)
+            : CatalogoMissoes.ChaveDoCenario(sessao.Nome, sessao.Nivel, id);
+        if (!chaveValida || sessao.EmResultado || missoes.Exists(m => m.id == id))
             return;
 
         Missao nova = new Missao()
@@ -400,6 +458,9 @@ public class MissionManager : MonoBehaviour
         string traducao
     )
     {
+        if (!SessaoCenario.Atual.Permite("Airport"))
+            return;
+
         if (Instance == null)
         {
             Debug.LogError(
@@ -415,7 +476,7 @@ public class MissionManager : MonoBehaviour
     {
         Missao m = missoes.Find(x => x.id == id);
 
-        if (m != null && !m.concluida)
+        if (SessaoCenario.Atual.EmJogo && m != null && !m.concluida)
         {
             m.concluida = true;
 
@@ -426,6 +487,9 @@ public class MissionManager : MonoBehaviour
 
     public static void ConcluirMissaoNPC(string id)
     {
+        if (!SessaoCenario.Atual.Permite("Airport"))
+            return;
+
         if (Instance == null)
         {
             Debug.LogError(

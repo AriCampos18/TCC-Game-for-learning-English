@@ -204,8 +204,9 @@ public sealed class ProvadorClothingStore : MonoBehaviour
 
     private async Task ProximoFrame()
     {
+        int visita = SessaoCenario.Atual.Versao;
         await Task.Yield();
-        if (this == null || !isActiveAndEnabled || imagemFade == null || !imagemFade.gameObject.activeInHierarchy)
+        if (!SessaoCenario.Atual.Permite("Clothing Store", visita) || this == null || !isActiveAndEnabled || imagemFade == null || !imagemFade.gameObject.activeInHierarchy)
             throw new OperationCanceledException();
     }
 }

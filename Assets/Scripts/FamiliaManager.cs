@@ -12,11 +12,12 @@ public class FamiliaManager : MonoBehaviour
     [SerializeField] private InteracaoHome interacaoHome;
 
     private bool visitaEmAndamento = false;
-    private bool associacaoAposSaidaIniciada;
+    private int visitaComAssociacaoAposSaida;
 
     public async Task IniciarVisita()
     {
-        if (visitaEmAndamento || associacaoAposSaidaIniciada)
+        int visita = SessaoCenario.Atual.Versao;
+        if (!SessaoCenario.Atual.Permite("Home") || visitaEmAndamento || visitaComAssociacaoAposSaida == visita)
             return;
 
         visitaEmAndamento = true;
@@ -52,7 +53,7 @@ public class FamiliaManager : MonoBehaviour
                     if (MissionManager.Instance?.MissaoConcluida(despedida) != true)
                         throw new InvalidOperationException("A miss?o de despedida precisa estar conclu?da antes da Associa??o.");
 
-                    associacaoAposSaidaIniciada = true;
+                    visitaComAssociacaoAposSaida = visita;
                     int ordem = nivel == "A1" ? 9 : nivel == "A2" ? 10 : 13;
                     await mae.ExecutarExercicio("farewell", ordem, mae.exerciciosAssociacao[0]);
                 }

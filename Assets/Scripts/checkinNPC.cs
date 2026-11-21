@@ -1011,6 +1011,10 @@ public class checkinNPC : InteracaoNPC
 
     private void Update()
     {
+        if (!PertenceAoCenarioAtivo)
+            return;
+
+        AtualizarVisita();
         AtualizarConsultaCartaoEmbarque();
         if (cartaoEmbarqueAberto || !fluxoCheckinConcluido || !aguardandoChegadaPortao || chegadaPortaoConfirmada)
             return;
@@ -1042,6 +1046,18 @@ public class checkinNPC : InteracaoNPC
             EmitirEventoMissao("permanencia_confirmada", ponto);
             TentarConcluirMissaoPortao();
         }
+    }
+
+    protected override void ReiniciarVisita()
+    {
+        aguardandoChegadaPortao = fluxoCheckinConcluido = chegadaPortaoConfirmada = false;
+        cartaoEmbarqueConsultado = cartaoEmbarqueAberto = botaoCartaoVRPressionado = false;
+        tempoParadoPortao = 0f;
+        DesativarMarcadoresPortoes();
+        if (CartaoEmbarqueConfigurado())
+            painelCartaoEmbarque.SetActive(false);
+        if (instrucoesCartaoEmbarque != null)
+            instrucoesCartaoEmbarque.enabled = false;
     }
 
     private string MissaoConsultaCartao()
@@ -2151,6 +2167,7 @@ private async Task interacaoA2B1()
 
     private async Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
+        CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
@@ -2272,8 +2289,11 @@ private async Task interacaoA2B1()
     public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
+        int visita = SessaoCenario.Atual.Versao;
+        ValidarVisita(visita);
 
         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        ValidarVisita(visita);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -2286,6 +2306,7 @@ private async Task interacaoA2B1()
             while (!operation.isDone)
                 await Task.Yield();
 
+            ValidarVisita(visita);
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
             if (modalLegenda != null)
@@ -2305,6 +2326,7 @@ private async Task interacaoA2B1()
             {
                 await Task.Yield();
             }
+            ValidarVisita(visita);
 
             if (modalLegenda != null)
             {

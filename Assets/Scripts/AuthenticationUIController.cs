@@ -187,7 +187,9 @@ public sealed class AuthenticationUIController : MonoBehaviour
         }
         else if (result.Value)
         {
-            Close();
+            if (!await AbrirJogoAutenticado())
+                return AuthenticationResult<bool>.Failure(new AuthenticationError(
+                    AuthenticationFailureType.Connection, "Não foi possível preparar o checkpoint."));
         }
         else
         {
@@ -316,7 +318,31 @@ public sealed class AuthenticationUIController : MonoBehaviour
             return;
         }
 
-        Close();
+        await AbrirJogoAutenticado();
+    }
+
+    private async Task<bool> AbrirJogoAutenticado()
+    {
+        SetRequestInProgress(true, loginLoading);
+        try
+        {
+            if (await CheckpointJogo.Conectar(this))
+            {
+                Close();
+                if (CheckpointJogo.Instance?.RetomouFase == true)
+                    modeManager?.DefinirModoUI(true);
+                return true;
+            }
+            OpenLogin();
+            ShowAuthenticationError(loginStatusText,
+                "Não foi possível abrir um checkpoint seguro para esta conta.",
+                "A safe checkpoint could not be opened for this account.");
+            return false;
+        }
+        finally
+        {
+            SetRequestInProgress(false, loginLoading);
+        }
     }
 
     private void RegisterClicked()

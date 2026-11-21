@@ -811,6 +811,7 @@ else if (nivelAtual == "A2-B1")
 
     public Task ExecutarExercicio(string pointKey, int ordem, ExercicioBase fallback)
     {
+        CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
@@ -896,8 +897,11 @@ else if (nivelAtual == "A2-B1")
     public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
+        int visita = SessaoCenario.Atual.Versao;
+        ValidarVisita(visita);
 
         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        ValidarVisita(visita);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -910,6 +914,7 @@ else if (nivelAtual == "A2-B1")
             while (!operation.isDone)
                 await Task.Yield();
 
+            ValidarVisita(visita);
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
             if (modalLegenda != null)
@@ -929,6 +934,7 @@ else if (nivelAtual == "A2-B1")
             {
                 await Task.Yield();
             }
+            ValidarVisita(visita);
 
             if (modalLegenda != null)
             {

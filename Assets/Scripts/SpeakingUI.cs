@@ -307,7 +307,7 @@ public class SpeakingUI : MonoBehaviour
     public void ReduzirTentativa() => tentativesRestantes--;
 
     // ✨ ESSA É A FUNÇÃO PRINCIPAL que o ModalExercicio vai chamar agora usando 'await'
-    public async Task<SpeakingResult> VerificarRespostaWhisper()
+    public async Task<SpeakingResult> VerificarRespostaWhisper(System.Func<bool> aindaVigente = null)
     {
         if (dadosExercicioAtual == null || dadosAudioWav == null || dadosAudioWav.Length == 0)
         {
@@ -347,6 +347,9 @@ public class SpeakingUI : MonoBehaviour
             string jsonFrases = "[\"" + string.Join("\",\"", frasesLimpas) + "\"]";
             jsonResposta = await backendManager.EnviarAudioWhisperFast(dadosAudioWav, jsonFrases);
         }
+
+        if (this == null || (aindaVigente != null && !aindaVigente()))
+            return null;
 
         if (!string.IsNullOrEmpty(jsonResposta))
         {

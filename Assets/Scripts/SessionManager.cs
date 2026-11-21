@@ -188,10 +188,18 @@ public sealed class SessionManager
         }
     }
 
-    public async Task<AuthenticationResult<bool>> LogoutAsync(
-        CancellationToken cancellationToken = default(CancellationToken))
+    public Task<AuthenticationResult<bool>> LogoutAsync(
+        CancellationToken cancellationToken = default(CancellationToken)) =>
+        LogoutCoreAsync(cancellationToken, cancellationToken);
+
+    // O prazo de rede não impede a limpeza das credenciais locais.
+    internal Task<AuthenticationResult<bool>> LogoutCheckpointAsync(CancellationToken prazoRemoto) =>
+        LogoutCoreAsync(CancellationToken.None, prazoRemoto);
+
+    private async Task<AuthenticationResult<bool>> LogoutCoreAsync(
+        CancellationToken aguardarOperacao, CancellationToken cancellationToken)
     {
-        await operationLock.WaitAsync(cancellationToken);
+        await operationLock.WaitAsync(aguardarOperacao);
         try
         {
             string tokenToRevoke = refreshToken;
@@ -201,7 +209,14 @@ public sealed class SessionManager
             AuthenticationResult<bool> logoutResult = null;
             if (!string.IsNullOrWhiteSpace(tokenToRevoke))
             {
-                logoutResult = await authenticationManager.LogoutAsync(tokenToRevoke, cancellationToken);
+                try
+                {
+                    logoutResult = await authenticationManager.LogoutAsync(tokenToRevoke, cancellationToken);
+                }
+                catch (OperationCanceledException) when (clearError != null)
+                {
+                    // A falha da limpeza local continua sendo o resultado relevante do logout.
+                }
             }
 
             if (clearError != null)

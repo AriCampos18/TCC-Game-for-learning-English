@@ -27,6 +27,8 @@ public class ShelfNPC : InteracaoNPC
     private int indiceDestinoPrateleira;
     private bool podeInteragirCenario = true;
     private int paradasMarketConcluidas;
+    private Vector3 posicaoInicial;
+    private Quaternion rotacaoInicial;
     public TextMeshProUGUI textoPularDialogo;
 
     public string idNpcParaVoz = "shelf"; 
@@ -48,6 +50,8 @@ public class ShelfNPC : InteracaoNPC
     protected override void Start()
     {
         base.Start();
+        posicaoInicial = transform.position;
+        rotacaoInicial = transform.rotation;
         nomeExibicaoLegenda = "Shelf Attendant";
         backendManager = new BackendManager();
         missaoManager = MissionManager.Instance; 
@@ -78,6 +82,18 @@ public class ShelfNPC : InteracaoNPC
     }
 
     // Sobrescreve a checagem de interação global para travar o cenário se o jogador estiver seguindo o NPC
+    protected override void ReiniciarVisita()
+    {
+        podeInteragirCenario = true;
+        paradasMarketConcluidas = indiceDestinoPrateleira = 0;
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.ResetPath();
+            agent.Warp(posicaoInicial);
+        }
+        transform.SetPositionAndRotation(posicaoInicial, rotacaoInicial);
+    }
+
     public override bool PodeInteragir()
     {
         return base.PodeInteragir() && podeInteragirCenario;
@@ -942,8 +958,11 @@ else if (nivelAtual == "A2-B1")
     public override async Task FalarFraseCustomizada(string textoParaFalar)
     {
         if (string.IsNullOrEmpty(textoParaFalar)) return;
+        int visita = SessaoCenario.Atual.Versao;
+        ValidarVisita(visita);
 
         byte[] audioBytes = await backendManager.GerarAudio(textoParaFalar, idNpcParaVoz);
+        ValidarVisita(visita);
         
         if (audioBytes != null && audioBytes.Length > 0)
         {
@@ -956,6 +975,7 @@ else if (nivelAtual == "A2-B1")
             while (!operation.isDone)
                 await Task.Yield();
 
+            ValidarVisita(visita);
             AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
             audioSource.clip = clip;
             if (modalLegenda != null && modalLegenda.activeSelf)
@@ -970,10 +990,12 @@ else if (nivelAtual == "A2-B1")
             {
                 await Task.Yield();
             }
+            ValidarVisita(visita);
         }
     }
     private Task AbrirExercicioDoPonto(string pointKey, int ordem, ExercicioBase fallback)
     {
+        CheckpointJogo.IdentificarFallback(fallback, pointKey, ordem, nivelAtual);
         TipoExercicio tipo = ObterTipoExercicio(fallback);
         bool? speakingLivre = (fallback as ExercicioSpeaking)?.modoLivre;
         ExerciseCatalogItem item = catalogoExercicios?.Find(pointKey, nivelAtual, ordem, tipo, speakingLivre);
