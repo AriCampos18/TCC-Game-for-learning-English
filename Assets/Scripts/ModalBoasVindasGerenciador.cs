@@ -37,7 +37,8 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
         botaoAjuda.gameObject.SetActive(false);
         modalFinal.SetActive(false);
         modalErroSpeaking.SetActive(false);
-        modalSelecaoAvatar.SetActive(false);
+        if (modalSelecaoAvatar != null)
+            modalSelecaoAvatar.SetActive(false);
         legendaMenor.SetActive(false);
         botaoRepetirFala.gameObject.SetActive(false);
         modalAvisoRevisao.SetActive(false);

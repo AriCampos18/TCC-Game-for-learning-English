@@ -338,6 +338,11 @@ public class ModalFinalManager : MonoBehaviour
 
         if (botaoContinuar != null)
         {
+            var clique = botaoContinuar.onClick;
+            for (int i = 0; i < clique.GetPersistentEventCount(); i++)
+                if (clique.GetPersistentTarget(i) == this && clique.GetPersistentMethodName(i) == "PlayAgain")
+                    clique.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
+
             botaoContinuar.onClick.RemoveListener(
                 Continuar
             );

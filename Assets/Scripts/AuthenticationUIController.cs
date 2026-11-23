@@ -36,6 +36,9 @@ public sealed class AuthenticationUIController : MonoBehaviour
     [SerializeField] private Button openLoginButton;
     [SerializeField] private VRVirtualKeyboard virtualKeyboard;
 
+    [SerializeField] private Button botaoEsqueciSenha;
+    private RecuperacaoSenhaUI recuperacao;
+
     private AuthenticationManager ownedAuthenticationManager;
     private LoginController loginController;
     private RegisterController registerController;
@@ -70,11 +73,15 @@ public sealed class AuthenticationUIController : MonoBehaviour
         Instance = this;
         BindUiReferences();
         BindButtonHandlers();
+        recuperacao = new RecuperacaoSenhaUI(gameObject, OpenLogin);
+        botaoEsqueciSenha ??= VinculosModaisTcc.Filho<Button>(loginPanel, "BotaoEsqueciSenha");
+        VinculosModaisTcc.Ligar(botaoEsqueciSenha, AbrirRecuperacaoSenha);
     }
 
     private void OnDestroy()
     {
         RemoveButtonHandlers();
+        if (botaoEsqueciSenha != null) botaoEsqueciSenha.onClick.RemoveListener(AbrirRecuperacaoSenha);
         if (Instance == this)
             Instance = null;
         ownedAuthenticationManager?.Dispose();
@@ -125,8 +132,24 @@ public sealed class AuthenticationUIController : MonoBehaviour
         initialized = true;
     }
 
+    public void AbrirRecuperacaoSenha()
+    {
+        if (requestInProgress || !EnsureOpen())
+            return;
+
+        recuperacao ??= new RecuperacaoSenhaUI(gameObject, OpenLogin);
+        if (!recuperacao.Abrir())
+            return;
+        virtualKeyboard.HideKeyboard();
+        loginPasswordInput?.SetTextWithoutNotify("");
+        loginPanel.SetActive(false);
+        registerPanel.SetActive(false);
+        HideErrorModal();
+    }
+
     public void OpenLogin()
     {
+        recuperacao?.Limpar();
         if (!EnsureOpen())
         {
             return;
@@ -141,6 +164,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
 
     public void OpenRegister()
     {
+        recuperacao?.Limpar();
         if (!EnsureOpen())
         {
             return;
@@ -155,6 +179,8 @@ public sealed class AuthenticationUIController : MonoBehaviour
 
     public void Close()
     {
+        recuperacao?.Limpar();
+        HideErrorModal();
         if (virtualKeyboard != null)
         {
             virtualKeyboard.HideKeyboard();

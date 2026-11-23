@@ -243,6 +243,27 @@ public sealed class ExerciseManager : MonoBehaviour
             ? resultado : ExerciseLoadResult.Failed("A sessão administrativa mudou.");
     }
 
+    internal async Task<CatalogoMissoes.Resposta> LerMissoesAdministrativasAsync(int cenario, string nivel,
+        CancellationToken token)
+    {
+        ResolveAuthenticationController();
+        var auth = authenticationController;
+        var sessao = auth != null ? auth.Session : null;
+        if (sessao?.IsAuthenticated != true || !sessao.IsAdmin)
+            return null;
+        var conta = sessao.AuthenticatedUserId;
+        var baseUri = new Uri(auth.BackendBaseUrl.TrimEnd('/') + "/");
+        var destino = new Uri(baseUri, "api/missions?id_cenario=" + cenario + "&nivel=" + Uri.EscapeDataString(nivel));
+        using var req = new HttpRequestMessage(HttpMethod.Get, destino);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessao.AccessToken);
+        using var resposta = await httpClient.SendAsync(req, token);
+        if (!resposta.IsSuccessStatusCode || sessao.AuthenticatedUserId != conta || !sessao.IsAdmin)
+            return null;
+        string corpo = await resposta.Content.ReadAsStringAsync();
+        token.ThrowIfCancellationRequested();
+        return JsonConvert.DeserializeObject<CatalogoMissoes.Resposta>(corpo);
+    }
+
     private async Task<ExerciseLoadResult> FetchAsync(string baseUrl, int scenarioId, string npcKey, string pointKey, string level,
         CancellationToken cancellationToken)
     {

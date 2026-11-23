@@ -11,6 +11,8 @@ public class ModalErroSpeaking : MonoBehaviour
     [HideInInspector] public SpeakingUI speakingUI;
     [HideInInspector] public ModalNivelmanetoScript nivelamentoScript;
 
+    private SpeakingUI origem;
+
     private void Awake()
     {
         if (botaoTentarNovamente != null)
@@ -20,8 +22,19 @@ public class ModalErroSpeaking : MonoBehaviour
             botaoDescartar.onClick.AddListener(DescartarSpeaking);
     }
 
+    public void AbrirPara(SpeakingUI solicitante)
+    {
+        origem = solicitante;
+        Abrir();
+    }
+
     public void Abrir()
     {
+        var atual = origem != null ? origem : speakingUI;
+        if (botaoDescartar != null)
+            botaoDescartar.interactable = atual != null
+                && ((atual == speakingUI && nivelamentoScript != null) || atual.PodePularPeloAviso);
+
         if (painelModal != null)
             painelModal.SetActive(true);
         else
@@ -30,6 +43,7 @@ public class ModalErroSpeaking : MonoBehaviour
 
     public void Fechar()
     {
+        origem = null;
         if (painelModal != null)
             painelModal.SetActive(false);
         else
@@ -38,21 +52,25 @@ public class ModalErroSpeaking : MonoBehaviour
 
     public void TentarNovamente()
     {
+        var atual = origem != null ? origem : speakingUI;
         Fechar();
 
-        if (speakingUI != null)
-            speakingUI.TentarNovamente();
+        if (atual != null)
+            atual.TentarNovamente();
         else
             Debug.LogError("SpeakingUI não configurado no modal de erro.");
     }
 
     public void DescartarSpeaking()
     {
+        var atual = origem != null ? origem : speakingUI;
         Fechar();
 
-        if (nivelamentoScript != null)
+        if (atual != null && atual == speakingUI && nivelamentoScript != null)
             nivelamentoScript.DescartarSpeakingAtual();
+        else if (atual != null && atual.PodePularPeloAviso)
+            atual.PularExercicio();
         else
-            Debug.LogError("ModalNivelmanetoScript não configurado no modal de erro.");
+            Debug.LogWarning("A atividade atual não possui ação de descarte disponível.", this);
     }
 }

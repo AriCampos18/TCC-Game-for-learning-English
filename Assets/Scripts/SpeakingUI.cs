@@ -546,13 +546,18 @@ public class SpeakingUI : MonoBehaviour
                 if (statusGravacao != null)
                     statusGravacao.text = "No speech detected. Please try again.";
 
-                if (modalErroSpeaking != null)
-                    modalErroSpeaking.Abrir();
-                else
-                    Debug.LogError("Configure o ModalErroSpeaking no SpeakingUI.");
+                if (modalErroSpeaking == null)
+                    modalErroSpeaking = VinculosModaisTcc.Painel(gameObject, "ModalErroSpeaking")
+                        ?.GetComponent<ModalErroSpeaking>();
 
-                if (botaoMicrofone != null)
-                    botaoMicrofone.interactable = false;
+                if (modalErroSpeaking != null)
+                {
+                    modalErroSpeaking.AbrirPara(this);
+                    if (botaoMicrofone != null)
+                        botaoMicrofone.interactable = false;
+                }
+                else
+                    Debug.LogWarning("ModalErroSpeaking indisponível. Tente gravar novamente.", this);
 
                 return;
             }
@@ -598,7 +603,10 @@ public class SpeakingUI : MonoBehaviour
     }
 
 
-    private void PularExercicio()
+    internal bool PodePularPeloAviso => modalExercicio != null && pularEx != null
+        && pularEx.isActiveAndEnabled && pularEx.IsInteractable();
+
+    internal void PularExercicio()
     {
         Debug.Log("BOTAO FOI CLICADO PORRRA!!!!!!!");
         dadosAudioWav = null;

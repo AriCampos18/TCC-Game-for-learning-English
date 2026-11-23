@@ -119,7 +119,7 @@ public class BlocosUI : MonoBehaviour
         return palavras;
     }
 
-    private List<string> SepararPalavras(string frase)
+    internal static List<string> SepararPalavras(string frase)
     {
         string fraseLimpa = NormalizarFrase(frase);
         string[] partes = fraseLimpa.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries);
@@ -135,7 +135,7 @@ public class BlocosUI : MonoBehaviour
         return palavras;
     }
 
-    private string NormalizarFrase(string frase)
+    private static string NormalizarFrase(string frase)
     {
         return (frase ?? string.Empty)
             .Trim()

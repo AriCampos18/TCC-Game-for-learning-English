@@ -179439,6 +179439,7 @@ MonoBehaviour:
   openRegisterButton: {fileID: 1364258642}
   openLoginButton: {fileID: 341934883}
   virtualKeyboard: {fileID: 0}
+  botaoEsqueciSenha: {fileID: 0}
 --- !u!1001 &1085231416
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -262344,9 +262345,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c10b8e44060c4f5986cf74f318cb41ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ModalGerenciarExercicios
+  itemFala: {fileID: 8577647475848589784, guid: a5ff5ed7c9ac78546aafc9d38c677bf3, type: 3}
+  itemExercicio: {fileID: 1820807281526462406, guid: 7e4c459d102f8f54b983278b734a9c27, type: 3}
+  itemMarco: {fileID: 6021182763644271470, guid: 4cd6d8d6f22a8ec428270121c2bbb0eb, type: 3}
+  itemAdicionar: {fileID: 636397373875661305, guid: 2c7de2e271af0b94f955027d35cfb132, type: 3}
+  linhaPar: {fileID: 5073184450272668439, guid: 606b9892e7712b64a8f92b913d7662bf, type: 3}
+  botaoSalvar: {fileID: 2073351511}
   seletorCenario: {fileID: 1447547166}
   seletorNivel: {fileID: 346322079}
-  textoLinhaDoTempo: {fileID: 0}
   status: {fileID: 651016860}
   rolagem: {fileID: 1745943337}
   botaoVoltar: {fileID: 1367622130}
