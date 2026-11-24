@@ -264,6 +264,26 @@ public sealed class ExerciseManager : MonoBehaviour
         return JsonConvert.DeserializeObject<CatalogoMissoes.Resposta>(corpo);
     }
 
+    internal async Task<Newtonsoft.Json.Linq.JObject> SugerirFalaAdministrativaAsync(object contexto,
+        CancellationToken token)
+    {
+        ResolveAuthenticationController();
+        var auth = authenticationController;
+        var sessao = auth != null ? auth.Session : null;
+        if (sessao?.IsAuthenticated != true || !sessao.IsAdmin)
+            throw new InvalidOperationException("Sessão administrativa indisponível.");
+        var conta = sessao.AuthenticatedUserId;
+        var url = new Uri(new Uri(auth.BackendBaseUrl.TrimEnd('/') + "/"), "api/admin/dialogue/suggest");
+        using var req = new HttpRequestMessage(HttpMethod.Post, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessao.AccessToken);
+        req.Content = new StringContent(JsonConvert.SerializeObject(contexto), System.Text.Encoding.UTF8, "application/json");
+        using var resposta = await httpClient.SendAsync(req, token);
+        string json = await resposta.Content.ReadAsStringAsync();
+        token.ThrowIfCancellationRequested();
+        return sessao.AuthenticatedUserId == conta && sessao.IsAuthenticated && sessao.IsAdmin
+            ? Newtonsoft.Json.Linq.JObject.Parse(json) : null;
+    }
+
     private async Task<ExerciseLoadResult> FetchAsync(string baseUrl, int scenarioId, string npcKey, string pointKey, string level,
         CancellationToken cancellationToken)
     {

@@ -175,7 +175,7 @@ public sealed partial class ModalGerenciarExercicios : MonoBehaviour
                 rolagem.verticalNormalizedPosition = 1f;
             }
             if (!RascunhoPendente) status.text = catalogos.Values.All(c => c.Success)
-                ? "Linha do tempo · somente leitura"
+                ? "Linha do tempo · alterações em rascunho"
                 : "Catálogo incompleto · confira os avisos na linha do tempo.";
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }

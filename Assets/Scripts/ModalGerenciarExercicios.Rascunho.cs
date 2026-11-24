@@ -29,7 +29,9 @@ public sealed partial class ModalGerenciarExercicios
         internal string Chave;
         internal ExercicioBase Exercicio;
         internal ExercicioBase Original;
-        internal bool Ancora, Mudou;
+        internal bool Ancora, Mudou, Excluida, FalaNova, FalaMovida;
+        internal string TextoFala;
+        internal string FalaAtual => TextoFala ?? Etapa.Texto;
         internal string aviso;
         internal DescricaoEtapaRoteiro Destino;
         internal DescricaoEtapaRoteiro Posicao => Destino ?? Etapa;
@@ -115,12 +117,21 @@ public sealed partial class ModalGerenciarExercicios
             throw new InvalidOperationException("Os quatro prefabs da linha do tempo devem estar vinculados.");
         foreach (var row in roteiro)
         {
+            if (row.Excluida) continue;
             var etapa = row.Etapa;
             if (etapa.Tipo == TipoEtapaRoteiro.Fala)
             {
+                if (movendo != null ? DestinoValido(movendo, row) : AncoraFala(row))
+                    RenderizarAncora(row);
                 var item = Instanciar(itemFala, row);
-                Texto(item, "NomeNPC", etapa.Npc);
-                Texto(item, "FalaNPC", etapa.Texto);
+                bool editavel = FalaEditavel(row);
+                Texto(item, "NomeNPC", etapa.Npc + (row.FalaNova ? " · Nova no rascunho"
+                    : !editavel ? " · Fala protegida" : row.FalaMovida ? " · Movida no rascunho"
+                    : row.Mudou ? " · Editada no rascunho" : ""));
+                Texto(item, "FalaNPC", row.FalaAtual);
+                VincularAcao(item, "Editar", editavel, () => AbrirFala(row, null));
+                VincularAcao(item, "Excluir", editavel, () => ExcluirFala(row));
+                VincularAcao(item, "Mover", editavel, () => Mover(row));
             }
             else if (etapa.Tipo == TipoEtapaRoteiro.Exercicio)
             {
@@ -134,7 +145,7 @@ public sealed partial class ModalGerenciarExercicios
                         VinculosModaisTcc.Ligar(botao, () => AplicarMovimento(row));
                     }
                     else
-                        VinculosModaisTcc.Ligar(botao, () => EscolherTipo(row));
+                        VinculosModaisTcc.Ligar(botao, () => EscolherInsercao(row));
                 }
                 var item = Instanciar(itemExercicio, row);
                 var ex = row.Exercicio;
@@ -166,7 +177,7 @@ public sealed partial class ModalGerenciarExercicios
 
     private void RegistrarMudanca()
     {
-        if (roteiro.Any(row => row.Mudou || row.Destino != null))
+        if (roteiro.Any(row => row.Mudou || row.Destino != null || row.Excluida || row.FalaNova || row.FalaMovida))
             rascunhos[filtro] = roteiro;
         else
             rascunhos.Remove(filtro);
@@ -191,10 +202,13 @@ public sealed partial class ModalGerenciarExercicios
     {
         if (!MesmaConta || submodal != null || aviso != null) return;
         int novos = rascunhos.Values.Sum(l => l.Count(r => r.Original == null && r.Exercicio != null));
-        int editados = rascunhos.Values.Sum(l => l.Count(r => r.Original != null && r.Mudou));
+        int editados = rascunhos.Values.Sum(l => l.Count(r => r.Exercicio != null && r.Original != null && r.Mudou));
         int movidos = rascunhos.Values.Sum(l => l.Count(r => r.Destino != null));
+        var falas = rascunhos.Values.SelectMany(l => l).Where(r => r.Etapa.Tipo == TipoEtapaRoteiro.Fala).ToArray();
+        string resumoFalas = $"Falas: {falas.Count(r => r.FalaNova)} novas, {falas.Count(r => !r.Excluida && !r.FalaNova && r.Mudou)} editadas, "
+            + $"{falas.Count(r => !r.Excluida && r.FalaMovida)} movidas e {falas.Count(r => r.Excluida)} excluídas.";
         Avisar("Resumo do rascunho", $"{novos} novos, {editados} editados e {movidos} movidos em {rascunhos.Count} filtros. "
-            + "O rascunho fica nesta cena. A publicação versionada ainda não está disponível.", () =>
+            + resumoFalas + " O rascunho fica nesta cena. A publicação versionada ainda não está disponível.", () =>
             { status.text = "Rascunho confirmado nesta cena · não publicado."; });
     }
 

@@ -21,9 +21,9 @@ public sealed partial class ModalGerenciarExercicios
         4 => "Criar frase", 5 => "Completar frase", 6 => "Associação", _ => ex.nomeTipoBanco
     };
 
-    private void EscolherTipo(Linha ancora)
+    private void EscolherTipo(Linha ancora, bool daSelecao = false)
     {
-        if (submodal != null || aviso != null || !MesmaConta) return;
+        if ((!daSelecao && submodal != null) || aviso != null || !MesmaConta || !ancora.Ancora) return;
         var painel = VinculosModaisTcc.Painel(gameObject, "ModalSelecionarTipoEx");
         if (!AbrirSubmodal(painel)) { Avisar("Seletor indisponível", "O modal de tipos não foi localizado."); return; }
         var remocoes = new List<Action>();
@@ -33,7 +33,11 @@ public sealed partial class ModalGerenciarExercicios
             int tipo = i;
             LigarTemporario(Filho<Button>(painel, botoesTipos[i]), () => AbrirFormulario(null, ancora, tipo), remocoes);
         }
-        LigarTemporario(Filho<Button>(painel, "BotaoVoltar"), FecharSubmodal, remocoes);
+        LigarTemporario(Filho<Button>(painel, "BotaoVoltar"), () =>
+        {
+            FecharSubmodal();
+            if (daSelecao) EscolherInsercao(ancora);
+        }, remocoes);
     }
 
     private static void LigarTemporario(Button botao, UnityEngine.Events.UnityAction acao, List<Action> remover)
@@ -196,7 +200,7 @@ public sealed partial class ModalGerenciarExercicios
         LigarTemporario(voltar, () =>
         {
             FecharSubmodal();
-            if (ancora != null) EscolherTipo(ancora);
+            if (ancora != null) EscolherTipo(ancora, true);
         }, remo);
         LigarTemporario(salvar, () =>
         {

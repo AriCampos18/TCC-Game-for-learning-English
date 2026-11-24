@@ -14,7 +14,8 @@ public sealed partial class ModalGerenciarExercicios
 
     private async void Mover(Linha row)
     {
-        if (!MesmaConta || movendo != null || row.Exercicio == null || row.Exercicio is ExercicioAssociacao)
+        bool fala = row.Etapa.Tipo == TipoEtapaRoteiro.Fala;
+        if (!MesmaConta || movendo != null || (fala ? !FalaEditavel(row) : row.Exercicio == null || row.Exercicio is ExercicioAssociacao))
         {
             if (MesmaConta && row.Exercicio is ExercicioAssociacao)
                 Avisar("Etapa protegida", "A Associação precisa permanecer na posição definida pelo roteiro.");
@@ -112,6 +113,8 @@ public sealed partial class ModalGerenciarExercicios
 
     private bool DestinoValido(Linha origem, Linha destino)
     {
+        if (origem?.Etapa.Tipo == TipoEtapaRoteiro.Fala)
+            return DestinoFalaValido(origem, destino);
         if (origem == null || destino == origem || !destino.Ancora || destino.Exercicio == null
             || destino.Exercicio is ExercicioAssociacao)
             return false;
@@ -196,7 +199,10 @@ public sealed partial class ModalGerenciarExercicios
             return;
         roteiro.Remove(origem);
         roteiro.Insert(roteiro.IndexOf(destino), origem);
-        origem.Destino = destino.Etapa;
+        if (origem.Etapa.Tipo == TipoEtapaRoteiro.Fala)
+            origem.FalaMovida = true;
+        else
+            origem.Destino = destino.Etapa;
         EncerrarMovimento(false);
         RegistrarMudanca();
     }
