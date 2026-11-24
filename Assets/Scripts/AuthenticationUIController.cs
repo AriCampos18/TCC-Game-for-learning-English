@@ -71,15 +71,17 @@ public sealed class AuthenticationUIController : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        recuperacao = new RecuperacaoSenhaUI(gameObject, () => ownedAuthenticationManager,
+            OpenLogin, () => virtualKeyboard?.HideKeyboard(), ConcluirRecuperacao);
         BindUiReferences();
         BindButtonHandlers();
-        recuperacao = new RecuperacaoSenhaUI(gameObject, OpenLogin);
         botaoEsqueciSenha ??= VinculosModaisTcc.Filho<Button>(loginPanel, "BotaoEsqueciSenha");
         VinculosModaisTcc.Ligar(botaoEsqueciSenha, AbrirRecuperacaoSenha);
     }
 
     private void OnDestroy()
     {
+        recuperacao?.Dispose();
         RemoveButtonHandlers();
         if (botaoEsqueciSenha != null) botaoEsqueciSenha.onClick.RemoveListener(AbrirRecuperacaoSenha);
         if (Instance == this)
@@ -137,14 +139,22 @@ public sealed class AuthenticationUIController : MonoBehaviour
         if (requestInProgress || !EnsureOpen())
             return;
 
-        recuperacao ??= new RecuperacaoSenhaUI(gameObject, OpenLogin);
-        if (!recuperacao.Abrir())
+        if (recuperacao?.Abrir() != true)
+        {
+            VinculosModaisTcc.Texto(loginStatusText, "Recupera??o indispon?vel. Verifique a configura??o dos modais e do backend.");
             return;
+        }
         virtualKeyboard.HideKeyboard();
         loginPasswordInput?.SetTextWithoutNotify("");
         loginPanel.SetActive(false);
         registerPanel.SetActive(false);
         HideErrorModal();
+    }
+
+    private void ConcluirRecuperacao(string mensagem)
+    {
+        OpenLogin();
+        VinculosModaisTcc.Texto(loginStatusText, mensagem);
     }
 
     public void OpenLogin()
@@ -518,6 +528,8 @@ public sealed class AuthenticationUIController : MonoBehaviour
         }
 
         referencesBound = true;
+        registerLoading ??= VinculosModaisTcc.Filho<LoadingSpinner>(registerPanel, "RegisterLoading")?.gameObject;
+        virtualKeyboard ??= VinculosModaisTcc.Filho<VRVirtualKeyboard>(gameObject, "VirtualKeyboard");
         var missingReferences = new List<string>();
         AddMissing(missingReferences, loginPanel, "LoginPanel");
         AddMissing(missingReferences, registerPanel, "RegisterPanel");
@@ -549,13 +561,13 @@ public sealed class AuthenticationUIController : MonoBehaviour
             return;
         }
 
-        virtualKeyboard.SetAllowedFields(
-            loginIdentityInput,
-            loginPasswordInput,
-            registerUsernameInput,
-            registerEmailInput,
-            registerPasswordInput,
-            registerConfirmPasswordInput);
+        var camposTeclado = new List<TMP_InputField>
+        {
+            loginIdentityInput, loginPasswordInput, registerUsernameInput, registerEmailInput,
+            registerPasswordInput, registerConfirmPasswordInput
+        };
+        if (recuperacao != null) camposTeclado.AddRange(recuperacao.Campos);
+        virtualKeyboard.SetAllowedFields(camposTeclado.ToArray());
     }
 
     private void BindButtonHandlers()

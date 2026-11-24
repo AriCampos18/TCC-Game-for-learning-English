@@ -176,6 +176,19 @@ public sealed class AuthenticationManager : IDisposable
         return AuthenticationResult<bool>.Success(true);
     }
 
+    internal async Task<AuthenticationResult<JObject>> RecuperarSenhaAsync(
+        string operacao, object corpo, CancellationToken cancelamento)
+    {
+        if (backendBaseUri.Scheme != Uri.UriSchemeHttps && !backendBaseUri.IsLoopback)
+            return AuthenticationResult<JObject>.Failure(new AuthenticationError(
+                AuthenticationFailureType.Connection, "A recupera??o de senha requer HTTPS."));
+        var resposta = await PostAsync("api/auth/recovery/" + operacao, corpo,
+            AuthenticationFailureType.Http, cancelamento);
+        return resposta.Error != null
+            ? AuthenticationResult<JObject>.Failure(resposta.Error)
+            : AuthenticationResult<JObject>.Success(resposta.Data);
+    }
+
     public void Dispose()
     {
         httpClient.Dispose();

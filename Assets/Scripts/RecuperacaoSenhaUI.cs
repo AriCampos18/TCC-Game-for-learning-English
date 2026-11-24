@@ -1,71 +1,267 @@
-using System;
+﻿using System;
 using System.Net.Mail;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-internal sealed class RecuperacaoSenhaUI
+internal sealed class RecuperacaoSenhaUI : IDisposable
 {
-    private const string Indisponivel = "Recuperação indisponível. O serviço de códigos por e-mail ainda não foi configurado.";
     private readonly GameObject email, codigo, senha;
-    private readonly TMP_InputField endereco;
-    private readonly TMP_Text mensagem;
-    private readonly Action voltar;
+    private readonly TMP_InputField endereco, codigoDigitado, novaSenha, confirmacao;
+    private readonly TMP_Text mensagemEmail, mensagemCodigo, mensagemSenha, rotuloCodigo;
+    private readonly Button enviar, validar, redefinir;
+    private readonly Func<AuthenticationManager> api;
+    private readonly Action voltar, ocultarTeclado;
+    private readonly Action<string> concluir;
+    private readonly System.Collections.Generic.List<Action> removerListeners = new();
+    private readonly bool configurada;
+    private CancellationTokenSource visita;
+    private string emailSolicitado, solicitacao, token;
+    private DateTimeOffset reenviarEm;
+    private bool ocupado;
 
-    internal RecuperacaoSenhaUI(GameObject origem, Action voltar)
+    internal TMP_InputField[] Campos => new[] { endereco, codigoDigitado, novaSenha, confirmacao };
+
+    internal RecuperacaoSenhaUI(GameObject origem, Func<AuthenticationManager> api, Action voltar,
+        Action ocultarTeclado, Action<string> concluir)
     {
+        this.api = api;
         this.voltar = voltar;
+        this.ocultarTeclado = ocultarTeclado;
+        this.concluir = concluir;
         email = VinculosModaisTcc.Painel(origem, "ModalEsqueciSenha");
         codigo = VinculosModaisTcc.Painel(origem, "ModalCodigoEmail");
         senha = VinculosModaisTcc.Painel(origem, "ModalNovaSenha");
-        endereco = VinculosModaisTcc.Filho<TMP_InputField>(email, "EmailUsername");
-        mensagem = VinculosModaisTcc.Filho<TMP_Text>(email, "TxtMensagens");
-        foreach (var painel in new[] { email, codigo, senha })
+        endereco = Campo(email, "EmailUsername");
+        codigoDigitado = Campo(codigo, "EmailUsername");
+        novaSenha = Campo(senha, "NovaSenha");
+        confirmacao = Campo(senha, "ConfirmarNovaSenha");
+        mensagemEmail = Mensagem(email);
+        mensagemCodigo = Mensagem(codigo);
+        mensagemSenha = Mensagem(senha);
+        enviar = Botao(email, "BotaoContinuar");
+        validar = Botao(codigo, "BotaoContinuar");
+        redefinir = Botao(senha, "BotaoContinuar");
+        rotuloCodigo = validar != null ? validar.GetComponentInChildren<TMP_Text>(true) : null;
+
+        if (novaSenha != null) novaSenha.contentType = TMP_InputField.ContentType.Password;
+        if (confirmacao != null) confirmacao.contentType = TMP_InputField.ContentType.Password;
+        if (codigoDigitado != null)
         {
-            if (painel == null) continue;
-            var seguir = VinculosModaisTcc.Filho<Button>(painel, "BotaoContinuar");
-            if (seguir != null) seguir.interactable = false;
-            VinculosModaisTcc.Ligar(VinculosModaisTcc.Filho<Button>(painel, "BotaoVoltarLogin"), Voltar);
-            VinculosModaisTcc.Texto(VinculosModaisTcc.Filho<TMP_Text>(painel, "TxtMensagens"), Indisponivel);
+            codigoDigitado.contentType = TMP_InputField.ContentType.IntegerNumber;
+            codigoDigitado.characterLimit = 6;
+            codigoDigitado.onValueChanged.AddListener(AtualizarCodigo);
+            removerListeners.Add(() => { if (codigoDigitado != null) codigoDigitado.onValueChanged.RemoveListener(AtualizarCodigo); });
         }
-        if (endereco != null)
-            endereco.onValueChanged.AddListener(ValidarEmail);
+
+        configurada = endereco != null && codigoDigitado != null && novaSenha != null && confirmacao != null
+            && mensagemEmail != null && mensagemCodigo != null && mensagemSenha != null && rotuloCodigo != null;
+        configurada &= Ligar(enviar, Solicitar);
+        configurada &= Ligar(validar, ValidarOuReenviar);
+        configurada &= Ligar(redefinir, Redefinir);
+        foreach (var painel in new[] { email, codigo, senha })
+            configurada &= Ligar(Botao(painel, "BotaoVoltarLogin"), Voltar);
         Limpar();
+    }
+
+    private bool Ligar(Button botao, UnityEngine.Events.UnityAction acao)
+    {
+        if (!VinculosModaisTcc.Ligar(botao, acao)) return false;
+        removerListeners.Add(() => { if (botao != null) botao.onClick.RemoveListener(acao); });
+        return true;
     }
 
     internal bool Abrir()
     {
         Limpar();
-        if (email == null || endereco == null || mensagem == null)
-            return false;
-        ValidarEmail("");
-        email.SetActive(true);
+        if (!configurada || api() == null) return false;
+        visita = new CancellationTokenSource();
+        endereco.SetTextWithoutNotify("");
+        VinculosModaisTcc.Texto(mensagemEmail, "");
+        Mostrar(email);
         return true;
     }
 
-    private void ValidarEmail(string valor)
+    private void Mostrar(GameObject painel)
     {
-        string texto = valor.Trim();
-        bool valido = false;
-        if (texto.Length > 0)
+        ocultarTeclado();
+        email.SetActive(painel == email);
+        codigo.SetActive(painel == codigo);
+        senha.SetActive(painel == senha);
+    }
+
+    private async void Solicitar()
+    {
+        string valor = endereco.text.Trim();
+        try
         {
-            try { valido = string.Equals(texto, new MailAddress(texto).Address, StringComparison.OrdinalIgnoreCase); }
-            catch (FormatException) { }
+            if (valor.Length > 254 || new MailAddress(valor).Address != valor)
+                throw new FormatException();
         }
-        VinculosModaisTcc.Texto(mensagem, texto.Length != 0 && !valido
-            ? "Informe um endereço de e-mail válido. " + Indisponivel : Indisponivel);
+        catch (Exception ex) when (ex is FormatException || ex is ArgumentException)
+        {
+            VinculosModaisTcc.Texto(mensagemEmail, "Informe um endereço de e-mail válido.");
+            return;
+        }
+        await Emitir(valor, false);
+    }
+
+    private async Task Emitir(string valor, bool reenvio)
+    {
+        await Executar(reenvio ? mensagemCodigo : mensagemEmail, reenvio ? "resend" : "request",
+            new { email = valor }, dados =>
+            {
+                string id = dados.Value<string>("request_id");
+                int espera = dados.Value<int>("resend_after");
+                if (string.IsNullOrEmpty(id) || espera < 1)
+                    throw new InvalidOperationException();
+                emailSolicitado = valor;
+                solicitacao = id;
+                reenviarEm = DateTimeOffset.UtcNow.AddSeconds(espera);
+                codigoDigitado.SetTextWithoutNotify("");
+                VinculosModaisTcc.Texto(mensagemCodigo, dados.Value<string>("message"));
+                Mostrar(codigo);
+                _ = AcompanharReenvio(visita.Token);
+            });
+    }
+
+    private async void ValidarOuReenviar()
+    {
+        var valor = codigoDigitado.text;
+        if (valor.Length == 0 && DateTimeOffset.UtcNow >= reenviarEm)
+        {
+            await Emitir(emailSolicitado, true);
+            return;
+        }
+        if (!Regex.IsMatch(valor, @"\A[0-9]{6}\z")) return;
+        await Executar(mensagemCodigo, "verify", new { request_id = solicitacao, code = valor }, dados =>
+        {
+            token = dados.Value<string>("reset_token");
+            if (string.IsNullOrEmpty(token)) throw new InvalidOperationException();
+            codigoDigitado.SetTextWithoutNotify("");
+            VinculosModaisTcc.Texto(mensagemSenha, "");
+            Mostrar(senha);
+        });
+    }
+
+    private async void Redefinir()
+    {
+        var valor = novaSenha.text;
+        if (valor.Length < 8 || valor != confirmacao.text)
+        {
+            VinculosModaisTcc.Texto(mensagemSenha, "Informe senhas iguais com ao menos 8 caracteres.");
+            return;
+        }
+        await Executar(mensagemSenha, "reset",
+            new { request_id = solicitacao, reset_token = token, new_password = valor },
+            dados => concluir(dados.Value<string>("message") ?? "Senha redefinida."),
+            erro =>
+            {
+                if (erro.Code != "invalid_reset_token") return false;
+                token = null;
+                novaSenha.SetTextWithoutNotify("");
+                confirmacao.SetTextWithoutNotify("");
+                Mostrar(codigo);
+                VinculosModaisTcc.Texto(mensagemCodigo, erro.Message);
+                return true;
+            });
+    }
+
+    private async Task Executar(TMP_Text status, string operacao, object corpo, Action<JObject> sucesso,
+        Func<AuthenticationError, bool> tratarErro = null)
+    {
+        if (ocupado || visita == null) return;
+        var atual = visita.Token;
+        ocupado = true;
+        AtualizarBotoes();
+        VinculosModaisTcc.Texto(status, "Aguarde…");
+        try
+        {
+            using var limite = CancellationTokenSource.CreateLinkedTokenSource(atual);
+            limite.CancelAfter(TimeSpan.FromSeconds(20));
+            var resultado = await api().RecuperarSenhaAsync(operacao, corpo, limite.Token);
+            if (atual.IsCancellationRequested) return;
+            if (resultado.IsSuccess) sucesso(resultado.Value);
+            else if (tratarErro?.Invoke(resultado.Error) != true)
+                VinculosModaisTcc.Texto(status, resultado.Error.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            if (!atual.IsCancellationRequested)
+                VinculosModaisTcc.Texto(status, "A conexão expirou. Verifique sua conexão e tente novamente.");
+        }
+        catch (Exception)
+        {
+            if (!atual.IsCancellationRequested)
+                VinculosModaisTcc.Texto(status, "Não foi possível completar a recuperação agora.");
+        }
+        finally
+        {
+            if (!atual.IsCancellationRequested)
+            {
+                ocupado = false;
+                AtualizarBotoes();
+            }
+        }
+    }
+
+    private async Task AcompanharReenvio(CancellationToken cancelamento)
+    {
+        try
+        {
+            while (!cancelamento.IsCancellationRequested && DateTimeOffset.UtcNow < reenviarEm)
+            {
+                AtualizarBotoes();
+                await Task.Delay(1000, cancelamento);
+            }
+            if (!cancelamento.IsCancellationRequested) AtualizarBotoes();
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private void AtualizarCodigo(string _) => AtualizarBotoes();
+
+    private void AtualizarBotoes()
+    {
+        if (enviar != null) enviar.interactable = !ocupado;
+        if (redefinir != null) redefinir.interactable = !ocupado;
+        if (validar == null || codigoDigitado == null) return;
+        int segundos = Math.Max(0, (int)Math.Ceiling((reenviarEm - DateTimeOffset.UtcNow).TotalSeconds));
+        string valor = codigoDigitado.text;
+        validar.interactable = !ocupado && (valor.Length == 0 ? segundos == 0 : Regex.IsMatch(valor, @"\A[0-9]{6}\z"));
+        VinculosModaisTcc.Texto(rotuloCodigo, valor.Length != 0 ? "Validar código"
+            : segundos == 0 ? "Reenviar código" : $"Reenviar em {segundos}s");
     }
 
     internal void Limpar()
     {
+        visita?.Cancel();
+        visita?.Dispose();
+        visita = null;
+        emailSolicitado = solicitacao = token = null;
+        ocupado = false;
+        foreach (var campo in Campos)
+            if (campo != null) campo.SetTextWithoutNotify("");
         foreach (var painel in new[] { email, codigo, senha })
-        {
-            if (painel == null) continue;
-            foreach (var campo in painel.GetComponentsInChildren<TMP_InputField>(true))
-                campo.SetTextWithoutNotify("");
-            painel.SetActive(false);
-        }
+            if (painel != null) painel.SetActive(false);
+    }
+
+    public void Dispose()
+    {
+        Limpar();
+        foreach (var remover in removerListeners) remover();
+        removerListeners.Clear();
     }
 
     private void Voltar() => voltar();
+    private static TMP_InputField Campo(GameObject painel, string nome) =>
+        VinculosModaisTcc.Filho<TMP_InputField>(painel, nome);
+    private static TMP_Text Mensagem(GameObject painel) =>
+        VinculosModaisTcc.Filho<TMP_Text>(painel, "TxtMensagens");
+    private static Button Botao(GameObject painel, string nome) =>
+        VinculosModaisTcc.Filho<Button>(painel, nome);
 }
