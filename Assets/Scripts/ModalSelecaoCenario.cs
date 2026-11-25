@@ -275,8 +275,15 @@ public class ModalSelecaoCenario : MonoBehaviour
             || !CheckpointJogo.PodeAvancar || !sessao.Corresponde(visita) || MissionManager.Instance != missoes)
             return;
 
+        if (!modalFinalManager.MostrarInicioCenario(cenario))
+        {
+            Debug.LogError("A introdução do cenário não está ativa na hierarquia.", modalFinalManager);
+            sessao.Encerrar();
+            missoes.EncerrarCenario();
+            return;
+        }
+
         TransportarJogador(destino.position);
-        modalFinalManager.MostrarInicioCenario(cenario);
         CheckpointJogo.Instance?.Entrada(cenario);
 
         if (modalSelecaoCenario != null)
@@ -297,11 +304,12 @@ public class ModalSelecaoCenario : MonoBehaviour
         if (this == null || !SessaoCenario.Atual.Corresponde(visita))
             throw new OperationCanceledException();
 
+        if (mostrarIntroducao && !modalFinalManager.MostrarInicioCenario(cenario))
+            throw new System.IO.InvalidDataException("A introdução do cenário não está ativa na hierarquia.");
+
         TransportarJogador(destino.position);
         if (modalSelecaoCenario != null)
             modalSelecaoCenario.SetActive(false);
-        if (mostrarIntroducao)
-            modalFinalManager.MostrarInicioCenario(cenario);
     }
 
     internal Transform ObterPontoDestino(string cenario)

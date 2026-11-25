@@ -569,11 +569,13 @@ public class ModalNivelmanetoScript : MonoBehaviour
                     return false;
                 }
 
+                Debug.Log($"Nivelamento Speaking: preparando transcrição do WAV de {audiosSpeaking[indiceAudio].Length} bytes.", this);
                 string jsonTranscricao = await backendManager.EnviarAudioWhisperFast(
                     audiosSpeaking[indiceAudio],
                     JsonConvert.SerializeObject(new List<string>())
                 );
 
+                Debug.Log($"Nivelamento Speaking: resposta de transcrição recebida={!string.IsNullOrWhiteSpace(jsonTranscricao)}.", this);
                 if (string.IsNullOrWhiteSpace(jsonTranscricao))
                 {
                     Debug.LogError($"Não foi possível transcrever o áudio da pergunta: {resposta.pergunta}");

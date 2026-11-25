@@ -49,7 +49,9 @@ public sealed class AuthenticationUIController : MonoBehaviour
     private bool initialized;
     private bool dependenciesInitializationAttempted;
     private bool requestInProgress;
+    private CancellationTokenSource retornoCadastro;
     private bool isOpen;
+    internal bool EstaAberta => isOpen && isActiveAndEnabled;
     private bool previousUiMode;
     private string missingReferenceDescription;
 
@@ -74,6 +76,8 @@ public sealed class AuthenticationUIController : MonoBehaviour
         recuperacao = new RecuperacaoSenhaUI(gameObject, () => ownedAuthenticationManager,
             OpenLogin, () => virtualKeyboard?.HideKeyboard(), ConcluirRecuperacao);
         BindUiReferences();
+        ResetarIndicadores();
+        ConfigurarCamposDeSenha();
         BindButtonHandlers();
         botaoEsqueciSenha ??= VinculosModaisTcc.Filho<Button>(loginPanel, "BotaoEsqueciSenha");
         VinculosModaisTcc.Ligar(botaoEsqueciSenha, AbrirRecuperacaoSenha);
@@ -151,20 +155,19 @@ public sealed class AuthenticationUIController : MonoBehaviour
         HideErrorModal();
     }
 
-    private void ConcluirRecuperacao(string mensagem)
-    {
-        OpenLogin();
-        VinculosModaisTcc.Texto(loginStatusText, mensagem);
-    }
+    private void ConcluirRecuperacao(string _) => OpenLogin();
 
     public void OpenLogin()
     {
+        CancelarRetornoCadastro();
         recuperacao?.Limpar();
         if (!EnsureOpen())
         {
             return;
         }
 
+        ResetarIndicadores();
+        rememberMeToggle.SetIsOnWithoutNotify(false);
         loginPanel.SetActive(true);
         registerPanel.SetActive(false);
         virtualKeyboard.HideKeyboard();
@@ -174,6 +177,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
 
     public void OpenRegister()
     {
+        CancelarRetornoCadastro();
         recuperacao?.Limpar();
         if (!EnsureOpen())
         {
@@ -181,14 +185,19 @@ public sealed class AuthenticationUIController : MonoBehaviour
         }
 
         loginPanel.SetActive(false);
+        ResetarIndicadores();
         registerPanel.SetActive(true);
         virtualKeyboard.HideKeyboard();
         ClearStatusMessages();
         HideErrorModal();
     }
 
+    private void OnDisable() => CancelarRetornoCadastro();
+
     public void Close()
     {
+        CancelarRetornoCadastro();
+        ResetarIndicadores();
         recuperacao?.Limpar();
         HideErrorModal();
         if (virtualKeyboard != null)
@@ -244,11 +253,12 @@ public sealed class AuthenticationUIController : MonoBehaviour
                 InitializeOwnedDependencies();
             }
 
-            await RestoreSessionAsync();
+            if (EnsureOpen())
+                await RestoreSessionAsync();
         }
         catch (Exception exception)
         {
-            Debug.LogException(exception, this);
+            Debug.LogWarning($"Autenticação: falha ({exception.GetType().Name}).", this);
             if (referencesReady)
             {
                 OpenLogin();
@@ -329,19 +339,22 @@ public sealed class AuthenticationUIController : MonoBehaviour
 
         HideErrorModal();
         SetStatus(loginStatusText, "Entrando...");
-        SetRequestInProgress(true, loginLoading);
+        var tempo = System.Diagnostics.Stopwatch.StartNew();
 
         AuthenticationControllerResult result;
         try
         {
-            result = await loginController.LoginAsync(
+            var requisicao = loginController.LoginAsync(
                 loginIdentityInput.text,
                 loginPasswordInput.text,
                 rememberMeToggle.isOn);
+            SetRequestInProgress(true, requisicao.IsCompleted ? null : loginLoading);
+            result = await requisicao;
         }
         finally
         {
             SetRequestInProgress(false, loginLoading);
+            Debug.Log($"Autenticação: requisição e preparação da sessão em {tempo.ElapsedMilliseconds} ms.");
         }
 
         SetStatus(loginStatusText, result.Message);
@@ -354,12 +367,14 @@ public sealed class AuthenticationUIController : MonoBehaviour
             return;
         }
 
-        await AbrirJogoAutenticado();
+        await AbrirJogoAutenticado(loginManual: true);
     }
 
-    private async Task<bool> AbrirJogoAutenticado()
+    private async Task<bool> AbrirJogoAutenticado(bool loginManual = false)
     {
-        SetRequestInProgress(true, loginLoading);
+        if (loginManual) SetStatus(loginStatusText, "Preparando seu progresso…");
+        var tempo = System.Diagnostics.Stopwatch.StartNew();
+        SetRequestInProgress(true);
         try
         {
             if (await CheckpointJogo.Conectar(this))
@@ -370,6 +385,9 @@ public sealed class AuthenticationUIController : MonoBehaviour
                     _ = checkpoint.ContinuarMarcoInterno();
                 else if (checkpoint?.RetomouFase == true)
                     modeManager?.DefinirModoUI(true);
+                else
+                    FindAnyObjectByType<ModalBoasVindasGerenciador>(FindObjectsInactive.Include)
+                        ?.AbrirModal(ModalBoasVindasGerenciador.TipoModal.BoasVindas);
                 return true;
             }
             OpenLogin();
@@ -380,13 +398,14 @@ public sealed class AuthenticationUIController : MonoBehaviour
         }
         finally
         {
-            SetRequestInProgress(false, loginLoading);
+            SetRequestInProgress(false);
+            Debug.Log($"Autenticação: preparação do checkpoint concluída em {tempo.ElapsedMilliseconds} ms.");
         }
     }
 
     private void RegisterClicked()
     {
-        if (requestInProgress)
+        if (requestInProgress || retornoCadastro != null)
         {
             return;
         }
@@ -417,15 +436,16 @@ public sealed class AuthenticationUIController : MonoBehaviour
         }
 
         SetStatus(registerStatusText, "Cadastrando...");
-        SetRequestInProgress(true, registerLoading);
 
         AuthenticationControllerResult result;
         try
         {
-            result = await registerController.RegisterAsync(
+            var requisicao = registerController.RegisterAsync(
                 registerEmailInput.text,
                 registerUsernameInput.text,
                 registerPasswordInput.text);
+            SetRequestInProgress(true, requisicao.IsCompleted ? null : registerLoading);
+            result = await requisicao;
         }
         finally
         {
@@ -439,7 +459,58 @@ public sealed class AuthenticationUIController : MonoBehaviour
                 registerStatusText,
                 result.Message,
                 GetEnglishErrorMessage(result.Error));
+            return;
         }
+
+        if (!registerPanel.activeInHierarchy)
+            return;
+
+        using var retorno = new CancellationTokenSource();
+        retornoCadastro = retorno;
+        registerButton.interactable = false;
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), retorno.Token);
+            if (retornoCadastro == retorno && registerPanel.activeInHierarchy)
+                OpenLogin();
+        }
+        catch (OperationCanceledException) when (retorno.IsCancellationRequested) { }
+        finally
+        {
+            if (retornoCadastro == retorno)
+                CancelarRetornoCadastro();
+        }
+    }
+
+    private void CancelarRetornoCadastro()
+    {
+        var atual = retornoCadastro;
+        retornoCadastro = null;
+        atual?.Cancel();
+        if (registerButton != null && !requestInProgress)
+            registerButton.interactable = true;
+    }
+
+    private void ResetarIndicadores()
+    {
+        if (loginLoading != null) loginLoading.SetActive(false);
+        if (registerLoading != null) registerLoading.SetActive(false);
+    }
+
+    private void ConfigurarCamposDeSenha()
+    {
+        foreach (var campo in new[] { loginPasswordInput, registerPasswordInput, registerConfirmPasswordInput })
+            if (campo != null)
+                campo.contentType = TMP_InputField.ContentType.Password;
+        foreach (var status in new[] { loginStatusText, registerStatusText })
+            if (status != null)
+            {
+                status.fontSizeMax = Mathf.Min(status.fontSizeMax, status.fontSize);
+                status.fontSizeMin = Mathf.Min(status.fontSizeMin, status.fontSizeMax);
+                status.enableAutoSizing = true;
+                status.textWrappingMode = TextWrappingModes.Normal;
+                status.overflowMode = TextOverflowModes.Ellipsis;
+            }
     }
 
     private bool EnsureOpen()
@@ -503,7 +574,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
                 if (completed.IsFaulted)
                 {
                     Exception exception = completed.Exception.Flatten().InnerExceptions[0];
-                    Debug.LogException(exception, this);
+                    Debug.LogWarning($"Autenticação: falha ({exception.GetType().Name}).", this);
                     ShowAuthenticationError(
                         statusText,
                         "Ocorreu um erro inesperado. Tente novamente.",
@@ -610,10 +681,13 @@ public sealed class AuthenticationUIController : MonoBehaviour
         }
     }
 
-    private void SetRequestInProgress(bool value, GameObject loadingIndicator)
+    private void SetRequestInProgress(bool value, GameObject loadingIndicator = null)
     {
         requestInProgress = value;
-        loadingIndicator.SetActive(value);
+        ResetarIndicadores();
+        if (value && loadingIndicator != null && loadingIndicator.transform.parent != null
+            && loadingIndicator.transform.parent.gameObject.activeInHierarchy)
+            loadingIndicator.SetActive(true);
         loginButton.interactable = !value;
         registerButton.interactable = !value;
         openRegisterButton.interactable = !value;
@@ -628,30 +702,8 @@ public sealed class AuthenticationUIController : MonoBehaviour
         string visiblePortugueseMessage = string.IsNullOrWhiteSpace(portugueseMessage)
             ? "Ocorreu um erro inesperado. Tente novamente."
             : portugueseMessage;
-        string visibleEnglishMessage = string.IsNullOrWhiteSpace(englishMessage)
-            ? "An unexpected error occurred. Please try again."
-            : englishMessage;
         SetStatus(statusText, visiblePortugueseMessage);
-
-        if (errorModal == null)
-        {
-            Debug.LogWarning(
-                "Nenhum modal de erro foi atribuído ao AuthenticationUIController; a mensagem aparece no status do formulário.",
-                this);
-            return;
-        }
-
-        if (errorModalMessage != null)
-        {
-            errorModalMessage.text = visiblePortugueseMessage;
-        }
-
-        if (errorModalMessageEnglish != null)
-        {
-            errorModalMessageEnglish.text = visibleEnglishMessage;
-        }
-
-        errorModal.SetActive(true);
+        HideErrorModal();
     }
 
     private static string GetEnglishErrorMessage(AuthenticationError error)

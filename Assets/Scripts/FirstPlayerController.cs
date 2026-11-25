@@ -349,7 +349,8 @@ public class FirstPlayerController : MonoBehaviour
             return;
         }
 
-        Cursor.lockState = controleAtivo ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !controleAtivo;
+        bool cursorLivre = !controleAtivo || ModoJogoManager.Instance?.uiMode == true;
+        Cursor.lockState = cursorLivre ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = cursorLivre;
     }
 }

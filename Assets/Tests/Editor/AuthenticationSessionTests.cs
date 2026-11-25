@@ -376,13 +376,7 @@ public sealed class AuthenticationManagerTests
 
                 FindButton(uiObject, "RegisterButton").onClick.Invoke();
 
-                Assert.That(errorModal.activeSelf, Is.True);
-                Assert.That(
-                    portugueseErrorText.text,
-                    Is.EqualTo("As senhas informadas não coincidem."));
-                Assert.That(
-                    englishErrorText.text,
-                    Is.EqualTo("The passwords do not match."));
+                Assert.That(errorModal.activeSelf, Is.False);
                 Assert.That(
                     FindText(uiObject, "RegisterStatusText").text,
                     Is.EqualTo("As senhas informadas não coincidem."));
@@ -395,6 +389,42 @@ public sealed class AuthenticationManagerTests
             UnityEngine.Object.DestroyImmediate(errorModal);
             UnityEngine.Object.DestroyImmediate(portugueseErrorText.gameObject);
             UnityEngine.Object.DestroyImmediate(englishErrorText.gameObject);
+        }
+    }
+
+    [Test]
+    public void OpeningAuthenticationPanelsResetsTheirTransientControls()
+    {
+        const string prefabPath = "Assets/Prefabs/Authentication/AuthenticationUI.prefab";
+        var root = UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
+        var mode = new GameObject("UI mode for test");
+        try
+        {
+            using var auth = new AuthenticationManager("https://example.invalid");
+            var session = new SessionManager(auth, new ControllerRefreshTokenStore());
+            var ui = root.GetComponent<AuthenticationUIController>();
+            ui.Initialize(new LoginController(session), new RegisterController(auth), session,
+                mode.AddComponent<ModoJogoManager>());
+
+            var loginLoading = ReadPrivateField<GameObject>(ui, "loginLoading");
+            var registerLoading = ReadPrivateField<GameObject>(ui, "registerLoading");
+            var remember = ReadPrivateField<Toggle>(ui, "rememberMeToggle");
+            loginLoading.SetActive(true);
+            registerLoading.SetActive(true);
+            remember.SetIsOnWithoutNotify(true);
+            ui.OpenLogin();
+            Assert.That(loginLoading.activeSelf, Is.False);
+            Assert.That(registerLoading.activeSelf, Is.False);
+            Assert.That(remember.isOn, Is.False);
+
+            registerLoading.SetActive(true);
+            ui.OpenRegister();
+            Assert.That(registerLoading.activeSelf, Is.False);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+            UnityEngine.Object.DestroyImmediate(mode);
         }
     }
 

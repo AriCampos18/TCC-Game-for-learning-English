@@ -371,11 +371,11 @@ public class ModalFinalManager : MonoBehaviour
             botaoAjuda.gameObject.SetActive(false);
     }
 
-    public void MostrarInicioCenario(string cenario)
+    internal bool MostrarInicioCenario(string cenario)
     {
         var sessao = SessaoCenario.Atual;
         if (sessao.Nome != cenario || sessao.EmJogo || sessao.EmResultado)
-            return;
+            return false;
         visita = sessao.Versao;
         modoAtual = "InicioCenario";
         cenarioAtual = cenario;
@@ -456,7 +456,7 @@ public class ModalFinalManager : MonoBehaviour
                 Debug.LogError(
                     "Não há descrição cadastrada para: " + cenario
                 );
-                return;
+                return false;
         }
 
         titulo.text = "Welcome to " + nome + "!";
@@ -465,6 +465,7 @@ public class ModalFinalManager : MonoBehaviour
         textoBotao.text = "Start Scenario";
 
         Abrir();
+        return modalFinal != null && modalFinal.activeInHierarchy;
     }
 
     public void MostrarResultado(string resultado, string nivelAnterior, string nivelNovo)

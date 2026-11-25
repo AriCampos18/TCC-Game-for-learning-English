@@ -37,7 +37,8 @@ public class SpeakingUI : MonoBehaviour
     
     public Button botaoRepetirFalaNPC; 
     public TextMeshProUGUI textoFeedback;
-    private string microfoneDispositivo = null;
+    private int ultimosFrames;
+    private double capturaIniciada;
     private int tentativesRestantes = 3;
     private ExercicioSpeaking dadosExercicioAtual;
     private bool bloqueado = false;
@@ -53,34 +54,26 @@ public class SpeakingUI : MonoBehaviour
         ondasSom.SetActive(false);
         statusGravacao.text = "Press the microphone to start recording.";
 
-        if (Microphone.devices.Length == 0)
-        {
-            Debug.LogWarning("Nenhum microfone encontrado no sistema!");
-            botaoMicrofone.interactable = false;
-            statusGravacao.text = "Microfone não disponível. Verifique as configurações.";
-            return;
-        }
+        Debug.Log($"Speaking: dispositivos disponíveis={Microphone.devices.Length}; usando o padrão do sistema.", this);
+    }
 
-        // Prioriza o microfone físico do PC
-        microfoneDispositivo = null;
+    private void Update()
+    {
+        if (!gravando) return;
+        RegistrarPosicaoMicrofone();
+        double decorrido = Time.realtimeSinceStartupAsDouble - capturaIniciada;
+        if (decorrido >= Mathf.Max(1, tempoMaximoGravacao) || (decorrido >= 2 && ultimosFrames == 0))
+            PararGravacao();
+    }
 
-        foreach (string device in Microphone.devices)
-        {
-            Debug.Log("Microfone detectado: " + device);
+    private void OnDisable()
+    {
+        if (gravando) CancelarGravacao();
+    }
 
-            if (device.Contains("Realtek", StringComparison.OrdinalIgnoreCase))
-            {
-                microfoneDispositivo = device;
-                break;
-            }
-        }
-
-        if (string.IsNullOrEmpty(microfoneDispositivo))
-        {
-            microfoneDispositivo = Microphone.devices[0];
-        }
-
-        Debug.Log("Microfone selecionado: " + microfoneDispositivo);
+    private void RegistrarPosicaoMicrofone()
+    {
+        ultimosFrames = Mathf.Max(ultimosFrames, Microphone.GetPosition(null));
     }
 
     private string NormalizarPalavra(string palavra)
@@ -239,12 +232,7 @@ public class SpeakingUI : MonoBehaviour
         dadosAudioWav = null;
         bloqueado = false;
 
-        if (string.IsNullOrEmpty(microfoneDispositivo))
-        {
-            string[] dispositivos = Microphone.devices;
-            if (dispositivos.Length > 0)
-                microfoneDispositivo = dispositivos[0];
-        }
+
 
         if (textoFeedback != null)
             textoFeedback.text = "";
@@ -253,7 +241,7 @@ public class SpeakingUI : MonoBehaviour
             statusGravacao.text = "Press the microphone to start recording.";
 
         if (botaoMicrofone != null)
-            botaoMicrofone.interactable = !string.IsNullOrEmpty(microfoneDispositivo);
+            botaoMicrofone.interactable = true;
 
         //if (pularEx != null)
             //pularEx.interactable = false;
@@ -283,11 +271,8 @@ public class SpeakingUI : MonoBehaviour
 
     public void CancelarGravacao()
     {
-        if (gravando && !string.IsNullOrEmpty(microfoneDispositivo) &&
-            Microphone.IsRecording(microfoneDispositivo))
-        {
-            Microphone.End(microfoneDispositivo);
-        }
+        if (gravando)
+            Microphone.End(null);
 
         gravando = false;
         dadosAudioWav = null;
@@ -299,7 +284,7 @@ public class SpeakingUI : MonoBehaviour
         if (ondasSom != null)
             ondasSom.SetActive(false);
         if (botaoMicrofone != null)
-            botaoMicrofone.interactable = !string.IsNullOrEmpty(microfoneDispositivo);
+            botaoMicrofone.interactable = true;
     }
 
     public int ObterIndiceCorreto() => dadosExercicioAtual.respostaCorreta;
@@ -478,15 +463,29 @@ public class SpeakingUI : MonoBehaviour
         dadosAudioWav = null;
         clipGravado = null;
 
-        if (string.IsNullOrEmpty(microfoneDispositivo))
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(UnityEngine.Android.Permission.Microphone))
         {
-            Debug.LogError("Não há um microfone disponível para iniciar a gravação.");
+            UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.Microphone);
+            if (statusGravacao != null)
+                statusGravacao.text = "Allow microphone access and press the microphone again.";
+            return;
+        }
+#endif
+        if (Microphone.devices.Length == 0)
+        {
+            Debug.LogWarning("Speaking: nenhum microfone disponível. Verifique as permissões do sistema.", this);
             if (statusGravacao != null)
                 statusGravacao.text = "Microphone not available.";
             return;
         }
 
-        clipGravado = Microphone.Start(microfoneDispositivo, false, tempoMaximoGravacao, frequenciaAmostragem);
+        Microphone.GetDeviceCaps(null, out int minimo, out int maximo);
+        int frequencia = Mathf.Max(1, frequenciaAmostragem);
+        if (minimo > 0) frequencia = Mathf.Max(minimo, frequencia);
+        if (maximo > 0) frequencia = Mathf.Min(maximo, frequencia);
+        // Keep space past the time limit so the capture cursor does not reset at the end.
+        clipGravado = Microphone.Start(null, false, Mathf.Max(1, tempoMaximoGravacao) + 1, frequencia);
         if (clipGravado == null)
         {
             Debug.LogError("O Unity não conseguiu iniciar a gravação do microfone.");
@@ -496,6 +495,9 @@ public class SpeakingUI : MonoBehaviour
         }
 
         gravando = true;
+        ultimosFrames = 0;
+        capturaIniciada = Time.realtimeSinceStartupAsDouble;
+        Debug.Log($"Speaking: captura iniciada; frequência={clipGravado.frequency}, canais={clipGravado.channels}.", this);
         if (microfoneIcon != null)
             microfoneIcon.SetActive(false);
         if (ondasSom != null)
@@ -514,17 +516,11 @@ public class SpeakingUI : MonoBehaviour
         if (ondasSom != null)
             ondasSom.SetActive(false);
 
-        int framesGravados = 0;
-        if (!string.IsNullOrEmpty(microfoneDispositivo) &&
-            Microphone.IsRecording(microfoneDispositivo))
-        {
-            framesGravados = Microphone.GetPosition(microfoneDispositivo);
-            Microphone.End(microfoneDispositivo);
-        }
-        else if (clipGravado != null)
-        {
-            framesGravados = clipGravado.samples;
-        }
+        RegistrarPosicaoMicrofone();
+        bool estavaGravando = Microphone.IsRecording(null);
+        Microphone.End(null);
+        int framesGravados = ultimosFrames;
+        Debug.Log($"Speaking: captura encerrada; microfone ativo={estavaGravando}, frames={framesGravados}.", this);
 
         if (clipGravado != null)
         {
@@ -539,7 +535,7 @@ public class SpeakingUI : MonoBehaviour
                 return;
             }
 
-            if (!AudioTemSomSuficiente(clipGravado, framesGravados))
+            if (!AudioTemSomSuficiente(clipGravado, framesGravados, out float[] amostras))
             {
                 dadosAudioWav = null;
 
@@ -562,7 +558,8 @@ public class SpeakingUI : MonoBehaviour
                 return;
             }
 
-            dadosAudioWav = ConvertAudioClipToWav(clipGravado, framesGravados);
+            dadosAudioWav = ConvertFloatsToWav(amostras, clipGravado.frequency, clipGravado.channels);
+            Debug.Log($"Speaking: WAV pronto; bytes={dadosAudioWav?.Length ?? 0}.", this);
 
             if (statusGravacao != null)
                 statusGravacao.text = "Audio ready! Press 'Confirm' to submit.";
@@ -575,8 +572,9 @@ public class SpeakingUI : MonoBehaviour
         }
     }
 
-    private bool AudioTemSomSuficiente(AudioClip clip, int framesGravados)
+    private bool AudioTemSomSuficiente(AudioClip clip, int framesGravados, out float[] amostras)
     {
+        amostras = null;
         if (clip == null || framesGravados <= 0)
             return false;
 
@@ -586,10 +584,12 @@ public class SpeakingUI : MonoBehaviour
         if (quantidade <= 0)
             return false;
 
-        float[] amostras = new float[quantidade];
-
+        amostras = new float[quantidade];
         if (!clip.GetData(amostras, 0))
+        {
+            Debug.LogWarning("Speaking: não foi possível ler as amostras do AudioClip.", this);
             return false;
+        }
 
         double somaQuadrados = 0;
 
@@ -599,7 +599,9 @@ public class SpeakingUI : MonoBehaviour
         double rms = System.Math.Sqrt(somaQuadrados / quantidade);
 
         // Limite inicial para detectar silêncio ou volume muito baixo.
-        return rms >= 0.01;
+        bool audivel = rms >= 0.01;
+        Debug.Log($"Speaking: amostras lidas={quantidade}, sinal acima do limiar={audivel}.", this);
+        return audivel;
     }
 
 
@@ -611,15 +613,6 @@ public class SpeakingUI : MonoBehaviour
         Debug.Log("BOTAO FOI CLICADO PORRRA!!!!!!!");
         dadosAudioWav = null;
         modalExercicio.FinalizarExercicio();
-    }
-
-    // --- Métodos de Conversão WAV mantidos intactos ---
-    private byte[] ConvertAudioClipToWav(AudioClip clip, int framesGravados)
-    {
-        int sampleCount = Mathf.Min(framesGravados, clip.samples) * clip.channels;
-        float[] samples = new float[sampleCount];
-        clip.GetData(samples, 0);
-        return ConvertFloatsToWav(samples, clip.frequency, clip.channels);
     }
 
     private byte[] ConvertFloatsToWav(float[] samples, int frequency, int channels)
@@ -667,7 +660,6 @@ public class SpeakingUI : MonoBehaviour
             statusGravacao.text = "Press the microphone to start recording.";
 
         if (!bloqueado && botaoMicrofone != null)
-            botaoMicrofone.interactable =
-                !string.IsNullOrEmpty(microfoneDispositivo);
+            botaoMicrofone.interactable = true;
     }
 }

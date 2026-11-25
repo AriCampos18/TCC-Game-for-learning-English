@@ -16,7 +16,6 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
     public GameObject modalResultadoNivelmento, modalInstrucoes, modalMissoes, modalAvisoCampoVazio;
     public TextMeshProUGUI explicacao, explicacaoPort;
     public Button botaoComecar, botaoAjuda, botaoRepetirFala;
-    private FirstPlayerController firstPlayerControllerScript;
     public GameObject crosshair;
     public GameObject modalLegenda, modalCarregando, modalBarraProgressao, legendaMenor;
     public GameObject modalAvisoInteracaoMouse;
@@ -25,36 +24,10 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
 
     private string tipoModal;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
-        modalBoasVindas.SetActive(true);
-        modalNivelamento.SetActive(false);
-        modalLegenda.SetActive(false);
-        modalSelecaoCenario.SetActive(false);
-        modalResultadoNivelmento.SetActive(false); 
-        modalInstrucoes.SetActive(false);
-        botaoAjuda.gameObject.SetActive(false);
-        modalFinal.SetActive(false);
-        modalErroSpeaking.SetActive(false);
-        if (modalSelecaoAvatar != null)
-            modalSelecaoAvatar.SetActive(false);
-        legendaMenor.SetActive(false);
-        botaoRepetirFala.gameObject.SetActive(false);
-        modalAvisoRevisao.SetActive(false);
-        modalAvisoInteracaoMouse.SetActive(false);
-        modalBarraProgressao.SetActive(false);
-        modalAvisoCampoVazio.SetActive(false);
-        modalCarregando.SetActive(false);
-        modalMissoes.SetActive(false);
-        AbrirModal(TipoModal.BoasVindas);
-        firstPlayerControllerScript = FindObjectOfType<FirstPlayerController>();
-        if (firstPlayerControllerScript != null)
-            firstPlayerControllerScript.DesativarControle();
         if (botaoComecar != null)
             botaoComecar.onClick.AddListener(FecharModal);
-        if (crosshair != null)
-            crosshair.SetActive(false);
     }
 
     internal void OcultarParaCheckpoint()
@@ -67,6 +40,13 @@ public class ModalBoasVindasGerenciador : MonoBehaviour
 
     public void AbrirModal(TipoModal tipo, string resultado = "", string nivelAnterior = "", string nivelNovo = "")
     {
+        if (AuthenticationUIController.Instance?.Session?.IsAuthenticated != true)
+            return;
+
+        FindAnyObjectByType<FirstPlayerController>()?.DesativarControle();
+        ModoJogoManager.Instance?.DefinirModoUI(true);
+        if (crosshair != null)
+            crosshair.SetActive(false);
         modalBoasVindas.SetActive(true);
 
         if (tipo == TipoModal.BoasVindas)
