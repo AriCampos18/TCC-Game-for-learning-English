@@ -327,15 +327,14 @@ public class ModalFinalManager : MonoBehaviour
     private string modoAtual;
     private string cenarioAtual;
     private int visita;
+    internal bool IntroducaoAberta => modoAtual == "InicioCenario"
+        && modalFinal != null && modalFinal.activeInHierarchy;
 
     [Header("Modo de teste")]
     public bool modoTesteSemExercicios = false;
 
     private void Awake()
     {
-        if (modalFinal != null)
-            modalFinal.SetActive(false);
-
         if (botaoContinuar != null)
         {
             var clique = botaoContinuar.onClick;
@@ -374,7 +373,9 @@ public class ModalFinalManager : MonoBehaviour
     internal bool MostrarInicioCenario(string cenario)
     {
         var sessao = SessaoCenario.Atual;
-        if (sessao.Nome != cenario || sessao.EmJogo || sessao.EmResultado)
+        if (sessao.Nome != cenario || sessao.EmJogo || sessao.EmResultado
+            || modalFinal == null || titulo == null || textoIngles == null
+            || textoPortugues == null || textoBotao == null || botaoContinuar == null)
             return false;
         visita = sessao.Versao;
         modoAtual = "InicioCenario";
@@ -465,7 +466,13 @@ public class ModalFinalManager : MonoBehaviour
         textoBotao.text = "Start Scenario";
 
         Abrir();
-        return modalFinal != null && modalFinal.activeInHierarchy;
+        if (!modalFinal.activeInHierarchy)
+            return false;
+
+        var jogador = FindAnyObjectByType<FirstPlayerController>();
+        jogador?.PermitirOlharSemMover(false);
+        jogador?.DesativarControle();
+        return true;
     }
 
     public void MostrarResultado(string resultado, string nivelAnterior, string nivelNovo)

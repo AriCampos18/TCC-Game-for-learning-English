@@ -1119,7 +1119,7 @@ else if (nivelAtual == "A2-B1")
             modalLegenda.SetActive(false);
         }
 
-        await EntrarModoExercicio();
+        await EntrarModoExercicio(tipo);
 
         DefinirCursorDesktop(true);
 
@@ -1140,7 +1140,7 @@ else if (nivelAtual == "A2-B1")
             modalLegenda.SetActive(false);
         }
 
-        await SairModoExercicio();
+        await SairModoExercicio(tipo);
 
         // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
         DefinirCursorDesktop(false);

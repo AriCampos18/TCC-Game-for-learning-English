@@ -544,8 +544,8 @@ public class ShelfNPC : InteracaoNPC, IRoteiroNpcCheckpoint
                 "Follow me.",
                 "The milk is here. Do you need anything else?",
                 "Sure, I will show you",
-                "The fruits are here. Can I do anything else for you?",
-                "Yes, we have apples too."
+                "The fruits are here.",
+                "Yes, we have vegetables too. Can I do anything else for you?"
             };
 
             exerciciosCriarFrases.Add(new ExercicioBlocos() 
@@ -1003,7 +1003,7 @@ else if (nivelAtual == "A2-B1")
             modalLegenda.SetActive(false);
         }
 
-        await EntrarModoExercicio();
+        await EntrarModoExercicio(tipo);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -1025,7 +1025,7 @@ else if (nivelAtual == "A2-B1")
             modalLegenda.SetActive(false);
         }
 
-        await SairModoExercicio();
+        await SairModoExercicio(tipo);
 
         // ✨ Volta a prender o mouse após terminar o exercício (se o diálogo geral não tiver acabado)
         Cursor.lockState = CursorLockMode.Locked;

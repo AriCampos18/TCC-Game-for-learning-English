@@ -460,9 +460,9 @@ public class InteracaoNPC : MonoBehaviour
         }
     }
 
-    public async Task EntrarModoExercicio()
+    public async Task EntrarModoExercicio(TipoExercicio tipo)
     {
-        if (movimentoPlayer == null || playerCamera == null)
+        if (tipo == TipoExercicio.Associacao || movimentoPlayer == null || playerCamera == null)
             return;
 
         Transform cam = playerCamera;
@@ -521,9 +521,9 @@ public class InteracaoNPC : MonoBehaviour
             cam.localRotation = cameraRotacaoOriginal * Quaternion.Euler(0f, 8f, 0f);
     }
 
-    public async Task SairModoExercicio()
+    public async Task SairModoExercicio(TipoExercicio tipo)
     {
-        if (movimentoPlayer == null)
+        if (tipo == TipoExercicio.Associacao || movimentoPlayer == null)
             return;
 
         Transform cam = playerCamera;

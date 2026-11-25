@@ -16,7 +16,11 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
     private readonly Button enviar, validar, redefinir;
     private readonly Func<AuthenticationManager> api;
     private readonly Action voltar, ocultarTeclado;
-    private readonly Action<string> concluir;
+    private readonly RectTransform rectValidar;
+    private readonly float larguraValidar;
+    private readonly TextWrappingModes quebraRotulo;
+    private readonly TextAlignmentOptions alinhamentoRotulo;
+    private readonly Color corStatusSenha;
     private readonly System.Collections.Generic.List<Action> removerListeners = new();
     private readonly bool configurada;
     private CancellationTokenSource visita;
@@ -27,12 +31,11 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
     internal TMP_InputField[] Campos => new[] { endereco, codigoDigitado, novaSenha, confirmacao };
 
     internal RecuperacaoSenhaUI(GameObject origem, Func<AuthenticationManager> api, Action voltar,
-        Action ocultarTeclado, Action<string> concluir)
+        Action ocultarTeclado)
     {
         this.api = api;
         this.voltar = voltar;
         this.ocultarTeclado = ocultarTeclado;
-        this.concluir = concluir;
         email = VinculosModaisTcc.Painel(origem, "ModalEsqueciSenha");
         codigo = VinculosModaisTcc.Painel(origem, "ModalCodigoEmail");
         senha = VinculosModaisTcc.Painel(origem, "ModalNovaSenha");
@@ -47,6 +50,14 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
         validar = Botao(codigo, "BotaoContinuar");
         redefinir = Botao(senha, "BotaoContinuar");
         rotuloCodigo = validar != null ? validar.GetComponentInChildren<TMP_Text>(true) : null;
+        rectValidar = validar != null ? (RectTransform)validar.transform : null;
+        if (rectValidar != null) larguraValidar = rectValidar.sizeDelta.x;
+        if (rotuloCodigo != null)
+        {
+            quebraRotulo = rotuloCodigo.textWrappingMode;
+            alinhamentoRotulo = rotuloCodigo.alignment;
+        }
+        if (mensagemSenha != null) corStatusSenha = mensagemSenha.color;
 
         if (novaSenha != null) novaSenha.contentType = TMP_InputField.ContentType.Password;
         if (confirmacao != null) confirmacao.contentType = TMP_InputField.ContentType.Password;
@@ -150,6 +161,7 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
 
     private async void Redefinir()
     {
+        if (ocupado || visita == null) return;
         var valor = novaSenha.text;
         if (valor.Length < 8 || valor != confirmacao.text)
         {
@@ -158,7 +170,7 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
         }
         await Executar(mensagemSenha, "reset",
             new { request_id = solicitacao, reset_token = token, new_password = valor },
-            dados => concluir(dados.Value<string>("message") ?? "Senha redefinida."),
+            null,
             erro =>
             {
                 if (erro.Code != "invalid_reset_token") return false;
@@ -168,11 +180,24 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
                 Mostrar(codigo);
                 VinculosModaisTcc.Texto(mensagemCodigo, erro.Message);
                 return true;
-            });
+            },
+            ConfirmarRedefinicao);
+    }
+
+    private async Task ConfirmarRedefinicao(CancellationToken cancelamento)
+    {
+        novaSenha.SetTextWithoutNotify("");
+        confirmacao.SetTextWithoutNotify("");
+        ocultarTeclado();
+        mensagemSenha.color = new Color32(0, 128, 55, 255);
+        VinculosModaisTcc.Texto(mensagemSenha, "Senha redefinida com sucesso!");
+        await Task.Delay(TimeSpan.FromSeconds(3), cancelamento);
+        if (!cancelamento.IsCancellationRequested && senha != null && senha.activeInHierarchy)
+            voltar();
     }
 
     private async Task Executar(TMP_Text status, string operacao, object corpo, Action<JObject> sucesso,
-        Func<AuthenticationError, bool> tratarErro = null)
+        Func<AuthenticationError, bool> tratarErro = null, Func<CancellationToken, Task> aposSucesso = null)
     {
         if (ocupado || visita == null) return;
         var atual = visita.Token;
@@ -185,7 +210,11 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
             limite.CancelAfter(TimeSpan.FromSeconds(20));
             var resultado = await api().RecuperarSenhaAsync(operacao, corpo, limite.Token);
             if (atual.IsCancellationRequested) return;
-            if (resultado.IsSuccess) sucesso(resultado.Value);
+            if (resultado.IsSuccess)
+            {
+                sucesso?.Invoke(resultado.Value);
+                if (aposSucesso != null) await aposSucesso(atual);
+            }
             else if (tratarErro?.Invoke(resultado.Error) != true)
                 VinculosModaisTcc.Texto(status, resultado.Error.Message);
         }
@@ -233,8 +262,19 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
         int segundos = Math.Max(0, (int)Math.Ceiling((reenviarEm - DateTimeOffset.UtcNow).TotalSeconds));
         string valor = codigoDigitado.text;
         validar.interactable = !ocupado && (valor.Length == 0 ? segundos == 0 : Regex.IsMatch(valor, @"\A[0-9]{6}\z"));
-        VinculosModaisTcc.Texto(rotuloCodigo, valor.Length != 0 ? "Validar código"
-            : segundos == 0 ? "Reenviar código" : $"Reenviar em {segundos}s");
+        bool contagem = valor.Length == 0 && segundos > 0;
+        VinculosModaisTcc.Texto(rotuloCodigo, contagem ? $"Reenviar em {segundos}s"
+            : valor.Length == 0 ? "Reenviar código" : "Validar código");
+        AjustarRotuloCodigo(contagem);
+    }
+
+    private void AjustarRotuloCodigo(bool contagem)
+    {
+        if (rotuloCodigo == null || rectValidar == null) return;
+        rotuloCodigo.textWrappingMode = contagem ? TextWrappingModes.NoWrap : quebraRotulo;
+        rotuloCodigo.alignment = contagem ? TextAlignmentOptions.Center : alinhamentoRotulo;
+        float largura = contagem ? Mathf.Max(larguraValidar, rotuloCodigo.preferredWidth + 24f) : larguraValidar;
+        rectValidar.sizeDelta = new Vector2(largura, rectValidar.sizeDelta.y);
     }
 
     internal void Limpar()
@@ -243,7 +283,10 @@ internal sealed class RecuperacaoSenhaUI : IDisposable
         visita?.Dispose();
         visita = null;
         emailSolicitado = solicitacao = token = null;
+        reenviarEm = default;
         ocupado = false;
+        AjustarRotuloCodigo(false);
+        if (mensagemSenha != null) mensagemSenha.color = corStatusSenha;
         foreach (var campo in Campos)
             if (campo != null) campo.SetTextWithoutNotify("");
         foreach (var painel in new[] { email, codigo, senha })

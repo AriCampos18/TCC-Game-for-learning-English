@@ -1853,10 +1853,11 @@ else if (nivelAtual == "A2-B1")
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
 
-        transform.position = posicaoInicialCashier;
-        transform.rotation = rotacaoInicialCashier;
+        bool enquadrarNpc = tipo != TipoExercicio.Associacao;
+        if (enquadrarNpc)
+            transform.SetPositionAndRotation(posicaoInicialCashier, rotacaoInicialCashier);
 
-        await EntrarModoExercicio();
+        await EntrarModoExercicio(tipo);
 
         Vector3 posicaoExercicio = transform.position;
         Quaternion rotacaoExercicio = transform.rotation;
@@ -1870,15 +1871,15 @@ else if (nivelAtual == "A2-B1")
 
         while (!modalExercicio.exercicioFinalizado)
         {
-            transform.position = posicaoExercicio;
-            transform.rotation = rotacaoExercicio;
+            if (enquadrarNpc)
+                transform.SetPositionAndRotation(posicaoExercicio, rotacaoExercicio);
             await Task.Yield();
         }
 
         if (modalLegenda != null)
             modalLegenda.SetActive(false);
 
-        await SairModoExercicio();
+        await SairModoExercicio(tipo);
 
         DefinirCursorDesktop(false);
 

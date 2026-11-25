@@ -544,7 +544,7 @@ public class RevisaoManager : MonoBehaviour
             modalLegenda.SetActive(false);
 
         RectTransform rect = modalExercicio.panel.GetComponent<RectTransform>();
-        if (rect != null)
+        if (rect != null && tipo != TipoExercicio.Associacao)
         {
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = new Vector2(0.5f, 0.5f);

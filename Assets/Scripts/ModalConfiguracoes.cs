@@ -42,7 +42,6 @@ public class ModalConfiguracoes : MonoBehaviour
     private void OnEnable()
     {
         modalGerenciarExs ??= VinculosModaisTcc.Painel(gameObject, "ModalGerenciarExercicios");
-        AplicarPreferenciaTurn(CheckpointJogo.Instance?.ModoGiro ?? "snap");
         AtualizarBotoes();
     }
 
@@ -142,24 +141,23 @@ public class ModalConfiguracoes : MonoBehaviour
         if (!XRSettings.isDeviceActive || checkpoint == null || snapTurn == null || smoothTurn == null)
             return;
         string modo = checkpoint.ModoGiro == "snap" ? "smooth" : "snap";
-        if (checkpoint.AlterarModoGiro(modo))
-            AplicarPreferenciaTurn(modo);
+        checkpoint.AlterarModoGiro(modo);
         AtualizarBotoes();
     }
 
-    internal void AplicarPreferenciaTurn(string modo)
+    internal void AplicarPreferenciaTurn(string modo, bool permitir)
     {
-        if (!XRSettings.isDeviceActive || snapTurn == null || smoothTurn == null)
+        if (snapTurn == null || smoothTurn == null)
             return;
         if (modo == "smooth")
         {
             snapTurn.enabled = false;
-            smoothTurn.enabled = true;
+            smoothTurn.enabled = permitir;
         }
         else
         {
             smoothTurn.enabled = false;
-            snapTurn.enabled = true;
+            snapTurn.enabled = permitir;
         }
     }
 

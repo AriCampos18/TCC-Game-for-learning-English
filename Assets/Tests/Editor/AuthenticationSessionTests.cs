@@ -13,6 +13,36 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
+public sealed class ScenarioIntroTests
+{
+    [Test]
+    public void FirstAwakeKeepsThePanelOpen()
+    {
+        var panel = new GameObject("ModalFinal", typeof(RectTransform));
+        try
+        {
+            panel.SetActive(false);
+            var manager = panel.AddComponent<ModalFinalManager>();
+            manager.modalFinal = panel;
+            var buttonObject = new GameObject("Start Scenario", typeof(RectTransform), typeof(Button));
+            buttonObject.transform.SetParent(panel.transform, false);
+            manager.botaoContinuar = buttonObject.GetComponent<Button>();
+
+            panel.SetActive(true);
+            // Edit Mode does not invoke the runtime Awake for this component.
+            typeof(ModalFinalManager).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(manager, null);
+
+            Assert.That(panel.activeSelf, Is.True);
+            Assert.That(panel.activeInHierarchy, Is.True);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(panel);
+        }
+    }
+}
+
 public sealed class AuthenticationManagerTests
 {
     [Test]
@@ -129,8 +159,17 @@ public sealed class AuthenticationManagerTests
             serializedKeyboard.FindProperty("keyboardPanel").objectReferenceValue = panel;
             serializedKeyboard.ApplyModifiedPropertiesWithoutUndo();
             keyboard.SetAllowedFields(allowedField);
+
+            bool vr = false;
+            typeof(VRVirtualKeyboard).GetField("isVrActive", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(keyboard, (Func<bool>)(() => vr));
+            allowedField.onSelect.Invoke(string.Empty);
+            Assert.That(panel.activeSelf, Is.False);
+            Assert.That(keyboard.FocusField(allowedField), Is.False);
+
+            vr = true;
             Assert.That(keyboard.FocusField(unrelatedField), Is.False);
-            Assert.That(keyboard.FocusField(allowedField), Is.True);
+            allowedField.onSelect.Invoke(string.Empty);
             Assert.That(panel.activeSelf, Is.True);
 
             keyboard.PressKey("b");
@@ -151,6 +190,12 @@ public sealed class AuthenticationManagerTests
             Assert.That(keyboard.FocusField(unrelatedField), Is.False);
             keyboard.PressKey("x");
             Assert.That(unrelatedField.text, Is.EqualTo("exercise"));
+
+            allowedField.onSelect.Invoke(string.Empty);
+            vr = false;
+            typeof(VRVirtualKeyboard).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(keyboard, null);
+            Assert.That(panel.activeSelf, Is.False);
         }
 
         private static TMP_InputField CreateInputField(string name)

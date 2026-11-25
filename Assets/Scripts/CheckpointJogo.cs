@@ -72,20 +72,26 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
                 novo.RetomouFase = true;
             }
             novo.preparado = true;
-            FindAnyObjectByType<ModalConfiguracoes>(FindObjectsInactive.Include)?.AplicarPreferenciaTurn(novo.ModoGiro);
             return true;
         }
         catch (Exception e) when (Prevista(e))
         {
             if (novo != null && !novo.descarregado)
-            {
                 Debug.LogWarning("Checkpoint: " + e.Message, novo);
-                novo.Desativar();
-                Destroy(novo.gameObject);
-            }
             return false;
         }
-        finally { novo.restaurando = false; }
+        finally
+        {
+            novo.restaurando = false;
+            if (novo != null && !novo.preparado && !novo.descarregado)
+                novo.Descartar();
+        }
+    }
+
+    internal void Descartar()
+    {
+        Desativar();
+        Destroy(gameObject);
     }
 
     private static bool MarcoAnteriorCompativel(JObject atual, JObject anterior)

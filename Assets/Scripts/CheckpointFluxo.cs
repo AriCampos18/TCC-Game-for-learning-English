@@ -466,12 +466,7 @@ internal sealed partial class CheckpointJogo
         if (tarefa == null)
             return;
 
-        try { await tarefa(); }
-        catch (Exception e) when (Prevista(e))
-        {
-            if (!descarregado)
-                Debug.LogWarning("Checkpoint interno: " + e.Message, this);
-        }
+        await tarefa();
     }
 
     internal void Resultado()
@@ -649,16 +644,18 @@ internal sealed partial class CheckpointJogo
             ?? FindAnyObjectByType<ModalBoasVindasGerenciador>(FindObjectsInactive.Include);
         boasVindas?.OcultarParaCheckpoint();
         FindAnyObjectByType<FirstPlayerController>()?.DesativarControle();
+        if (visita != null)
+            selecao.PosicionarEntradaCheckpoint(cenarioSalvo);
 
         int versao = 0;
         if (visita != null)
         {
             VisitaId = (string)visita["visit_id"];
-            string cenario = NomeCenario((int)visita["scenario_id"]);
+            string cenario = cenarioSalvo;
             versao = contexto.Preparar(cenario, (string)visita["level"]);
             if (fase == "scenario_intro" || interno)
             {
-                await selecao.RetomarEntradaCheckpoint(cenario, versao, vida.Token, mostrarIntroducao: !interno);
+                await selecao.PrepararEntradaCheckpoint(cenario, versao, vida.Token);
                 ValidarConta();
                 if (interno)
                 {
@@ -769,7 +766,12 @@ internal sealed partial class CheckpointJogo
         ProgressoNivelManager.Instance?.RestaurarCheckpoint(barra);
         if (visita == null)
             gerenciador.AbrirSelecaoCenario();
-        else if (!interno && fase != "scenario_intro")
+        else if (fase == "scenario_intro")
+        {
+            if (!final.MostrarInicioCenario(cenarioSalvo))
+                throw new InvalidDataException("A introdução do cenário não está ativa na hierarquia.");
+        }
+        else if (!interno)
             final.RetomarResultadoCheckpoint(versao, fase, decisao);
     }
 

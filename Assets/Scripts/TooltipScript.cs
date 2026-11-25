@@ -17,14 +17,21 @@ public class TooltipScript : MonoBehaviour
     private Canvas canvas;
     private Color corTextoPadrao;
 
-    void Awake()
+    void Awake() => Inicializar();
+
+    internal void PrepararEstadoInicial()
+    {
+        Inicializar();
+        Hide();
+    }
+
+    private void Inicializar()
     {
         instance = this;
-        canvas = GetComponentInParent<Canvas>();
+        canvas = GetComponentInParent<Canvas>(true);
 
         if (panelRect != null)
         {
-            panelRect.gameObject.SetActive(false);
             // Salva as cores originais (das instruções do jogo)
             if (panelImage != null) corPadrao = panelImage.color;
             if (text != null) corTextoPadrao = text.color;

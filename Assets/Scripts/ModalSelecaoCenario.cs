@@ -137,7 +137,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.XR;
 
 public class ModalSelecaoCenario : MonoBehaviour
@@ -162,15 +164,35 @@ public class ModalSelecaoCenario : MonoBehaviour
     public ModalFinalManager modalFinalManager;
     public GameObject modalSelecaoCenario;
 
+    internal bool EntradaAberta => isActiveAndEnabled
+        || (modalFinalManager != null && modalFinalManager.IntroducaoAberta);
+
+    private bool preparando;
+    private bool selecaoInterrompida;
+    private ScrollRect rolagem;
+    private TMP_Text titulo;
+    private string tituloOriginal;
+    private Vector2 ancoraMinContentVR, ancoraMaxContentVR, pivoContentVR;
+    private Vector2 posicaoContentVR, tamanhoContentVR, tamanhoScrollVR;
+    private bool layoutDesktop;
+
     private bool ModoVR => XRSettings.isDeviceActive;
 
     void Awake()
     {
         cardsCenarios = GetComponentsInChildren<CardCenarioManager>(true);
+        titulo = transform.Find("Text (TMP)")?.GetComponent<TMP_Text>();
+        tituloOriginal = titulo != null ? titulo.text : null;
     }
 
     private void OnEnable()
     {
+        if (player != null && player.TryGetComponent<FirstPlayerController>(out var controlador))
+        {
+            controlador.PermitirOlharSemMover(false);
+            controlador.DesativarControle();
+        }
+
         if (GerenciadorProgressao.Instance == null)
         {
             Debug.LogWarning(
@@ -182,7 +204,68 @@ public class ModalSelecaoCenario : MonoBehaviour
         }
 
         AtualizarCards();
+        MostrarStatus(tituloOriginal);
+        if (layoutDesktop)
+            VoltarAoTopo();
         CheckpointJogo.Instance?.Selecionando();
+    }
+
+    internal void DefinirLayoutDesktop(bool desktop)
+    {
+        rolagem ??= GetComponentInChildren<ScrollRect>(true);
+        if (rolagem == null || rolagem.content == null || layoutDesktop == desktop)
+            return;
+
+        var painel = (RectTransform)rolagem.transform;
+        var content = rolagem.content;
+        if (desktop)
+        {
+            ancoraMinContentVR = content.anchorMin;
+            ancoraMaxContentVR = content.anchorMax;
+            pivoContentVR = content.pivot;
+            posicaoContentVR = content.anchoredPosition;
+            tamanhoContentVR = content.sizeDelta;
+            tamanhoScrollVR = painel.sizeDelta;
+            painel.sizeDelta = new Vector2(1008f, 460f);
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(0.5f, 1f);
+            content.sizeDelta = new Vector2(0f, tamanhoContentVR.y);
+            content.anchoredPosition = Vector2.zero;
+            if (isActiveAndEnabled)
+                VoltarAoTopo();
+        }
+        else
+        {
+            painel.sizeDelta = tamanhoScrollVR;
+            content.anchorMin = ancoraMinContentVR;
+            content.anchorMax = ancoraMaxContentVR;
+            content.pivot = pivoContentVR;
+            content.sizeDelta = tamanhoContentVR;
+            content.anchoredPosition = posicaoContentVR;
+        }
+        layoutDesktop = desktop;
+    }
+
+    private void VoltarAoTopo()
+    {
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rolagem.content);
+        rolagem.StopMovement();
+        rolagem.verticalNormalizedPosition = 1f;
+    }
+
+    private void OnDisable()
+    {
+        // An old download must not open an introduction after leaving selection.
+        if (preparando)
+            selecaoInterrompida = true;
+    }
+
+    private void MostrarStatus(string mensagem)
+    {
+        if (titulo != null)
+            titulo.text = mensagem;
     }
 
     // Mostra somente os cenários permitidos.
@@ -220,13 +303,14 @@ public class ModalSelecaoCenario : MonoBehaviour
 
     public async void SelecionarCenario(string cenario)
     {
-        if (!CheckpointJogo.PodeAvancar)
+        if (preparando || !isActiveAndEnabled || !CheckpointJogo.PodeAvancar)
             return;
         GerenciadorProgressao gerenciador = GerenciadorProgressao.Instance;
 
         if (gerenciador == null)
         {
             Debug.LogError("GerenciadorProgressao não encontrado.");
+            MostrarStatus("Could not prepare the scenario. Try again.");
             return;
         }
 
@@ -235,12 +319,14 @@ public class ModalSelecaoCenario : MonoBehaviour
         {
             Debug.LogWarning("Não é permitido escolher este cenário: " + cenario);
             AtualizarCards();
+            MostrarStatus("Scenario unavailable. Choose another scenario.");
             return;
         }
 
         if (player == null)
         {
             Debug.LogError("O Transform do jogador não foi associado.");
+            MostrarStatus("Scenario unavailable. Choose another scenario.");
             return;
         }
 
@@ -252,62 +338,97 @@ public class ModalSelecaoCenario : MonoBehaviour
                 "O ponto de destino do cenário '" + cenario +
                 "' não foi associado ou o cenário não possui um destino configurado."
             );
+            MostrarStatus("Scenario unavailable. Choose another scenario.");
             return;
         }
 
         // No VR, player deve ser a raiz do XR Origin.
         // Assim, o rig inteiro é deslocado e a posição local da câmera
         // (altura e deslocamento do headset) é preservada.
-        if (modalFinalManager == null || MissionManager.Instance == null)
+        if (modalFinalManager == null || MissionManager.Instance == null || modalSelecaoCenario == null)
         {
-            Debug.LogError("A seleção requer ModalFinalManager e MissionManager.");
+            Debug.LogError("A seleção requer ModalFinalManager, MissionManager e o painel de seleção.");
+            MostrarStatus("Could not open the scenario. Try again.");
             return;
         }
 
         var sessao = SessaoCenario.Atual;
         int visita = sessao.Preparar(cenario, DadosJogador.nivelUsuario);
         if (visita == 0)
-            return;
-
-        MissionManager missoes = MissionManager.Instance;
-        await missoes.PrepararCatalogoAsync(cenario);
-        if (this == null || player == null || destino == null || modalFinalManager == null
-            || !CheckpointJogo.PodeAvancar || !sessao.Corresponde(visita) || MissionManager.Instance != missoes)
-            return;
-
-        if (!modalFinalManager.MostrarInicioCenario(cenario))
         {
-            Debug.LogError("A introdução do cenário não está ativa na hierarquia.", modalFinalManager);
-            sessao.Encerrar();
-            missoes.EncerrarCenario();
+            MostrarStatus("Could not prepare the scenario. Try again.");
             return;
         }
 
-        TransportarJogador(destino.position);
-        CheckpointJogo.Instance?.Entrada(cenario);
+        preparando = true;
+        selecaoInterrompida = false;
+        MissionManager missoes = MissionManager.Instance;
+        bool entradaConfirmada = false;
+        Vector3? posicaoAnterior = null;
+        try
+        {
+            MostrarStatus("Preparing scenario…");
+            await missoes.PrepararCatalogoAsync(cenario);
+            if (this == null || selecaoInterrompida || !isActiveAndEnabled || !CheckpointJogo.PodeAvancar
+                || !sessao.Corresponde(visita))
+                return;
 
-        if (modalSelecaoCenario != null)
+            if (player == null || destino == null || modalFinalManager == null
+                || modalSelecaoCenario == null || MissionManager.Instance != missoes)
+                throw new InvalidOperationException("Uma referência da entrada deixou de estar disponível.");
+
+            posicaoAnterior = player.position;
+            TransportarJogador(destino.position);
+            if (!modalFinalManager.MostrarInicioCenario(cenario))
+                throw new InvalidOperationException("A introdução do cenário não está ativa na hierarquia.");
+
+            CheckpointJogo.Instance?.Entrada(cenario);
+            entradaConfirmada = true;
             modalSelecaoCenario.SetActive(false);
-        else
-            Debug.LogWarning("O objeto modalSelecaoCenario não foi associado.");
+        }
+        catch (Exception erro)
+        {
+            Debug.LogException(erro, this);
+        }
+        finally
+        {
+            preparando = false;
+            if (!entradaConfirmada && sessao.Corresponde(visita))
+            {
+                sessao.Encerrar();
+                if (missoes != null && MissionManager.Instance == missoes)
+                    missoes.EncerrarCenario();
+                if (this != null)
+                {
+                    if (modalFinalManager != null)
+                        modalFinalManager.LimparVisita();
+                    if (posicaoAnterior.HasValue && player != null)
+                        TransportarJogador(posicaoAnterior.Value);
+                    MostrarStatus("Could not open the scenario. Try again.");
+                }
+            }
+        }
     }
 
-    internal async Task RetomarEntradaCheckpoint(string cenario, int visita, CancellationToken ct, bool mostrarIntroducao = true)
+    internal void PosicionarEntradaCheckpoint(string cenario)
     {
         Transform destino = ObterPontoDestino(cenario);
-        var missoes = MissionManager.Instance;
-        if (missoes == null || player == null || destino == null || modalFinalManager == null)
+        if (player == null || destino == null)
             throw new InvalidOperationException("Entrada do cenário não está configurada.");
+        TransportarJogador(destino.position);
+    }
+
+    internal async Task PrepararEntradaCheckpoint(string cenario, int visita, CancellationToken ct)
+    {
+        var missoes = MissionManager.Instance;
+        if (missoes == null)
+            throw new InvalidOperationException("Gerenciador de missões indisponível.");
 
         await missoes.PrepararCatalogoAsync(cenario);
         ct.ThrowIfCancellationRequested();
         if (this == null || !SessaoCenario.Atual.Corresponde(visita))
             throw new OperationCanceledException();
 
-        if (mostrarIntroducao && !modalFinalManager.MostrarInicioCenario(cenario))
-            throw new System.IO.InvalidDataException("A introdução do cenário não está ativa na hierarquia.");
-
-        TransportarJogador(destino.position);
         if (modalSelecaoCenario != null)
             modalSelecaoCenario.SetActive(false);
     }

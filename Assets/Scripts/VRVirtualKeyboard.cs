@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.XR;
 
 public sealed class VRVirtualKeyboard : MonoBehaviour
 {
@@ -24,13 +26,33 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
         new Dictionary<Button, UnityAction>();
 
     private TMP_InputField focusedField;
+    private GameObject ultimaSelecao;
     private bool shiftEnabled;
+    private Func<bool> isVrActive = () => XRSettings.isDeviceActive;
 
     private void Awake()
     {
         SetAllowedFields(allowedFields);
+        if (keyboardPanel == gameObject && keyboardPanel.GetComponentsInChildren<Button>(true).Length == 0)
+            CriarTeclas();
         BindKeyboardButtons();
-        HideKeyboard();
+    }
+
+    internal void ObservarSelecao(Camera camera)
+    {
+        var selecao = EventSystem.current?.currentSelectedGameObject;
+        if (selecao == ultimaSelecao) return;
+        ultimaSelecao = selecao;
+        var campo = selecao != null ? selecao.GetComponentInParent<TMP_InputField>() : null;
+        if (campo != null && campo.isActiveAndEnabled && campo.IsInteractable() && !campo.readOnly)
+        {
+            if (focusedField != campo) AbrirCampo(campo);
+            Posicionar(camera);
+        }
+        else if (selecao != null && keyboardPanel != null && !selecao.transform.IsChildOf(keyboardPanel.transform))
+        {
+            HideKeyboard();
+        }
     }
 
     private void OnDestroy()
@@ -88,24 +110,57 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
 
     public bool FocusField(TMP_InputField field)
     {
+        if (!isVrActive())
+        {
+            HideKeyboard();
+            return false;
+        }
+
         if (field == null || !allowedFieldSet.Contains(field))
         {
             return false;
         }
 
-        focusedField = field;
-        shiftEnabled = false;
-        if (keyboardPanel != null)
-        {
-            keyboardPanel.SetActive(true);
-        }
-
+        AbrirCampo(field);
         return true;
+    }
+
+    private void AbrirCampo(TMP_InputField campo)
+    {
+        focusedField = campo;
+        shiftEnabled = false;
+        if (keyboardPanel == gameObject)
+            Posicionar(Camera.main);
+        if (keyboardPanel != null) keyboardPanel.SetActive(true);
+    }
+
+    private void Posicionar(Camera camera)
+    {
+        if (camera == null || keyboardPanel != gameObject || transform is not RectTransform rect
+            || !TryGetComponent<Canvas>(out var canvas))
+            return;
+
+        rect.SetParent(null, false);
+        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * 0.5f;
+        rect.sizeDelta = new Vector2(520f, 234f);
+        rect.localScale = Vector3.one * 0.0015f;
+        canvas.worldCamera = camera;
+        var vista = camera.transform;
+        rect.SetPositionAndRotation(vista.position + vista.forward * 1.1f - vista.up * 0.32f, vista.rotation);
+    }
+
+    private void Update()
+    {
+        if (keyboardPanel != null && keyboardPanel.activeSelf
+            && (!isVrActive() || focusedField == null || !focusedField.isActiveAndEnabled
+                || !focusedField.IsInteractable() || focusedField.readOnly))
+            HideKeyboard();
     }
 
     public void PressKey(string key)
     {
-        if (focusedField == null || !allowedFieldSet.Contains(focusedField) || string.IsNullOrEmpty(key))
+        if (focusedField == null || !focusedField.isActiveAndEnabled || !focusedField.IsInteractable()
+            || focusedField.readOnly || string.IsNullOrEmpty(key))
         {
             return;
         }
@@ -120,6 +175,10 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
                 return;
             case SpaceKey:
                 InsertText(" ");
+                return;
+            case "ENTER":
+                if (focusedField.lineType == TMP_InputField.LineType.MultiLineNewline)
+                    InsertText("\n");
                 return;
             case ClearKey:
                 focusedField.text = string.Empty;
@@ -168,10 +227,64 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
         }
     }
 
+    private void CriarTeclas()
+    {
+        string[][] linhas =
+        {
+            new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "@", ".", "-", "_", "+" },
+            new[] { "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "Á", "É", "Í", "Ó", "Ú" },
+            new[] { "A", "S", "D", "F", "G", "H", "J", "K", "L", "Ç", "Ã", "Õ", "Ê", "Ô", "Â" },
+            new[] { "Z", "X", "C", "V", "B", "N", "M", ",", "?", "!", "'", "/", ":", "À", "Ü" },
+            new[] { "#", "$", "%", "&", "*", "(", ")", "=", "[", "]", "{", "}", ";", "^", "~" },
+            new[] { ShiftKey, SpaceKey, BackspaceKey, ClearKey, "ENTER", DoneKey }
+        };
+        if (TryGetComponent<Image>(out var fundo))
+            fundo.color = new Color32(23, 29, 41, 255);
+        for (int linha = 0; linha < linhas.Length; linha++)
+        {
+            var teclas = linhas[linha];
+            float largura = 500f / teclas.Length;
+            for (int coluna = 0; coluna < teclas.Length; coluna++)
+            {
+                string tecla = teclas[coluna];
+                var objeto = new GameObject(KeyPrefix + tecla, typeof(RectTransform), typeof(Image), typeof(Button));
+                var rect = (RectTransform)objeto.transform;
+                rect.SetParent(transform, false);
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+                rect.sizeDelta = new Vector2(largura - 4f, 32f);
+                rect.anchoredPosition = new Vector2(-250f + largura * (coluna + 0.5f), -22f - linha * 38f);
+                objeto.GetComponent<Image>().color = new Color32(56, 70, 91, 255);
+
+                var texto = new GameObject("Legenda", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                texto.rectTransform.SetParent(rect, false);
+                texto.rectTransform.anchorMin = Vector2.zero;
+                texto.rectTransform.anchorMax = Vector2.one;
+                texto.rectTransform.offsetMin = texto.rectTransform.offsetMax = Vector2.zero;
+                texto.text = tecla == BackspaceKey ? "DELETE" : tecla;
+                texto.fontSize = 15f;
+                texto.alignment = TextAlignmentOptions.Center;
+                texto.raycastTarget = false;
+            }
+        }
+    }
+
     private void InsertText(string value)
     {
         string currentText = focusedField.text ?? string.Empty;
         int caret = Mathf.Clamp(focusedField.caretPosition, 0, currentText.Length);
+        if (focusedField.characterLimit > 0 && currentText.Length >= focusedField.characterLimit)
+            return;
+        if (focusedField.characterValidation == TMP_InputField.CharacterValidation.Digit
+            || focusedField.characterValidation == TMP_InputField.CharacterValidation.Integer)
+        {
+            if (value.Length != 1 || value[0] < '0' || value[0] > '9') return;
+        }
+        if (focusedField.onValidateInput != null)
+        {
+            char validado = focusedField.onValidateInput(currentText, caret, value[0]);
+            if (validado == '\0') return;
+            value = validado.ToString();
+        }
         focusedField.text = currentText.Insert(caret, value);
         focusedField.caretPosition = caret + value.Length;
     }

@@ -697,6 +697,7 @@ public class ModalExercicio : MonoBehaviour
     private bool aguardandoOkFinal = false;
     private string textoOriginalBotao = "Confirm your Answer";
     private bool modoRevisao = false;
+    private ApresentacaoAssociacao apresentacaoAssociacao;
 
     public Vector2 posicaoLegendaRepeticao = new Vector2(350f, 50f);
 
@@ -722,12 +723,8 @@ public class ModalExercicio : MonoBehaviour
     public AssociacaoUI associacaoUI;
     public CompletarFraseUI completarFraseUI;
 
-    void Start()
+    void Awake()
     {
-        panel.SetActive(false);
-        if (modalAvisoCampoVazio != null)
-            modalAvisoCampoVazio.SetActive(false);
-
         if (confirmarResposta != null)
         {
             confirmarResposta.onClick.AddListener(Confirmar);
@@ -737,7 +734,6 @@ public class ModalExercicio : MonoBehaviour
         {
             botaoRepetirFalaNPC.onClick.RemoveAllListeners();
             botaoRepetirFalaNPC.onClick.AddListener(RepetirUltimaFala);
-            botaoRepetirFalaNPC.gameObject.SetActive(false); 
         }
     }
 
@@ -1254,6 +1250,7 @@ public class ModalExercicio : MonoBehaviour
         if (npc == null || !npc.PertenceAoCenarioAtivo)
             throw new System.OperationCanceledException("Exercício de uma visita inativa.");
 
+        RestaurarApresentacaoAssociacao();
         visitaExercicio = SessaoCenario.Atual.Versao;
         versaoExercicio++;
         tipoAtual = tipo;
@@ -1276,7 +1273,11 @@ public class ModalExercicio : MonoBehaviour
         }
 
         if (tipo == TipoExercicio.Associacao)
+        {
             GarantirPainelAssociacao();
+            if (panel.transform is RectTransform rect)
+                apresentacaoAssociacao = new ApresentacaoAssociacao(rect, ModoVR ? npc.playerCamera : null);
+        }
 
         if (enunciado != null && ex != null)
         {
@@ -1403,6 +1404,73 @@ public class ModalExercicio : MonoBehaviour
             associacaoUI = exercicioAssociacao.AddComponent<AssociacaoUI>();
     }
 
+    private void OnDisable() => RestaurarApresentacaoAssociacao();
+
+    private void RestaurarApresentacaoAssociacao()
+    {
+        var apresentacao = apresentacaoAssociacao;
+        apresentacaoAssociacao = null;
+        apresentacao?.Restaurar();
+    }
+
+    private sealed class ApresentacaoAssociacao
+    {
+        private readonly RectTransform rect;
+        private readonly Transform pai;
+        private readonly int indice;
+        private readonly Vector2 ancoraMin, ancoraMax, pivo, tamanho;
+        private readonly Vector3 posicao, escala;
+        private readonly Quaternion rotacao;
+        private readonly bool reposicionadoEmRV;
+
+        internal ApresentacaoAssociacao(RectTransform rect, Transform camera)
+        {
+            this.rect = rect;
+            pai = rect.parent;
+            indice = rect.GetSiblingIndex();
+            ancoraMin = rect.anchorMin;
+            ancoraMax = rect.anchorMax;
+            pivo = rect.pivot;
+            tamanho = rect.sizeDelta;
+            posicao = rect.anchoredPosition3D;
+            escala = rect.localScale;
+            rotacao = rect.localRotation;
+
+            Vector2 dimensoes = rect.rect.size;
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * 0.5f;
+            rect.sizeDelta = dimensoes;
+            rect.anchoredPosition3D = new Vector3(0f, 0f, posicao.z);
+            if (camera == null || dimensoes.x <= 0f || dimensoes.y <= 0f
+                || !rect.TryGetComponent<Canvas>(out var canvas) || canvas.renderMode != RenderMode.WorldSpace)
+                return;
+
+            // Mantém a superfície do Canvas e seus alvos de interação juntos.
+            reposicionadoEmRV = true;
+            rect.SetParent(null, false);
+            const float distancia = 1.6f;
+            float escalaPainel = Mathf.Min(1.2f / dimensoes.x, 1.05f / dimensoes.y);
+            rect.localScale = Vector3.one * escalaPainel;
+            rect.SetPositionAndRotation(camera.position + camera.forward * distancia, camera.rotation);
+        }
+
+        internal void Restaurar()
+        {
+            if (rect == null) return;
+            if (reposicionadoEmRV && pai != null)
+            {
+                rect.SetParent(pai, false);
+                rect.SetSiblingIndex(indice);
+            }
+            rect.anchorMin = ancoraMin;
+            rect.anchorMax = ancoraMax;
+            rect.pivot = pivo;
+            rect.sizeDelta = tamanho;
+            rect.anchoredPosition3D = posicao;
+            rect.localRotation = rotacao;
+            rect.localScale = escala;
+        }
+    }
+
     private void AtualizarBotaoContinueAssociacao()
     {
         if (confirmarResposta != null && associacaoUI != null)
@@ -1417,6 +1485,7 @@ public class ModalExercicio : MonoBehaviour
         RestaurarEnunciadoExibido(versaoExercicio);
         versaoExercicio++;
         exercicioFinalizado = true;
+        RestaurarApresentacaoAssociacao();
         if (panel != null)
             panel.SetActive(false);
         Time.timeScale = 1f;
