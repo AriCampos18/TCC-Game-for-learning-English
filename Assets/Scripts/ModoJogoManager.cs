@@ -383,9 +383,12 @@ public class ModoJogoManager : MonoBehaviour
                 foreach (var canvas in canvasesInterface)
                 {
                     if (canvas == null) continue;
-                    selecaoCenario ??= canvas.GetComponentInChildren<ModalSelecaoCenario>(true);
-                    configuracoes ??= canvas.GetComponentInChildren<ModalConfiguracoes>(true);
-                    tecladoVR ??= canvas.GetComponentInChildren<VRVirtualKeyboard>(true);
+                    if (selecaoCenario == null)
+                        selecaoCenario = canvas.GetComponentInChildren<ModalSelecaoCenario>(true);
+                    if (configuracoes == null)
+                        configuracoes = canvas.GetComponentInChildren<ModalConfiguracoes>(true);
+                    if (tecladoVR == null)
+                        tecladoVR = canvas.GetComponentInChildren<VRVirtualKeyboard>(true);
                 }
             if (jogador != null)
             {
@@ -442,7 +445,9 @@ public class ModoJogoManager : MonoBehaviour
             && (controleJogador == null || controleJogador.ControleAtivo);
         if (mediadorXR != null) mediadorXR.enabled = vr;
         if (movimentoXR != null) movimentoXR.enabled = permitirLocomocao;
-        configuracoes?.AplicarPreferenciaTurn(CheckpointJogo.Instance?.ModoGiro ?? "snap", permitirLocomocao);
+        var checkpoint = CheckpointJogo.Instance;
+        if (configuracoes != null)
+            configuracoes.AplicarPreferenciaTurn(checkpoint != null ? checkpoint.ModoGiro : "snap", permitirLocomocao);
         if (!ModoVR && !entradaAberta && !autenticacaoAberta
             && Input.GetKeyDown(KeyCode.LeftAlt))
         {
@@ -550,48 +555,85 @@ public class ModoJogoManager : MonoBehaviour
 
     private void PrepararSuperficieXR(RectTransform painel)
     {
-        var raio = painel.Find(NomeRaioCanvas);
-        bool criado = raio == null;
-        if (criado)
+        string componente = NomeRaioCanvas;
+        T ObterOuCriar<T>(GameObject objeto) where T : Component
         {
-            var objeto = new GameObject(NomeRaioCanvas);
-            objeto.SetActive(false);
-            raio = objeto.transform;
-            raio.SetParent(painel, false);
-            raiosCriados.Add(objeto);
+            componente = typeof(T).Name;
+            var instancia = objeto.GetComponent<T>();
+            if (instancia == null)
+                instancia = objeto.AddComponent<T>();
+            if (instancia == null)
+                throw new MissingComponentException($"Não foi possível obter ou adicionar {componente} em {objeto.name}.");
+            return instancia;
         }
 
-        var canvas = painel.GetComponent<Canvas>() ?? painel.gameObject.AddComponent<Canvas>();
-        if (painel.GetComponent<GraphicRaycaster>() == null)
-            painel.gameObject.AddComponent<GraphicRaycaster>();
-        var ponto = raio.GetComponent<PointableCanvas>() ?? raio.gameObject.AddComponent<PointableCanvas>();
-        var interacao = raio.GetComponent<RayInteractable>() ?? raio.gameObject.AddComponent<RayInteractable>();
-        var superficie = raio.GetComponentInChildren<ClippedPlaneSurface>(true);
-        var limites = raio.GetComponentInChildren<BoundsClipper>(true);
-        if (superficie == null || limites == null)
+        try
         {
-            // Assemble on the target itself. No component stores a reference
-            // to another panel or requires the scenario selector to be present.
+            var raio = painel.Find(NomeRaioCanvas);
+            if (raio == null)
+            {
+                var objeto = new GameObject(NomeRaioCanvas);
+                objeto.SetActive(false);
+                raio = objeto.transform;
+                raio.SetParent(painel, false);
+                raiosCriados.Add(objeto);
+            }
+            else
+                raio.gameObject.SetActive(false);
+
+            var canvas = ObterOuCriar<Canvas>(painel.gameObject);
+            ObterOuCriar<GraphicRaycaster>(painel.gameObject);
+            var ponto = ObterOuCriar<PointableCanvas>(raio.gameObject);
+            var interacao = ObterOuCriar<RayInteractable>(raio.gameObject);
+            var superficie = raio.GetComponentInChildren<ClippedPlaneSurface>(true);
+            var limites = raio.GetComponentInChildren<BoundsClipper>(true);
+            componente = nameof(ClippedPlaneSurface);
             var suporte = superficie != null ? superficie.transform : limites != null ? limites.transform : raio.Find("Surface");
             if (suporte == null)
             {
                 suporte = new GameObject("Surface").transform;
                 suporte.SetParent(raio, false);
             }
-            var plano = suporte.GetComponent<PlaneSurface>() ?? suporte.gameObject.AddComponent<PlaneSurface>();
-            limites ??= suporte.gameObject.AddComponent<BoundsClipper>();
-            superficie ??= suporte.gameObject.AddComponent<ClippedPlaneSurface>();
-            plano.InjectAllPlaneSurface(PlaneSurface.NormalFacing.Backward, false);
-            superficie.InjectAllClippedPlaneSurface(plano, new IBoundsClipper[] { limites });
-        }
+            if (superficie == null || limites == null || !(superficie.BackingSurface is PlaneSurface existente) || existente == null)
+            {
+                var plano = ObterOuCriar<PlaneSurface>(suporte.gameObject);
+                if (limites == null)
+                    limites = ObterOuCriar<BoundsClipper>(suporte.gameObject);
+                if (superficie == null)
+                    superficie = ObterOuCriar<ClippedPlaneSurface>(suporte.gameObject);
+                componente = nameof(ClippedPlaneSurface);
+                plano.InjectAllPlaneSurface(PlaneSurface.NormalFacing.Backward, false);
+                superficie.InjectAllClippedPlaneSurface(plano, new IBoundsClipper[] { limites });
+            }
+            else
+            {
+                // A previous attempt may have created the clipper without wiring it.
+                var clippers = superficie.GetClippers();
+                bool possuiLimites = false;
+                if (clippers != null)
+                    foreach (var clipper in clippers)
+                        if (clipper is BoundsClipper vinculado && vinculado == limites)
+                            possuiLimites = true;
+                if (!possuiLimites)
+                    superficie.InjectClippers(new IBoundsClipper[] { limites });
+            }
 
-        ponto.InjectCanvas(canvas);
-        interacao.InjectSurface(superficie);
-        interacao.InjectOptionalPointableElement(ponto);
-        raiosModais.Add((ponto, painel, limites, canvas.renderMode, canvas.worldCamera));
-        canvas.renderMode = RenderMode.WorldSpace;
-        canvas.worldCamera = cameraCompartilhada;
-        if (criado) raio.gameObject.SetActive(PermitePonteiro(painel));
+            componente = nameof(PointableCanvas);
+            ponto.InjectCanvas(canvas);
+            componente = nameof(RayInteractable);
+            interacao.InjectSurface(superficie);
+            interacao.InjectOptionalPointableElement(ponto);
+            componente = nameof(Canvas);
+            var modoAnterior = canvas.renderMode;
+            var cameraAnterior = canvas.worldCamera;
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = cameraCompartilhada;
+            raiosModais.Add((ponto, painel, limites, modoAnterior, cameraAnterior));
+        }
+        catch (System.Exception erro)
+        {
+            Debug.LogError($"Interface RV [{painel.name}] — {componente}: {erro.GetType().Name}: {erro.Message}", painel);
+        }
     }
 
     private void AtualizarSuperficiesXR(bool vr)
@@ -613,13 +655,15 @@ public class ModoJogoManager : MonoBehaviour
         {
             if (item.ponto == null || item.painel == null) continue;
             bool ativo = PermitePonteiro(item.painel);
+            if (ativo && item.limites != null)
+            {
+                var rect = item.painel.rect;
+                item.limites.Position = item.limites.transform.InverseTransformPoint(item.painel.TransformPoint(rect.center));
+                var largura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.right * rect.width));
+                var altura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.up * rect.height));
+                item.limites.Size = new Vector3(largura.magnitude, altura.magnitude, item.limites.Size.z);
+            }
             if (item.ponto.gameObject.activeSelf != ativo) item.ponto.gameObject.SetActive(ativo);
-            if (!ativo || item.limites == null) continue;
-            var rect = item.painel.rect;
-            item.limites.Position = item.limites.transform.InverseTransformPoint(item.painel.TransformPoint(rect.center));
-            var largura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.right * rect.width));
-            var altura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.up * rect.height));
-            item.limites.Size = new Vector3(largura.magnitude, altura.magnitude, item.limites.Size.z);
         }
     }
 
@@ -637,11 +681,13 @@ public class ModoJogoManager : MonoBehaviour
 
     private void ConfigurarEventoUi(bool vr)
     {
-        moduloMeta ??= FindAnyObjectByType<PointableCanvasModule>(FindObjectsInactive.Include);
+        if (moduloMeta == null)
+            moduloMeta = FindAnyObjectByType<PointableCanvasModule>(FindObjectsInactive.Include);
         if (moduloMeta == null) return;
         var sistema = moduloMeta.GetComponent<EventSystem>();
         if (sistema == null) return;
-        moduloDesktop ??= sistema.GetComponent<InputSystemUIInputModule>();
+        if (moduloDesktop == null)
+            moduloDesktop = sistema.GetComponent<InputSystemUIInputModule>();
         BaseInputModule esperado = vr ? moduloMeta : (BaseInputModule)moduloDesktop;
         if (esperado == null || (eventosConfiguradosRV == vr && esperado.enabled
             && EventSystem.current == sistema && sistema.currentInputModule == esperado
