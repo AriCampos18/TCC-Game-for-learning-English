@@ -98,6 +98,7 @@ public class RaioCentralInteracao : MonoBehaviour
         // No VR: botão A interage com NPC ou pega objetos.
         bool solicitouInteracaoVR =
             ModoVR &&
+            ModoJogoManager.Instance?.InterfaceConsomeInteracaoVR != true &&
             vrInteractAction != null &&
             vrInteractAction.action != null &&
             vrInteractAction.action.WasPressedThisFrame();

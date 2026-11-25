@@ -33,12 +33,17 @@
 
 using System.Collections.Generic;
 using Oculus.Interaction;
+using Oculus.Interaction.Input;
+using Oculus.Interaction.Surfaces;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 
+[DefaultExecutionOrder(-50)]
 public class ModoJogoManager : MonoBehaviour
 {
     public static ModoJogoManager Instance;
@@ -66,9 +71,25 @@ public class ModoJogoManager : MonoBehaviour
     private ContinuousMoveProvider movimentoXR;
     private Transform rigMeta;
     private Vector3 posicaoOriginalRig;
+    private Quaternion rotacaoOriginalRig, rotacaoOriginalOffset;
+    private Transform offsetCamera;
+    private ApresentacaoCanvas[] apresentacoesRV;
+    private Canvas canvasGameplayRV;
+    private ApresentacaoCanvas gameplayRV;
+    private GameObject[] paineisExclusivosGameplay;
+    private PointableCanvasModule moduloMeta;
+    private InputSystemUIInputModule moduloDesktop;
+    private bool? eventosConfiguradosRV;
+    private RayInteractor raioDireito;
+    private ControllerSelector seletorDireito;
+    private ControllerButtonUsage botoesDireito;
+    private int quadroInteracaoUi = -1;
+    private const string NomeRaioCanvas = "ISDK_RayCanvasInteraction";
     private VRVirtualKeyboard tecladoVR;
     private bool apresentacaoXRAtiva;
-    private readonly List<(GameObject raio, Canvas canvas)> raiosModais = new();
+    private readonly List<(PointableCanvas ponto, RectTransform painel, BoundsClipper limites,
+        RenderMode modo, Camera camera)> raiosModais = new();
+    private readonly List<GameObject> raiosCriados = new();
 
     private static readonly string[] PaineisComRaioVR =
     {
@@ -77,7 +98,8 @@ public class ModoJogoManager : MonoBehaviour
         "ModalGerenciarExercicios", "ModalFormFalaNPC", "ModalSelecionarTipoEx", "ModalSelecionarExFala",
         "FormWriting", "FormularioSpeaking", "FormularioAlternativas", "FormularioCriarFrase",
         "FormularioCompletarFrase", "FormularioAssociacao", "ModalErroAviso",
-        "ModalAvisoErroLoginRegister", "Configuracoes", "ModalEscolhaCenario", "ModalInstrucoes",
+        "AuthenticationUI/VirtualKeyboard", "ModalBoasVindas", "ModalNivelamento", "ModalRespostaNivelamento",
+        "ModalExercíciosPanel", "ModalAvisoErroLoginRegister", "Configuracoes", "ModalEscolhaCenario", "ModalInstrucoes",
         "ModalAvisoCamposVazio", "ModalAvisoRevisao", "ModalErroSpeaking", "ModalFinal"
     };
 
@@ -153,6 +175,15 @@ public class ModoJogoManager : MonoBehaviour
         {
             if (rect.Find(nome) is RectTransform painel)
                 paineisRecuperacao.Add(new PainelRecuperacaoDesktop(painel, altura));
+        }
+
+        internal void DefinirVR(Camera cameraVR)
+        {
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = cameraVR;
+            rect.SetParent(cameraVR.transform, false);
+            rect.SetLocalPositionAndRotation(Vector3.forward * 1.5f, Quaternion.identity);
+            rect.localScale = Vector3.one * 0.002f;
         }
 
         internal void DefinirDesktop()
@@ -264,10 +295,7 @@ public class ModoJogoManager : MonoBehaviour
         var cameraTransform = cameraCompartilhada.transform;
         if (desktop)
         {
-            paiCameraVR = cameraTransform.parent;
-            posicaoCameraVR = cameraTransform.localPosition;
-            rotacaoCameraVR = cameraTransform.localRotation;
-            escalaCameraVR = cameraTransform.localScale;
+            AtualizarInterfaceXR(false);
             cameraTransform.SetParent(jogador, false);
             cameraTransform.SetLocalPositionAndRotation(posicaoCameraVR, Quaternion.identity);
             var estados = new System.Collections.Generic.List<ApresentacaoCanvas>();
@@ -359,7 +387,21 @@ public class ModoJogoManager : MonoBehaviour
                 mediadorXR = jogador.GetComponent<LocomotionMediator>();
                 movimentoXR = jogador.GetComponent<ContinuousMoveProvider>();
                 rigMeta = jogador.Find("[BuildingBlock] Camera Rig");
-                if (rigMeta != null) posicaoOriginalRig = rigMeta.localPosition;
+                if (rigMeta != null)
+                {
+                    posicaoOriginalRig = rigMeta.localPosition;
+                    rotacaoOriginalRig = rigMeta.localRotation;
+                }
+            }
+            if (cameraCompartilhada != null)
+            {
+                var cameraTransform = cameraCompartilhada.transform;
+                paiCameraVR = cameraTransform.parent;
+                posicaoCameraVR = cameraTransform.localPosition;
+                rotacaoCameraVR = cameraTransform.localRotation;
+                escalaCameraVR = cameraTransform.localScale;
+                offsetCamera = paiCameraVR != null && paiCameraVR.name == "CameraOffSet" ? paiCameraVR : null;
+                if (offsetCamera != null) rotacaoOriginalOffset = offsetCamera.localRotation;
             }
             AtualizarApresentacao();
             AtualizarInterfaceXR(ModoVR);
@@ -384,7 +426,9 @@ public class ModoJogoManager : MonoBehaviour
         AtualizarApresentacao();
         bool vr = ModoVR;
         AtualizarInterfaceXR(vr);
+        ConfigurarEventoUi(vr);
         AtualizarSuperficiesXR(vr);
+        AtualizarBotaoDireito(vr);
         if (vr && tecladoVR != null) tecladoVR.ObservarSelecao(cameraCompartilhada);
         bool entradaAberta = selecaoCenario != null && selecaoCenario.EntradaAberta;
         bool autenticacaoAberta = AuthenticationUIController.Instance?.EstaAberta == true;
@@ -402,58 +446,209 @@ public class ModoJogoManager : MonoBehaviour
 
     private void AtualizarInterfaceXR(bool vr)
     {
-        if (vr == apresentacaoXRAtiva)
+        if (vr == apresentacaoXRAtiva || cameraCompartilhada == null)
             return;
 
         apresentacaoXRAtiva = vr;
         if (rigMeta != null)
-            rigMeta.localPosition = vr ? Vector3.zero : posicaoOriginalRig;
+            rigMeta.SetLocalPositionAndRotation(vr ? Vector3.zero : posicaoOriginalRig,
+                vr ? Quaternion.identity : rotacaoOriginalRig);
+        if (offsetCamera != null)
+            offsetCamera.localRotation = vr ? Quaternion.identity : rotacaoOriginalOffset;
+        cameraCompartilhada.transform.localPosition = vr ? Vector3.zero : posicaoCameraVR;
 
-        if (vr && raiosModais.Count == 0 && selecaoCenario != null && canvasesInterface != null)
+        if (vr)
         {
-            var modelo = selecaoCenario.transform.Find("ISDK_RayCanvasInteraction");
-            if (modelo != null)
-            {
+            ConfigurarEventoUi(true);
+            PrepararSuperficiesXR();
+            foreach (var item in raiosModais)
+                if (item.ponto != null && item.ponto.Canvas != null)
+                {
+                    item.ponto.Canvas.renderMode = RenderMode.WorldSpace;
+                    item.ponto.Canvas.worldCamera = cameraCompartilhada;
+                }
+            var estados = new List<ApresentacaoCanvas>();
+            if (canvasesInterface != null)
                 foreach (var raiz in canvasesInterface)
                 {
                     if (raiz == null) continue;
-                    foreach (string caminho in PaineisComRaioVR)
+                    if (raiz.GetComponentInChildren<AuthenticationUIController>(true) != null)
                     {
-                        if (raiz.transform.Find(caminho) is not RectTransform painel
-                            || painel.Find(modelo.name) != null)
-                            continue;
-                        var canvas = painel.GetComponent<Canvas>();
-                        if (canvas == null) canvas = painel.gameObject.AddComponent<Canvas>();
-                        if (painel.GetComponent<GraphicRaycaster>() == null)
-                            painel.gameObject.AddComponent<GraphicRaycaster>();
-                        var raio = Instantiate(modelo.gameObject, painel, false);
-                        raio.name = modelo.name;
-                        raio.GetComponent<PointableCanvas>().InjectCanvas(canvas);
-                        raiosModais.Add((raio, canvas));
+                        var estado = new ApresentacaoCanvas(raiz);
+                        estados.Add(estado);
+                        estado.DefinirVR(cameraCompartilhada);
+                    }
+                    else
+                    {
+                        canvasGameplayRV = raiz;
+                        var paineis = new List<GameObject>();
+                        foreach (string nome in new[] { "ModalBoasVindas", "ModalNivelamento", "ModalRespostaNivelamento",
+                            "ModalInstrucoes", "ModalFinal", "ModalExercíciosPanel", "ModalErroSpeaking",
+                            "ModalAvisoCamposVazio", "ModalAvisoRevisao" })
+                        {
+                            var painel = raiz.transform.Find(nome);
+                            if (painel != null) paineis.Add(painel.gameObject);
+                        }
+                        paineisExclusivosGameplay = paineis.ToArray();
                     }
                 }
+            apresentacoesRV = estados.ToArray();
+        }
+        else
+        {
+            RestaurarGameplayRV();
+            if (apresentacoesRV != null)
+                foreach (var estado in apresentacoesRV) estado.Restaurar();
+            apresentacoesRV = null;
+            foreach (var item in raiosModais)
+                if (item.ponto != null && item.ponto.Canvas != null)
+                {
+                    item.ponto.Canvas.renderMode = item.modo;
+                    item.ponto.Canvas.worldCamera = item.camera;
+                }
+            foreach (var raio in raiosCriados)
+                if (raio != null) raio.SetActive(false);
+            if (seletorDireito != null) seletorDireito.ControllerButtonUsage = botoesDireito;
+            if (tecladoVR != null) tecladoVR.HideKeyboard();
+        }
+    }
+
+    private void RestaurarGameplayRV()
+    {
+        gameplayRV?.Restaurar();
+        gameplayRV = null;
+    }
+
+    private void PrepararSuperficiesXR()
+    {
+        if (raiosModais.Count != 0 || canvasesInterface == null) return;
+        var modelo = selecaoCenario != null ? selecaoCenario.transform.Find(NomeRaioCanvas) : null;
+        foreach (var raiz in canvasesInterface)
+        {
+            if (raiz == null) continue;
+            foreach (string caminho in PaineisComRaioVR)
+            {
+                if (raiz.transform.Find(caminho) is not RectTransform painel) continue;
+                var raio = painel.Find(NomeRaioCanvas);
+                var canvas = painel.GetComponent<Canvas>();
+                if (raio == null && modelo != null)
+                {
+                    if (canvas == null) canvas = painel.gameObject.AddComponent<Canvas>();
+                    var copia = Instantiate(modelo.gameObject, painel, false);
+                    copia.name = NomeRaioCanvas;
+                    raio = copia.transform;
+                    raiosCriados.Add(copia);
+                }
+                if (raio == null || canvas == null || !raio.TryGetComponent<PointableCanvas>(out var ponto))
+                    continue;
+                if (painel.GetComponent<GraphicRaycaster>() == null)
+                    painel.gameObject.AddComponent<GraphicRaycaster>();
+                ponto.InjectCanvas(canvas);
+                raiosModais.Add((ponto, painel, raio.GetComponentInChildren<BoundsClipper>(true),
+                    canvas.renderMode, canvas.worldCamera));
             }
         }
-
-        foreach (var item in raiosModais)
-        {
-            if (item.canvas == null) continue;
-            item.canvas.renderMode = vr ? RenderMode.WorldSpace : RenderMode.ScreenSpaceOverlay;
-            item.canvas.worldCamera = vr ? cameraCompartilhada : null;
-        }
-        if (!vr && tecladoVR != null) tecladoVR.HideKeyboard();
     }
 
     private void AtualizarSuperficiesXR(bool vr)
     {
+        if (!vr) return;
+        if (canvasGameplayRV != null && paineisExclusivosGameplay != null
+            && System.Array.Exists(paineisExclusivosGameplay, painel => painel.activeInHierarchy))
+        {
+            if (gameplayRV == null)
+            {
+                gameplayRV = new ApresentacaoCanvas(canvasGameplayRV);
+                gameplayRV.DefinirVR(cameraCompartilhada);
+            }
+        }
+        else
+            RestaurarGameplayRV();
+
         foreach (var item in raiosModais)
         {
-            if (item.raio == null || item.canvas == null) continue;
-            var grupo = item.canvas.GetComponent<CanvasGroup>();
-            bool ativo = vr && (grupo == null || (grupo.blocksRaycasts && grupo.interactable));
-            if (item.raio.activeSelf != ativo) item.raio.SetActive(ativo);
+            if (item.ponto == null || item.painel == null) continue;
+            bool ativo = PermitePonteiro(item.painel);
+            if (item.ponto.gameObject.activeSelf != ativo) item.ponto.gameObject.SetActive(ativo);
+            if (!ativo || item.limites == null) continue;
+            var rect = item.painel.rect;
+            item.limites.Position = item.limites.transform.InverseTransformPoint(item.painel.TransformPoint(rect.center));
+            var largura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.right * rect.width));
+            var altura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.up * rect.height));
+            item.limites.Size = new Vector3(largura.magnitude, altura.magnitude, item.limites.Size.z);
         }
     }
+
+    private static bool PermitePonteiro(Transform painel)
+    {
+        if (!painel.gameObject.activeInHierarchy) return false;
+        for (var atual = painel; atual != null; atual = atual.parent)
+            if (atual.TryGetComponent<CanvasGroup>(out var grupo))
+            {
+                if (!grupo.blocksRaycasts || !grupo.interactable) return false;
+                if (grupo.ignoreParentGroups) break;
+            }
+        return true;
+    }
+
+    private void ConfigurarEventoUi(bool vr)
+    {
+        moduloMeta ??= FindAnyObjectByType<PointableCanvasModule>(FindObjectsInactive.Include);
+        if (moduloMeta == null) return;
+        var sistema = moduloMeta.GetComponent<EventSystem>();
+        if (sistema == null) return;
+        moduloDesktop ??= sistema.GetComponent<InputSystemUIInputModule>();
+        BaseInputModule esperado = vr ? moduloMeta : (BaseInputModule)moduloDesktop;
+        if (esperado == null || (eventosConfiguradosRV == vr && esperado.enabled
+            && EventSystem.current == sistema && sistema.currentInputModule == esperado
+            && (vr ? moduloDesktop == null || !moduloDesktop.enabled : !moduloMeta.enabled))) return;
+        eventosConfiguradosRV = vr;
+
+        foreach (var outro in FindObjectsByType<BaseInputModule>(FindObjectsSortMode.None))
+            if (outro != esperado && (outro.gameObject == sistema.gameObject
+                || outro is UnityEngine.XR.Interaction.Toolkit.UI.XRUIInputModule))
+                outro.enabled = false;
+        EventSystem.current = sistema;
+        esperado.enabled = true;
+    }
+
+    private void AtualizarBotaoDireito(bool vr)
+    {
+        if (!vr || jogador == null) return;
+        if (seletorDireito == null)
+            foreach (var raio in jogador.GetComponentsInChildren<RayInteractor>(true))
+            {
+                var seletor = raio.GetComponentInChildren<ControllerSelector>(true);
+                if (seletor == null || seletor.Controller?.Handedness != Handedness.Right) continue;
+                raioDireito = raio;
+                seletorDireito = seletor;
+                botoesDireito = seletor.ControllerButtonUsage;
+                break;
+            }
+        if (seletorDireito == null) return;
+        bool interfaceAlvo = RaioDireitoNaInterface();
+        if (interfaceAlvo) quadroInteracaoUi = Time.frameCount;
+        // The stock controller ray uses Any with TriggerButton.
+        if (seletorDireito.RequireButtonUsages == ControllerSelector.ControllerSelectorLogicOperator.Any)
+            seletorDireito.ControllerButtonUsage = interfaceAlvo
+                ? botoesDireito | ControllerButtonUsage.PrimaryButton : botoesDireito;
+    }
+
+    private bool RaioDireitoNaInterface()
+    {
+        if (raioDireito == null || !raioDireito.isActiveAndEnabled) return false;
+        var alvo = raioDireito.SelectedInteractable != null
+            ? raioDireito.SelectedInteractable : raioDireito.Interactable;
+        if (alvo == null || !alvo.TryGetComponent<PointableCanvas>(out var ponto))
+            return false;
+        foreach (var item in raiosModais)
+            if (item.ponto == ponto)
+                return item.painel != null && PermitePonteiro(item.painel);
+        return false;
+    }
+
+    internal bool InterfaceConsomeInteracaoVR =>
+        ModoVR && (quadroInteracaoUi == Time.frameCount || RaioDireitoNaInterface());
 
     public void AlternarModoUI()
     {
