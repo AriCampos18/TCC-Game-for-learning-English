@@ -347,6 +347,12 @@ public class ModoJogoManager : MonoBehaviour
         // The simulator can instantiate its UI on the first frame.
         yield return null;
         if (apresentacaoDesktop) OcultarInterfaceSimulador();
+        else if (ModoVR)
+        {
+            ConfigurarEventoUi(true);
+            PrepararSuperficiesXR();
+            AtualizarSuperficiesXR(true);
+        }
     }
 
     private void OcultarInterfaceSimulador()
@@ -521,33 +527,71 @@ public class ModoJogoManager : MonoBehaviour
 
     private void PrepararSuperficiesXR()
     {
-        if (raiosModais.Count != 0 || canvasesInterface == null) return;
-        var modelo = selecaoCenario != null ? selecaoCenario.transform.Find(NomeRaioCanvas) : null;
+        if (canvasesInterface == null) return;
+        var preparados = new HashSet<RectTransform>();
+        foreach (var item in raiosModais)
+            if (item.painel != null && item.ponto != null)
+                preparados.Add(item.painel);
+
+        int totalAntes = raiosModais.Count;
         foreach (var raiz in canvasesInterface)
         {
             if (raiz == null) continue;
             foreach (string caminho in PaineisComRaioVR)
             {
-                if (raiz.transform.Find(caminho) is not RectTransform painel) continue;
-                var raio = painel.Find(NomeRaioCanvas);
-                var canvas = painel.GetComponent<Canvas>();
-                if (raio == null && modelo != null)
-                {
-                    if (canvas == null) canvas = painel.gameObject.AddComponent<Canvas>();
-                    var copia = Instantiate(modelo.gameObject, painel, false);
-                    copia.name = NomeRaioCanvas;
-                    raio = copia.transform;
-                    raiosCriados.Add(copia);
-                }
-                if (raio == null || canvas == null || !raio.TryGetComponent<PointableCanvas>(out var ponto))
+                if (raiz.transform.Find(caminho) is not RectTransform painel || !preparados.Add(painel))
                     continue;
-                if (painel.GetComponent<GraphicRaycaster>() == null)
-                    painel.gameObject.AddComponent<GraphicRaycaster>();
-                ponto.InjectCanvas(canvas);
-                raiosModais.Add((ponto, painel, raio.GetComponentInChildren<BoundsClipper>(true),
-                    canvas.renderMode, canvas.worldCamera));
+                PrepararSuperficieXR(painel);
             }
         }
+        if (raiosModais.Count != totalAntes)
+            Debug.Log($"Interface RV: {raiosModais.Count} painéis com superfícies Meta configuradas.", this);
+    }
+
+    private void PrepararSuperficieXR(RectTransform painel)
+    {
+        var raio = painel.Find(NomeRaioCanvas);
+        bool criado = raio == null;
+        if (criado)
+        {
+            var objeto = new GameObject(NomeRaioCanvas);
+            objeto.SetActive(false);
+            raio = objeto.transform;
+            raio.SetParent(painel, false);
+            raiosCriados.Add(objeto);
+        }
+
+        var canvas = painel.GetComponent<Canvas>() ?? painel.gameObject.AddComponent<Canvas>();
+        if (painel.GetComponent<GraphicRaycaster>() == null)
+            painel.gameObject.AddComponent<GraphicRaycaster>();
+        var ponto = raio.GetComponent<PointableCanvas>() ?? raio.gameObject.AddComponent<PointableCanvas>();
+        var interacao = raio.GetComponent<RayInteractable>() ?? raio.gameObject.AddComponent<RayInteractable>();
+        var superficie = raio.GetComponentInChildren<ClippedPlaneSurface>(true);
+        var limites = raio.GetComponentInChildren<BoundsClipper>(true);
+        if (superficie == null || limites == null)
+        {
+            // Assemble on the target itself. No component stores a reference
+            // to another panel or requires the scenario selector to be present.
+            var suporte = superficie != null ? superficie.transform : limites != null ? limites.transform : raio.Find("Surface");
+            if (suporte == null)
+            {
+                suporte = new GameObject("Surface").transform;
+                suporte.SetParent(raio, false);
+            }
+            var plano = suporte.GetComponent<PlaneSurface>() ?? suporte.gameObject.AddComponent<PlaneSurface>();
+            limites ??= suporte.gameObject.AddComponent<BoundsClipper>();
+            superficie ??= suporte.gameObject.AddComponent<ClippedPlaneSurface>();
+            plano.InjectAllPlaneSurface(PlaneSurface.NormalFacing.Backward, false);
+            superficie.InjectAllClippedPlaneSurface(plano, new IBoundsClipper[] { limites });
+        }
+
+        ponto.InjectCanvas(canvas);
+        interacao.InjectSurface(superficie);
+        interacao.InjectOptionalPointableElement(ponto);
+        raiosModais.Add((ponto, painel, limites, canvas.renderMode, canvas.worldCamera));
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.worldCamera = cameraCompartilhada;
+        if (criado) raio.gameObject.SetActive(PermitePonteiro(painel));
     }
 
     private void AtualizarSuperficiesXR(bool vr)
