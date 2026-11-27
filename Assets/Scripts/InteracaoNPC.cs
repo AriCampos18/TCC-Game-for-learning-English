@@ -264,50 +264,140 @@ public class InteracaoNPC : MonoBehaviour
     // Quando o runtime XR está ativo, a orientação da câmera pertence ao headset.
     protected bool ModoVR => XRSettings.isDeviceActive;
 
+    protected async Task ApresentarFalaDoRoteiro(BackendManager backend, AudioSource fonte, string voz,
+        string nome, string fala, GameObject legenda, TextMeshProUGUI avisoAvanco,
+        bool mostrarLegenda = true, bool aguardarAvanco = true, System.Func<Task> avancar = null)
+    {
+        int visita = SessaoCenario.Atual.Versao;
+        AudioClip clip = await CarregarAudioDaFala(backend, fala, voz, visita);
+        ValidarVisita(visita);
+        bool exibirLegenda = mostrarLegenda || clip == null;
+
+        try
+        {
+            if (avisoAvanco != null)
+                avisoAvanco.gameObject.SetActive(false);
+            if (exibirLegenda && legenda != null)
+                legenda.GetComponent<ModalLegenda>().MostrarLegenda(nome, fala);
+
+            if (clip != null)
+            {
+                fonte.clip = clip;
+                fonte.Play();
+                while (fonte.isPlaying)
+                {
+                    ValidarVisita(visita);
+                    await Task.Yield();
+                }
+            }
+
+            if (aguardarAvanco || clip == null)
+            {
+                if (avisoAvanco != null)
+                    avisoAvanco.gameObject.SetActive(true);
+                DefinirCursorDesktop(true);
+                await Task.Yield();
+                ValidarVisita(visita);
+                await (avancar == null ? AguardarAvancoDialogo() : avancar());
+                ValidarVisita(visita);
+            }
+        }
+        finally
+        {
+            if (clip != null)
+            {
+                if (fonte != null && fonte.clip == clip)
+                {
+                    fonte.Stop();
+                    fonte.clip = null;
+                }
+                Destroy(clip);
+            }
+            if (this != null && SessaoCenario.Atual.Permite(Cenario, visita))
+            {
+                if (avisoAvanco != null)
+                    avisoAvanco.gameObject.SetActive(false);
+                if (exibirLegenda && legenda != null)
+                    legenda.SetActive(false);
+            }
+        }
+    }
+
+    private async Task<AudioClip> CarregarAudioDaFala(BackendManager backend, string fala, string voz, int visita)
+    {
+        string caminho = null;
+        try
+        {
+            byte[] bytes = await backend.GerarAudio(fala, voz);
+            ValidarVisita(visita);
+            if (bytes == null || bytes.Length == 0)
+                return null;
+
+            caminho = System.IO.Path.Combine(Application.temporaryCachePath, System.Guid.NewGuid() + ".wav");
+            System.IO.File.WriteAllBytes(caminho, bytes);
+            using var requisicao = UnityEngine.Networking.UnityWebRequestMultimedia.GetAudioClip(
+                new System.Uri(caminho).AbsoluteUri, AudioType.WAV);
+            var operacao = requisicao.SendWebRequest();
+            while (!operacao.isDone)
+            {
+                ValidarVisita(visita);
+                await Task.Yield();
+            }
+            ValidarVisita(visita);
+            if (requisicao.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                return UnityEngine.Networking.DownloadHandlerAudioClip.GetContent(requisicao);
+            Debug.LogWarning($"Áudio de {voz} indisponível: {requisicao.error}", this);
+        }
+        catch (System.Exception erro) when (erro is not System.OperationCanceledException)
+        {
+            Debug.LogWarning($"Áudio de {voz} indisponível: {erro.Message}", this);
+        }
+        finally
+        {
+            if (caminho != null)
+            {
+                try { System.IO.File.Delete(caminho); }
+                catch (System.IO.IOException erro) { Debug.LogWarning(erro.Message, this); }
+                catch (System.UnauthorizedAccessException erro) { Debug.LogWarning(erro.Message, this); }
+            }
+        }
+
+        return null;
+    }
+
+
     // Aguarda uma confirmação para avançar o diálogo:
     // PC: clique esquerdo do mouse.
     // VR: botão A (primaryButton) do controle direito.
     // Aguarda também a soltura para um único pressionamento não avançar várias falas.
     protected async Task AguardarAvancoDialogo()
     {
+        int visita = SessaoCenario.Atual.Versao;
+        while (AvancoDialogoPressionado())
+        {
+            ValidarVisita(visita);
+            await Task.Yield();
+        }
+        while (!AvancoDialogoPressionado())
+        {
+            ValidarVisita(visita);
+            await Task.Yield();
+        }
+        while (AvancoDialogoPressionado())
+        {
+            ValidarVisita(visita);
+            await Task.Yield();
+        }
+        ValidarVisita(visita);
+    }
+
+    protected bool AvancoDialogoPressionado()
+    {
         if (!ModoVR)
-        {
-            while (!Input.GetMouseButtonDown(0))
-                await Task.Yield();
+            return Input.GetMouseButton(0);
 
-            while (Input.GetMouseButton(0))
-                await Task.Yield();
-
-            return;
-        }
-
-        while (true)
-        {
-            InputDevice controleDireito = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-
-            if (controleDireito.isValid &&
-                controleDireito.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressionado) &&
-                pressionado)
-            {
-                break;
-            }
-
-            await Task.Yield();
-        }
-
-        while (true)
-        {
-            InputDevice controleDireito = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-
-            if (!controleDireito.isValid ||
-                !controleDireito.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressionado) ||
-                !pressionado)
-            {
-                break;
-            }
-
-            await Task.Yield();
-        }
+        var controle = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+        return controle.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressionado) && pressionado;
     }
 
     // Centraliza o controle do cursor. No VR, a interface é controlada pelo raio XR.

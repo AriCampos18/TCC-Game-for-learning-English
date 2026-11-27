@@ -865,84 +865,9 @@ else if (nivelAtual == "A2-B1")
     private async Task PlayAudioETexto(int i, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[i];
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
-        
-        if (audioBytes != null && audioBytes.Length > 0)
-        {
-            Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
-            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
-            File.WriteAllBytes(caminho, audioBytes);
-            
-            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
-            var operation = www.SendWebRequest();
-            
-            while (!operation.isDone)
-                await Task.Yield();
-
-            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
-
-            if (mostrarLegenda)
-            {
-                textoPularDialogo.gameObject.SetActive(false);
-                modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            }
-
-            audioSource.Play();
-            while (audioSource.isPlaying)
-            {
-                await Task.Yield();
-            }
-
-                if (textoPularDialogo != null)
-                {
-                    textoPularDialogo.gameObject.SetActive(true);
-
-                    Cursor.lockState = CursorLockMode.None;
-                    Cursor.visible = true;
-                }
-
-            // ✨ ESPERA SEGURA: Aguarda 150ms antes de começar a ouvir o clique.
-            // Isso evita que o clique que fechou o modal ou moveu o player passe para cá.
-            await Task.Delay(150);
-
-            // ✨ Garante que o jogador soltou o botão antes de aceitar um novo clique
-            while (Input.GetMouseButton(0))
-            {
-                await Task.Yield();
-            }
-
-            bool clicou = false;
-            while (!clicou)
-            {
-                if (Input.GetMouseButtonDown(0)) 
-                {
-                    clicou = true; 
-                }
-                else
-                {
-                    await Task.Yield(); 
-                }
-            }
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(false);
-            }
-
-            if (modalLegenda != null)
-            {
-                modalLegenda.SetActive(false);
-            }
-        }
-        else
-        {
-            Debug.LogError("O servidor retornou um array de bytes vazio.");
-            if (mostrarLegenda)
-            {
-                modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            }
-        }
+        await ApresentarFalaDoRoteiro(backendManager, audioSource, idNpcParaVoz,
+            nomeExibicaoLegenda, ultimaFraseDita, modalLegenda, textoPularDialogo,
+            mostrarLegenda: mostrarLegenda);
     }
 
     public override async Task FalarFraseCustomizada(string textoParaFalar)

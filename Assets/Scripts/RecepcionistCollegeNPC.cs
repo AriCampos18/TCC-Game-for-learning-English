@@ -1203,68 +1203,9 @@ else if (nivelAtual == "A2-B1")
     private async Task PlayAudioETexto(int indiceDialogo, bool mostrarLegenda = true)
     {
         ultimaFraseDita = dialogoAtual[indiceDialogo];
-        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[indiceDialogo], idNpcParaVoz);
-
-        if (audioBytes != null && audioBytes.Length > 0)
-        {
-            Debug.Log($"\u00c1udio recebido! Tamanho: {audioBytes.Length} bytes");
-            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
-            File.WriteAllBytes(caminho, audioBytes);
-
-            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
-            var operation = www.SendWebRequest();
-
-            while (!operation.isDone)
-                await Task.Yield();
-
-            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
-
-            if (mostrarLegenda)
-            {
-                textoPularDialogoComum.gameObject.SetActive(false);
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
-
-            audioSourceComum.Play();
-            while (audioSourceComum.isPlaying)
-            {
-                await Task.Yield();
-            }
-
-            if (textoPularDialogoComum != null)
-            {
-                textoPularDialogoComum.gameObject.SetActive(true);
-                DefinirCursorDesktop(true);
-            }
-
-            await Task.Delay(150);
-
-            while (Input.GetMouseButton(0))
-            {
-                await Task.Yield();
-            }
-
-            await AguardarAvancoDialogo();
-
-            if (textoPularDialogoComum != null)
-            {
-                textoPularDialogoComum.gameObject.SetActive(false);
-            }
-
-            if (modalLegendaComum != null)
-            {
-                modalLegendaComum.SetActive(false);
-            }
-        }
-        else
-        {
-            Debug.LogError("O servidor retornou um array de bytes vazio.");
-            if (mostrarLegenda)
-            {
-                modalLegendaComum.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[indiceDialogo]);
-            }
-        }
+        await ApresentarFalaDoRoteiro(backendManagerComum, audioSourceComum, idNpcParaVoz,
+            nomeExibicaoLegenda, ultimaFraseDita, modalLegendaComum, textoPularDialogoComum,
+            mostrarLegenda: mostrarLegenda);
     }
 
     public override async Task FalarFraseCustomizada(string textoParaFalar)

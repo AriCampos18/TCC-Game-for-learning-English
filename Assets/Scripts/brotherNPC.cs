@@ -1033,62 +1033,8 @@ else if (nivelAtual == "A2-B1")
     private async Task PlayAudioETexto(int i)
     {
         ultimaFraseDita = dialogoAtual[i];
-        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
-        
-        if (audioBytes != null && audioBytes.Length > 0)
-        {
-            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
-            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
-            File.WriteAllBytes(caminho, audioBytes);
-            
-            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
-            var operation = www.SendWebRequest();
-            
-            while (!operation.isDone)
-                await Task.Yield();
-
-            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
-
-            if (textoPularDialogo != null)
-                textoPularDialogo.gameObject.SetActive(false);
-
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSource.Play();
-            while (audioSource.isPlaying)
-            {
-                await Task.Yield();
-            }
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(true);
-
-                DefinirCursorDesktop(true);
-            }
-
-            await Task.Yield();
-
-            await AguardarAvancoDialogo();
-
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(false);
-            }
-
-            if (modalLegenda != null)
-            {
-                modalLegenda.SetActive(false);
-            }
-            
-        }
-        else
-        {
-            Debug.LogError("O servidor retornou um array de bytes vazio.");
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-        }
+        await ApresentarFalaDoRoteiro(backendManager, audioSource, idNpcParaVoz,
+            nomeExibicaoLegenda, ultimaFraseDita, modalLegenda, textoPularDialogo);
     }
 
     public override async Task FalarFraseCustomizada(string textoParaFalar)

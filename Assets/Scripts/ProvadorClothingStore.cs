@@ -46,8 +46,15 @@ public sealed class ProvadorClothingStore : MonoBehaviour
     }
 
     // Uma interação com a peça tem prioridade sobre o avanço da fala.
-    internal async Task<bool> AguardarEscolha(bool podeAvancarDialogo)
+    internal async Task<bool> AguardarEscolha(bool podeAvancarDialogo, Action validarVisita = null)
     {
+        int visita = SessaoCenario.Atual.Versao;
+        async Task AguardarQuadro()
+        {
+            await ProximoFrame();
+            validarVisita?.Invoke();
+        }
+
         bool avisoEstavaVisivel = avisoProvarRoupa != null && avisoProvarRoupa.activeSelf;
         if (avisoProvarRoupa != null)
             avisoProvarRoupa.SetActive(true);
@@ -55,7 +62,9 @@ public sealed class ProvadorClothingStore : MonoBehaviour
         try
         {
             // A confirmação que fechou o exercício ou a fala anterior já foi consumida.
-            await AguardarLiberacaoDoClique();
+            await AguardarQuadro();
+            while (Pressionado())
+                await AguardarQuadro();
 
             while (true)
             {
@@ -65,20 +74,20 @@ public sealed class ProvadorClothingStore : MonoBehaviour
                     if (acertouPeca || podeAvancarDialogo)
                     {
                         while (Pressionado())
-                            await ProximoFrame();
+                            await AguardarQuadro();
                         return acertouPeca;
                     }
 
                     while (Pressionado())
-                        await ProximoFrame();
+                        await AguardarQuadro();
                 }
 
-                await ProximoFrame();
+                await AguardarQuadro();
             }
         }
         finally
         {
-            if (avisoProvarRoupa != null)
+            if (avisoProvarRoupa != null && SessaoCenario.Atual.Corresponde(visita))
                 avisoProvarRoupa.SetActive(avisoEstavaVisivel);
         }
     }

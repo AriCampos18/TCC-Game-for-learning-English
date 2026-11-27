@@ -116,6 +116,12 @@ internal sealed partial class RoteiroNpcCheckpoint
     private string AssinaturaLegada => "script." + Hash(string.Join("|", etapas.Select(e => e.Chave)));
     private string Assinatura => "script.v2." + Hash(string.Join("|", etapas.Select(e => e.ChaveCheckpoint)));
 
+    internal bool CorrespondeAssinatura(JObject estado)
+    {
+        string assinatura = (string)(estado["safe_steps"] as JArray)?.First;
+        return assinatura == Assinatura || assinatura == AssinaturaLegada;
+    }
+
     internal (int Indice, string[] Situacao) Validar(JObject estado)
     {
         var dados = (estado["safe_steps"] as JArray)?.Values<string>().ToArray();

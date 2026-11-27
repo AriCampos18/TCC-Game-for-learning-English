@@ -2118,17 +2118,15 @@ else if (nivelAtual == "A2-B1")
         return false;
     }
 
-    private bool AvancoPressionado()
-    {
-        if (!ModoVR)
-            return Input.GetMouseButton(0);
-
-        var controle = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-        return controle.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressionado) && pressionado;
-    }
-
     private async Task AguardarAvancoComDocumento(bool apresentarDocumento)
     {
+        int visita = SessaoCenario.Atual.Versao;
+        async Task AguardarQuadro()
+        {
+            await Task.Yield();
+            ValidarVisita(visita);
+        }
+
         if (apresentarDocumento && (documentoCurso == null || !documentoCurso.Disponibilizar(nivelAtual)))
             Debug.LogWarning("SecretaryCollegeNPC: configure o documento do curso para completar esta missão.", this);
 
@@ -2142,32 +2140,32 @@ else if (nivelAtual == "A2-B1")
         documentoCurso.MostrarBotao(true);
         try
         {
-            while (AvancoPressionado())
-                await Task.Yield();
+            while (AvancoDialogoPressionado())
+                await AguardarQuadro();
 
             while (true)
             {
-                while (!AvancoPressionado())
-                    await Task.Yield();
+                while (!AvancoDialogoPressionado())
+                    await AguardarQuadro();
 
                 int quadroPressionado = Time.frameCount;
                 bool painelEstavaAberto = documentoCurso.Aberto;
-                while (AvancoPressionado())
-                    await Task.Yield();
+                while (AvancoDialogoPressionado())
+                    await AguardarQuadro();
 
                 // O EventSystem pode abrir ou fechar o painel ao soltar o botão.
-                await Task.Yield();
+                await AguardarQuadro();
                 if (!painelEstavaAberto && !documentoCurso.Aberto
                     && documentoCurso.UltimoQuadroInteracao < quadroPressionado)
                     return;
 
-                while (AvancoPressionado())
-                    await Task.Yield();
+                while (AvancoDialogoPressionado())
+                    await AguardarQuadro();
             }
         }
         finally
         {
-            if (documentoCurso != null)
+            if (documentoCurso != null && SessaoCenario.Atual.Permite(Cenario, visita))
                 documentoCurso.MostrarBotao(false);
         }
     }
@@ -2218,64 +2216,8 @@ else if (nivelAtual == "A2-B1")
     private async Task PlayAudioETexto(int i, bool apresentarDocumento = false)
     {
         ultimaFraseDita = dialogoAtual[i];
-        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManagerComum.GerarAudio(dialogoAtual[i], idNpcParaVoz);
-        
-        if (audioBytes != null && audioBytes.Length > 0)
-        {
-            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
-            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
-            File.WriteAllBytes(caminho, audioBytes);
-            
-            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
-            var operation = www.SendWebRequest();
-            
-            while (!operation.isDone)
-                await Task.Yield();
-
-            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSourceComum.clip = clip;
-
-            if (textoPularDialogo != null)
-                textoPularDialogo.gameObject.SetActive(false);
-
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSourceComum.Play();
-            while (audioSourceComum.isPlaying)
-            {
-                await Task.Yield();
-            }
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(true);
-
-                DefinirCursorDesktop(true);
-            }
-
-            await Task.Yield();
-
-            await AguardarAvancoComDocumento(apresentarDocumento);
-
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(false);
-            }
-
-            if (modalLegenda != null)
-            {
-                modalLegenda.SetActive(false);
-            }
-            
-        }
-        else
-        {
-            Debug.LogError("O servidor retornou um array de bytes vazio.");
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            if (apresentarDocumento && documentoCurso != null && documentoCurso.Disponibilizar(nivelAtual))
-                await AguardarAvancoComDocumento(false);
-        }
+        await ApresentarFalaDoRoteiro(backendManagerComum, audioSourceComum, idNpcParaVoz,
+            nomeExibicaoLegenda, ultimaFraseDita, modalLegenda, textoPularDialogo, avancar: () => AguardarAvancoComDocumento(apresentarDocumento));
     }
 
     public override async Task FalarFraseCustomizada(string textoParaFalar)

@@ -1275,7 +1275,7 @@ public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
                     opcoesFala = new List<string>()
                     {
                         "Yes, I went yesterday\n",
-                        "Yes, plase\n",
+                        "Yes, please\n",
                         "No, I am a park\n"
                     },
                     respostaCorreta = 1
@@ -2019,7 +2019,7 @@ else if (nivelAtual == "A2-B1")
         cumprimento = RoteiroNpcCheckpoint.SaudacaoSalva(visita);
         InicializarConteudosPorNivel();
         var roteiro = CriarRoteiro(versao);
-        var cursor = roteiro.Validar(visita);
+        var cursor = ValidarCursorDoRoteiro(visita, versao, roteiro, out bool repetirDirecoes);
         if (cursor.Situacao.Length != 1)
             throw new System.IO.InvalidDataException("Estado inesperado no roteiro de Visitor Center.");
         catalogoExercicios = await ExerciseManager.Instance.LoadForNpcAsync(NpcKey, nivelAtual, token);
@@ -2036,7 +2036,12 @@ else if (nivelAtual == "A2-B1")
             if (marcadorCityPark != null) marcadorCityPark.SetActive(false);
             GameProgress.EstaEmDialogo = true;
             TravarControlePlayer();
-            try { await roteiro.Executar(cursor.Indice); }
+            try
+            {
+                if (repetirDirecoes)
+                    await PlayAudioETexto(3);
+                await roteiro.Executar(cursor.Indice);
+            }
             finally
             {
                 if (SessaoCenario.Atual.Permite(Cenario, versao))
@@ -2061,7 +2066,36 @@ else if (nivelAtual == "A2-B1")
         return CriarRoteiro(0, conteudo, nivel);
     }
 
-    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null, string nivelDescricao = null)
+    private (int Indice, string[] Situacao) ValidarCursorDoRoteiro(Newtonsoft.Json.Linq.JObject visita,
+        int versao, RoteiroNpcCheckpoint roteiro, out bool repetirDirecoes)
+    {
+        repetirDirecoes = false;
+        if ((nivelAtual != "A1-A2" && nivelAtual != "A2-B1") || roteiro.CorrespondeAssinatura(visita))
+            return roteiro.Validar(visita);
+
+        var anterior = CriarRoteiro(versao, formatoAnterior: true).Validar(visita);
+        int indice = anterior.Indice;
+        if (nivelAtual == "A1-A2")
+        {
+            // A resposta sobre o tempo de caminhada agora precede o marco da missão.
+            indice = System.Math.Min(indice, 8);
+        }
+        else if (indice >= 10)
+        {
+            // O exercício de confirmação já terminou. Reproduz a repetição sem refazer exercícios.
+            repetirDirecoes = true;
+            indice = indice switch
+            {
+                12 or 13 => 13,
+                _ => indice + 1
+            };
+        }
+        Debug.Log($"Visitor Center {nivelAtual}: cursor anterior {anterior.Indice} retomado em {indice}.");
+        return (indice, anterior.Situacao);
+    }
+
+    private RoteiroNpcCheckpoint CriarRoteiro(int visita, ConteudoRoteiro descricao = null,
+        string nivelDescricao = null, bool formatoAnterior = false)
     {
         string nivelAtual = nivelDescricao ?? this.nivelAtual;
         var dialogoAtual = descricao?.Falas ?? this.dialogoAtual;
@@ -2115,16 +2149,16 @@ else if (nivelAtual == "A2-B1")
                 Fala(0);
                 Exercicio("city_information", 1, exerciciosSpeaking[0]);
                 Fala(1);
-                Evento("line.first_visit.event", "marco_fluxo", MissoesVisitorCenter.FalaB1);
                 Exercicio("first_visit", 1, exerciciosCriarFrases[0]);
                 Fala(2);
                 Exercicio("directions_request", 1, exerciciosSpeaking[1]);
                 Fala(3);
                 Exercicio("directions_confirmation", 1, exerciciosWriting[0]);
+                Fala(3);
                 Fala(4);
                 Exercicio("park_location", 1, exerciciosAlternativas[0]);
                 Fala(5);
-                Fala(6);
+                Evento("line.first_visit.event", "marco_fluxo", MissoesVisitorCenter.FalaB1);
                 break;
             case "A1-A2":
                 Fala(0);
@@ -2135,6 +2169,8 @@ else if (nivelAtual == "A2-B1")
                 Exercicio("park_location", 1, exerciciosAlternativas[0]);
                 Fala(3);
                 Exercicio("walking_time", 1, exerciciosSpeaking[2]);
+                if (!formatoAnterior)
+                    Fala(4);
                 Evento("exercise.walking_time.1.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("walking_time", 1));
                 break;
             case "A2-B1":
@@ -2147,11 +2183,16 @@ else if (nivelAtual == "A2-B1")
                 Exercicio("directions_request", 1, exerciciosSpeaking[1]);
                 Fala(3);
                 Exercicio("directions_confirmation", 1, exerciciosWriting[0]);
+                if (!formatoAnterior)
+                    Fala(3);
                 Exercicio("directions_confirmation", 2, exerciciosAlternativas[0]);
                 Fala(4);
                 Exercicio("transportation", 1, exerciciosSpeaking[2]);
+                if (!formatoAnterior)
+                    Fala(5);
                 Evento("exercise.transportation.1.event", "exercicio_encerrado", MissoesVisitorCenter.AlvoExercicio("transportation", 1));
-                Fala(5);
+                if (formatoAnterior)
+                    Fala(5);
                 break;
         }
         return roteiro;
@@ -2216,62 +2257,8 @@ else if (nivelAtual == "A2-B1")
     private async Task PlayAudioETexto(int i)
     {
         ultimaFraseDita = dialogoAtual[i];
-        // 1. PASSANDO O ID DO NPC JUNTO COM O TEXTO PARA O BACKEND
-        byte[] audioBytes = await backendManager.GerarAudio(dialogoAtual[i], idNpcParaVoz);
-        
-        if (audioBytes != null && audioBytes.Length > 0)
-        {
-            //Debug.Log($"Áudio recebido! Tamanho: {audioBytes.Length} bytes");
-            string caminho = Path.Combine(Application.persistentDataPath, "audio_temp.wav");
-            File.WriteAllBytes(caminho, audioBytes);
-            
-            UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + caminho, AudioType.WAV);
-            var operation = www.SendWebRequest();
-            
-            while (!operation.isDone)
-                await Task.Yield();
-
-            AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-            audioSource.clip = clip;
-
-            if (textoPularDialogo != null)
-                textoPularDialogo.gameObject.SetActive(false);
-
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-            audioSource.Play();
-            while (audioSource.isPlaying)
-            {
-                await Task.Yield();
-            }
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(true);
-
-                DefinirCursorDesktop(true);
-            }
-
-            await Task.Yield();
-
-            await AguardarAvancoDialogo();
-
-
-            if (textoPularDialogo != null)
-            {
-                textoPularDialogo.gameObject.SetActive(false);
-            }
-
-            if (modalLegenda != null)
-            {
-                modalLegenda.SetActive(false);
-            }
-            
-        }
-        else
-        {
-            Debug.LogError("O servidor retornou um array de bytes vazio.");
-            modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, dialogoAtual[i]);
-        }
+        await ApresentarFalaDoRoteiro(backendManager, audioSource, idNpcParaVoz,
+            nomeExibicaoLegenda, ultimaFraseDita, modalLegenda, textoPularDialogo);
     }
 
     public override async Task FalarFraseCustomizada(string textoParaFalar)
