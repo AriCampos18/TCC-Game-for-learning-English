@@ -23,6 +23,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
     private int conta;
     private bool vinculoConferido;
     private bool encerrando, quitLiberado, semPosse, possuiEscrita, restaurando, descarregado, preparado;
+    private bool retomadaProtegida;
     private float proximaTentativa;
     private bool pendenteRejeitado;
     private Task sincronizacao;
@@ -62,12 +63,15 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
             {
                 var atual = novo.dispositivo.Atual;
                 try { await novo.Restaurar(atual); }
-                catch (InvalidDataException) when (MarcoAnteriorCompativel(atual, novo.dispositivo.MarcoAnterior))
+                catch (InvalidDataException erro) when (MarcoAnteriorCompativel(atual, novo.dispositivo.MarcoAnterior))
                 {
                     novo.ValidarConta();
+                    novo.retomadaProtegida = true;
+                    Debug.LogWarning($"Checkpoint diagnóstico: revisão {novo.dispositivo.Revisao} incompatível. "
+                        + $"{erro.Message} Tentando o marco anterior com gravação bloqueada.", novo);
                     await novo.Restaurar(novo.dispositivo.MarcoAnterior);
                     novo.modoGiro = (string)atual["preferences"]?["turn_mode"] ?? novo.modoGiro;
-                    novo.Status = "Retomado do marco anterior disponível";
+                    novo.Status = "Marco anterior retomado • checkpoint avançado protegido";
                 }
                 novo.RetomouFase = true;
             }
@@ -147,6 +151,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
                 throw new InvalidDataException("Dados legados requerem reconciliação antes de adotar o checkpoint.");
 
             var anterior = dispositivo?.Atual;
+            long? revisaoLocal = dispositivo?.Revisao;
             if (dispositivo != null && !CheckpointSincronizacao.Reconciliar(dispositivo, vinculo, revisao, geracao, remoto))
             {
                 if (!inicial || revisao < dispositivo.Revisao && dispositivo.Vinculo == vinculo)
@@ -168,6 +173,10 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
                 Conta = conta, Ambiente = api.Ambiente, Vinculo = vinculo, Atual = remoto,
                 Revisao = revisao, Geracao = geracao
             };
+            if (inicial)
+                Debug.Log($"Checkpoint diagnóstico: revisão local {revisaoLocal}, remota {revisao}, "
+                    + $"seleção {(ReferenceEquals(dispositivo.Atual, remoto) ? "remota" : "local pendente")}, "
+                    + $"fase {dispositivo.Atual?["phase"]}, marco {dispositivo.Atual?["visit"]?["step_key"]}.", this);
             vinculoConferido = true;
             claimId = Guid.NewGuid().ToString();
             claimBase = revisao;
@@ -187,7 +196,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
 
     private void Update()
     {
-        if (!preparado || restaurando || encerrando || semPosse || pendenteRejeitado || Time.unscaledTime < proximaTentativa)
+        if (!preparado || restaurando || encerrando || semPosse || retomadaProtegida || pendenteRejeitado || Time.unscaledTime < proximaTentativa)
             return;
         proximaTentativa = Time.unscaledTime + 5f;
         if (!possuiEscrita || dispositivo?.Alterado == true)
@@ -205,7 +214,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
     {
         try
         {
-            if (semPosse || descarregado || pendenteRejeitado || dispositivo == null)
+            if (semPosse || descarregado || retomadaProtegida || pendenteRejeitado || dispositivo == null)
                 return;
             if (!possuiEscrita)
                 await AssumirPosse(inicial: false);
@@ -284,6 +293,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
 
     private async Task Persistir()
     {
+        if (retomadaProtegida) return;
         try
         {
             await GravarLocal();
@@ -318,6 +328,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
 
     internal Task SalvarManual()
     {
+        if (retomadaProtegida) return Task.CompletedTask;
         AtualizarCheckpointMissoes();
         if (dispositivo?.Atual == null)
             Status = "Ainda não há ponto seguro para salvar";
@@ -368,7 +379,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
             return false;
         AtualizarCheckpointMissoes();
         encerrando = true;
-        if (dispositivo?.Atual == null)
+        if (retomadaProtegida || dispositivo?.Atual == null)
             return true;
         try { await GravarLocal(); }
         catch (CheckpointLocalObsoletoException)
@@ -407,7 +418,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        if (!quitLiberado && dispositivo?.Atual != null)
+        if (!quitLiberado && !retomadaProtegida && dispositivo?.Atual != null)
         {
             try { arquivo.Gravar(JsonConvert.SerializeObject(dispositivo), CheckpointLocal.ProximaSequencia()); }
             catch (Exception e) when (Prevista(e)) { Debug.LogWarning(e.Message, this); }

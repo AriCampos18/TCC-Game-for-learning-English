@@ -89,7 +89,7 @@ public class ProdutoManager : MonoBehaviour
         return mascara;
     }
 
-    internal bool RestaurarInventarioCheckpoint(string nivel, int mascara)
+    internal bool RestaurarInventarioCheckpoint(string nivel, int? inventario)
     {
         bool intermediario = MissionManager.NivelMarketIntermediario(nivel);
         var grupos = nivel == "A1" ? new[] { (TipoProdutoMercado.Milk, grupoLeites), (TipoProdutoMercado.Fruit, grupoFrutas) }
@@ -99,6 +99,7 @@ public class ProdutoManager : MonoBehaviour
         int permitidos = 0;
         foreach (var item in grupos)
             permitidos |= 1 << (int)item.Item1;
+        int mascara = inventario ?? permitidos;
         if (mascara < 0 || (mascara & ~permitidos) != 0)
             return false;
 

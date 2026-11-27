@@ -14,6 +14,7 @@ internal sealed partial class RoteiroNpcCheckpoint
 {
     internal const string Passo = "npc.script";
     private const string Fim = "action.route.finished";
+    internal static bool CursorFinal(JObject estado) => (string)estado["safe_steps"]?.ElementAtOrDefault(1) == Fim;
     private readonly System.Collections.Generic.List<Etapa> etapas = new();
     private readonly InteracaoNPC npc;
     private readonly string npcDescricao;
@@ -25,6 +26,7 @@ internal sealed partial class RoteiroNpcCheckpoint
     private sealed class Etapa
     {
         internal readonly string Chave, Fala, Ponto;
+        internal string ChaveCheckpoint;
         internal readonly int Ordem;
         internal readonly InteracaoNPC Ator;
         internal ExercicioBase Modelo;
@@ -34,6 +36,7 @@ internal sealed partial class RoteiroNpcCheckpoint
         internal Etapa(string chave, Func<Task> executar, string fala, string ponto, int ordem, InteracaoNPC ator)
         {
             Chave = chave;
+            ChaveCheckpoint = chave;
             Executar = executar;
             Fala = fala;
             Ponto = ponto;
@@ -89,7 +92,14 @@ internal sealed partial class RoteiroNpcCheckpoint
         ator ??= npc;
         string prefixo = "line." + Hash((ator?.CheckpointNpcKey ?? npcDescricao) + "|" + texto) + ".";
         string chave = prefixo + (etapas.Count(e => e.Chave.StartsWith(prefixo, StringComparison.Ordinal)) + 1);
-        etapas.Add(new Etapa(chave, executar, texto, null, 0, ator) { Anotacao = anotacao });
+        string prefixoCheckpoint = "line." + (ator?.CheckpointNpcKey ?? npcDescricao) + ".";
+        int indiceFala = etapas.Count(e => e.Fala != null
+            && e.ChaveCheckpoint.StartsWith(prefixoCheckpoint, StringComparison.Ordinal)) + 1;
+        etapas.Add(new Etapa(chave, executar, texto, null, 0, ator)
+        {
+            Anotacao = anotacao,
+            ChaveCheckpoint = prefixoCheckpoint + indiceFala
+        });
     }
 
     internal void Exercicio(string ponto, int ordem, Func<Task> executar, InteracaoNPC ator = null, ExercicioBase modelo = null)
@@ -101,21 +111,29 @@ internal sealed partial class RoteiroNpcCheckpoint
     internal void Acao(string chave, Func<Task> executar) =>
         etapas.Add(new Etapa("action." + chave, executar, null, null, 0, npc));
 
-    internal string Identidade => Assinatura;
+    internal string Identidade => AssinaturaLegada;
 
-    private string Assinatura => "script." + Hash(string.Join("|", etapas.Select(e => e.Chave)));
+    private string AssinaturaLegada => "script." + Hash(string.Join("|", etapas.Select(e => e.Chave)));
+    private string Assinatura => "script.v2." + Hash(string.Join("|", etapas.Select(e => e.ChaveCheckpoint)));
 
     internal (int Indice, string[] Situacao) Validar(JObject estado)
     {
         var dados = (estado["safe_steps"] as JArray)?.Values<string>().ToArray();
-        int indice = dados?.Length >= 2 && dados[0] == Assinatura
-            ? dados[1] == Fim ? etapas.Count : etapas.FindIndex(e => e.Chave == dados[1]) : -1;
+        bool legado = dados?.Length >= 2 && dados[0] == AssinaturaLegada;
+        bool shelfA1Historico = dados?.Length == 4 && dados[1] == Fim
+            && dados[2] == "route.2" && dados[3] == "stops.2"
+            && (string)estado["npc_key"] == "shelf_npc" && (string)estado["level"] == "A1"
+            && dados[0] == "script.1DB99ECF96F13AD9450E7969768D937E73C6B6CA4D36839172CF08F3E4E003CF"
+            && Assinatura == "script.v2.DE971456E11C7D75BA97D7C73A24AD557142F9AF2307DC51622D9646EE00D429";
+        int indice = dados?.Length >= 2 && (dados[0] == Assinatura || legado || shelfA1Historico)
+            ? dados[1] == Fim ? etapas.Count
+                : etapas.FindIndex(e => (legado ? e.Chave : e.ChaveCheckpoint) == dados[1]) : -1;
         if (indice < 0)
             throw new InvalidDataException("O roteiro salvo não corresponde ao roteiro atual.");
 
         var etapa = indice == etapas.Count ? new Etapa(Fim, null, null, null, 0, npc) : etapas[indice];
         var proximo = estado["next_exercise"] as JObject;
-        if ((string)estado["line_key"] != (etapa.Fala == null ? null : etapa.Chave)
+        if ((string)estado["line_key"] != (etapa.Fala == null ? null : legado ? etapa.Chave : etapa.ChaveCheckpoint)
             || (etapa.Ponto == null ? proximo != null
                 : proximo == null || (string)proximo["npc_key"] != etapa.Ator.CheckpointNpcKey
                     || (string)proximo["point_key"] != etapa.Ponto || (int?)proximo["ordem"] != etapa.Ordem))
@@ -130,6 +148,8 @@ internal sealed partial class RoteiroNpcCheckpoint
             .Where(exercicios.Contains);
         if (!esperados.SetEquals(concluidos))
             throw new InvalidDataException("Os exercícios concluídos divergem da etapa do roteiro.");
+        if (shelfA1Historico)
+            Debug.Log("Checkpoint diagnóstico: cursor final histórico do Shelf A1 aceito.");
         return (indice, dados.Skip(2).ToArray());
     }
 
@@ -151,13 +171,13 @@ internal sealed partial class RoteiroNpcCheckpoint
         npc.ValidarRoteiroCheckpoint(visita);
         var etapa = indiceEmExecucao == etapas.Count
             ? new Etapa(Fim, null, null, null, 0, npc) : etapas[indiceEmExecucao];
-        var dados = new JArray(Assinatura, etapa.Chave);
+        var dados = new JArray(Assinatura, etapa.ChaveCheckpoint);
         var marcos = situacao == null ? Array.Empty<string>() : situacao();
         if (marcos == null)
             return;
         foreach (var marco in marcos)
             dados.Add(marco);
-        CheckpointJogo.Instance?.CapturarEtapaNpc(npc, visita, dados, etapa.Fala != null ? etapa.Chave : null,
+        CheckpointJogo.Instance?.CapturarEtapaNpc(npc, visita, dados, etapa.Fala != null ? etapa.ChaveCheckpoint : null,
             etapa.Ponto, etapa.Ordem, etapa.Ator.CheckpointNpcKey);
     }
 
@@ -193,6 +213,7 @@ internal sealed partial class CheckpointJogo
     private static readonly string[] Cenarios = {
         "Market", "Airport", "Clothing Store", "Hotel", "Home", "Visitor Center", "Restaurant", "College"
     };
+    internal const string InicioEfetivo = "scenario.started";
     internal const string HotelCartao = "hotel.room_card";
     internal const string HotelAssociacao = "hotel.association";
     internal const string HotelRevisao = "hotel.review";
@@ -236,13 +257,14 @@ internal sealed partial class CheckpointJogo
     private string modoGiro = "snap";
     internal string ModoGiro => modoGiro;
     internal bool PodeAlterarGiro => preparado && !restaurando && !encerrando && !descarregado && !semPosse;
-    internal bool PodeSalvarManual => PodeAlterarGiro && dispositivo?.Atual != null;
+    internal bool PodeSalvarManual => PodeAlterarGiro && !retomadaProtegida && dispositivo?.Atual != null;
 
     internal bool AlterarModoGiro(string modo)
     {
         if (!PodeAlterarGiro || (modo != "snap" && modo != "smooth"))
             return false;
         modoGiro = modo;
+        if (retomadaProtegida) return true;
         if (dispositivo.Atual is JObject atual && (string)atual["preferences"]?["turn_mode"] != modo)
         {
             var novo = (JObject)atual.DeepClone();
@@ -315,7 +337,7 @@ internal sealed partial class CheckpointJogo
 
     internal void AgendarCheckpointMissoes(int versao)
     {
-        if (preparado && !restaurando && !encerrando && !semPosse && !descarregado)
+        if (preparado && !restaurando && !encerrando && !semPosse && !descarregado && !retomadaProtegida)
             visitaMissoesPendentes = versao;
     }
 
@@ -334,7 +356,7 @@ internal sealed partial class CheckpointJogo
         var sessao = SessaoCenario.Atual;
         var atual = dispositivo?.Atual;
         string fase = (string)atual?["phase"];
-        if (restaurando || encerrando || semPosse || descarregado || !sessao.EmJogo
+        if (restaurando || encerrando || semPosse || descarregado || retomadaProtegida || !sessao.EmJogo
             || !sessao.Corresponde(versao) || (fase != "scenario_intro" && fase != "scenario_active" && fase != "review")
             || atual["visit"] is not JObject visita || VisitaId == null || (string)visita["visit_id"] != VisitaId
             || NomeCenario((int?)visita["scenario_id"] ?? 0) != sessao.Nome
@@ -355,17 +377,28 @@ internal sealed partial class CheckpointJogo
         }
 
         var novo = (JObject)atual.DeepClone();
+        if (fase == "scenario_intro")
+        {
+            var pose = PoseEntrada(sessao.Nome);
+            if (pose == null) return false;
+            novo["phase"] = "scenario_active";
+            novo["pose"] = pose;
+            novo["visit"]["step_key"] = InicioEfetivo;
+        }
         var estado = (JObject)novo["visit"];
         estado["missions"] = missoes.CapturarMissoesCheckpoint();
         const string inventario = "market.inventory.";
         var marcos = ((JArray)visita["milestones"]).Values<string>()
             .Where(m => !m.StartsWith("start.", StringComparison.Ordinal)
-                && (sessao.Nome != "Market" || !m.StartsWith(inventario, StringComparison.Ordinal)));
+                && (sessao.Nome != "Market" || (!m.StartsWith(inventario, StringComparison.Ordinal)
+                    && !m.StartsWith("market.basket.", StringComparison.Ordinal))));
         var inicios = missoes.CapturarIniciosCheckpoint();
         estado["milestones"] = new JArray(marcos.Concat(inicios.Values<string>()).Distinct());
-        if (sessao.Nome == "Market" && missoes.MissaoAtiva("interagir_produtos") && ProdutoManager.Instance != null
-            && fase != "scenario_intro")
+        if (sessao.Nome == "Market" && (missoes.MissaoAtiva("interagir_produtos")
+            || missoes.MissaoConcluida("interagir_produtos")) && ProdutoManager.Instance != null)
             ((JArray)estado["milestones"]).Add(inventario + ProdutoManager.Instance.CapturarInventarioCheckpoint());
+        if (sessao.Nome == "Market")
+            RegistrarCestaNoMarco(estado);
         if (JToken.DeepEquals(novo, atual))
             return false;
 
@@ -376,6 +409,7 @@ internal sealed partial class CheckpointJogo
         }
         dispositivo.Atual = novo;
         dispositivo.Alterado = true;
+        Debug.Log($"Checkpoint diagnóstico: missões capturadas em {sessao.Nome}/{sessao.Nivel}, fase {novo["phase"]}, base {dispositivo.Revisao}.", this);
         return true;
     }
 
@@ -385,9 +419,38 @@ internal sealed partial class CheckpointJogo
 
     internal void Inicio()
     {
-        // A entrada permanece como último marco retomável durante a atividade.
-        if (dispositivo?.Alterado == true)
-            _ = Persistir();
+        var sessao = SessaoCenario.Atual;
+        if (!sessao.EmJogo || VisitaId == null || (string)dispositivo?.Atual?["phase"] != "scenario_intro")
+            return;
+        var pose = PoseEntrada(sessao.Nome);
+        var missoes = MissionManager.Instance;
+        if (pose == null || missoes == null) return;
+        var visita = NovaVisita(sessao.Nome, sessao.Nivel, InicioEfetivo);
+        visita["missions"] = missoes.CapturarMissoesCheckpoint();
+        visita["milestones"] = missoes.CapturarIniciosCheckpoint();
+        Capturar("scenario_active", visita, pose);
+    }
+
+    private static JObject PoseEntrada(string cenario)
+    {
+        var selecao = FindAnyObjectByType<ModalSelecaoCenario>(FindObjectsInactive.Include);
+        var ancora = selecao != null ? selecao.ObterPontoDestino(cenario) : null;
+        if (ancora == null) return null;
+        var p = ancora.position;
+        return new JObject {
+            ["anchor_key"] = PerfilRevisao(cenario).Prefixo + ".entrance",
+            ["position"] = new JObject { ["x"] = p.x, ["y"] = p.y, ["z"] = p.z },
+            ["yaw_deg"] = ancora.eulerAngles.y, ["camera_pitch_deg"] = 0
+        };
+    }
+
+    private static void RegistrarCestaNoMarco(JObject visita)
+    {
+        var raio = FindAnyObjectByType<RaioCentralInteracao>();
+        string marco = raio != null ? raio.MarcoCestaCheckpoint() : null;
+        if (marco != null && visita["milestones"] is JArray marcos
+            && !marcos.Values<string>().Contains(marco))
+            marcos.Add(marco);
     }
 
     internal void CapturarMarcoHotel(string passo) => CapturarMarcoInterno("Hotel", passo);
@@ -503,7 +566,8 @@ internal sealed partial class CheckpointJogo
         if (cenario == "Hotel" && passo != HotelCartao && MissoesHotel.UsaCartao(contexto.Nivel))
             marcos.Add("hotel.card_collected");
         var inicios = cursor == null ? marcos : MissionManager.Instance.CapturarIniciosCheckpoint();
-        if (cursor != null && cenario == "Market" && MissionManager.Instance.MissaoAtiva("interagir_produtos")
+        if (cursor != null && cenario == "Market" && (MissionManager.Instance.MissaoAtiva("interagir_produtos")
+            || MissionManager.Instance.MissaoConcluida("interagir_produtos"))
             && ProdutoManager.Instance != null)
             inicios.Add("market.inventory." + ProdutoManager.Instance.CapturarInventarioCheckpoint());
         visita["milestones"] = inicios;
@@ -588,8 +652,10 @@ internal sealed partial class CheckpointJogo
 
     private void Capturar(string fase, JObject visita, JObject pose = null)
     {
-        if (restaurando || encerrando || semPosse || descarregado || dispositivo == null || GerenciadorProgressao.Instance == null)
+        if (restaurando || encerrando || semPosse || descarregado || retomadaProtegida || dispositivo == null || GerenciadorProgressao.Instance == null)
             return;
+        if ((int?)visita?["scenario_id"] == SessaoCenario.Id("Market"))
+            RegistrarCestaNoMarco(visita);
         var novo = new JObject {
             ["phase"] = fase, ["account_level"] = DadosJogador.nivelUsuario,
             ["preferences"] = new JObject { ["turn_mode"] = modoGiro },
@@ -622,6 +688,7 @@ internal sealed partial class CheckpointJogo
 
     private async Task Restaurar(JObject estado)
     {
+        continuarMarco = null;
         string fase = (string)estado["phase"];
         string nivel = (string)estado["account_level"];
         var visita = estado["visit"] as JObject;
@@ -629,6 +696,7 @@ internal sealed partial class CheckpointJogo
         string passo = (string)visita?["step_key"];
         string cenarioSalvo = NomeCenario((int?)visita?["scenario_id"] ?? 0);
         var perfil = PerfilRevisao(cenarioSalvo);
+        bool entradaAtiva = TemEntradaAtiva(estado, perfil.Prefixo);
         bool perfilConfere = perfil.Prefixo != null && (string)visita?["npc_key"] == perfil.Npc
             && (string)estado["pose"]?["anchor_key"] == perfil.Prefixo + ".entrance";
         bool hotelInterno = perfilConfere && cenarioSalvo == "Hotel" && fase == "scenario_active"
@@ -656,7 +724,8 @@ internal sealed partial class CheckpointJogo
             || caminhoCollege || caminhoHome || hotelInterno;
         bool interno = roteiro || hotelInterno || associacaoFinal || caminhoCityPark || caminhoAirport || caminhoCollege || caminhoHome || (perfilConfere && fase == "review" && passo == perfil.Prefixo + ".review");
         if (!NivelValido(nivel) || progresso == null
-            || (!interno && fase != "scenario_selection" && fase != "scenario_intro" && fase != "scenario_result" && fase != "progression_result")
+            || (!interno && !entradaAtiva && fase != "scenario_selection" && fase != "scenario_intro"
+                && fase != "scenario_result" && fase != "progression_result")
             || ((fase == "scenario_selection") != (visita == null))
             || (visita != null && ((int?)visita["flow_version"] != 1 || NomeCenario((int)visita["scenario_id"]) == null
                 || !NivelValido((string)visita["level"]) || !Guid.TryParse((string)visita["visit_id"], out _))))
@@ -725,16 +794,29 @@ internal sealed partial class CheckpointJogo
             VisitaId = (string)visita["visit_id"];
             string cenario = cenarioSalvo;
             versao = contexto.Preparar(cenario, (string)visita["level"]);
-            if (fase == "scenario_intro" || interno)
+            if (fase == "scenario_intro" || entradaAtiva || interno)
             {
                 await selecao.PrepararEntradaCheckpoint(cenario, versao, vida.Token);
                 ValidarConta();
                 var inicios = IniciosDeMissoes(visita);
-                if (!interno && inicios.Count > 0
+                if (!interno && (entradaAtiva || inicios.Count > 0)
                     && MissionManager.Instance?.RestaurarMissoesRoteiro(cenario, (JArray)visita["missions"], inicios) != true)
                     throw new InvalidDataException("As missões da entrada não correspondem ao catálogo.");
 
-                if (interno)
+                if (entradaAtiva)
+                {
+                    if (!contexto.Iniciar(versao))
+                        throw new InvalidDataException("Não foi possível ativar a visita salva.");
+                    RevisaoManager.Instance?.IniciarCenario(cenario);
+                    if (cenario == "Market")
+                        RestaurarMarketDuranteRoteiro(visita, versao);
+                    continuarMarco = () =>
+                    {
+                        final.LiberarCenarioAtivo();
+                        return Task.CompletedTask;
+                    };
+                }
+                else if (interno)
                 {
                     if (!contexto.Iniciar(versao)
                         || (inicios.Count > 0
@@ -781,6 +863,8 @@ internal sealed partial class CheckpointJogo
                         revisao.RegistrarAssociacao(exercicio, apresentador);
                     }
                     Func<Task> retomarRoteiro = null;
+                    if (cenario == "Market" && !roteiro)
+                        RestaurarCesta(visita);
                     if (roteiro)
                     {
                         if (cenario == "Market")
@@ -842,6 +926,8 @@ internal sealed partial class CheckpointJogo
         ProgressoNivelManager.Instance?.RestaurarCheckpoint(barra);
         if (visita == null)
             gerenciador.AbrirSelecaoCenario();
+        else if (entradaAtiva)
+            Debug.Log($"Checkpoint diagnóstico: retomada de entrada ativa em {cenarioSalvo}/{nivel}.", this);
         else if (fase == "scenario_intro")
         {
             if (!final.MostrarInicioCenario(cenarioSalvo))
@@ -849,6 +935,27 @@ internal sealed partial class CheckpointJogo
         }
         else if (!interno)
             final.RetomarResultadoCheckpoint(versao, fase, decisao);
+    }
+
+    internal static bool TemEntradaAtiva(JObject estado, string prefixo)
+    {
+        if (prefixo == null || estado["visit"] is not JObject visita || visita["missions"] is not JArray missoes
+            || visita["exercises"] is not JArray exercicios || exercicios.Count != 0 || visita["npc_key"] != null)
+            return false;
+        string fase = (string)estado["phase"];
+        string passo = (string)visita["step_key"];
+        if (fase == "scenario_active")
+            return passo == InicioEfetivo && (string)estado["pose"]?["anchor_key"] == prefixo + ".entrance";
+        return fase == "scenario_intro" && passo == "scenario.intro"
+            && missoes.Any(m => (string)m["status"] == "completed" || (m["satisfied_events"] as JArray)?.Count > 0);
+    }
+
+    private static void RestaurarCesta(JObject visita)
+    {
+        if (MissionManager.Instance?.MissaoConcluida("pegar_cesta") != true) return;
+        string marco = ((JArray)visita["milestones"]).Values<string>()
+            .FirstOrDefault(m => m.StartsWith("market.basket.", StringComparison.Ordinal));
+        FindAnyObjectByType<RaioCentralInteracao>()?.RestaurarCestaColetada(marco);
     }
 
     private void RestaurarMarketDuranteRoteiro(JObject visita, int versao)
@@ -859,6 +966,7 @@ internal sealed partial class CheckpointJogo
             throw new InvalidDataException("O estado de Market não está disponível.");
 
         jogo.ReiniciarMarket();
+        RestaurarCesta(visita);
         jogo.falouAtendente = missoes.InicioRegistradoCheckpoint("conversa_encerrada", "shelf_npc");
         jogo.falouPadaria = missoes.InicioRegistradoCheckpoint("conversa_encerrada", "bakery_npc");
         if (jogo.falouAtendente)
@@ -866,11 +974,15 @@ internal sealed partial class CheckpointJogo
         if (jogo.falouPadaria)
             FindAnyObjectByType<BakeryNPC>()?.MarcarAtendimentoRestaurado(versao);
 
-        if (!missoes.MissaoAtiva("interagir_produtos"))
+        bool produtosConcluidos = missoes.MissaoConcluida("interagir_produtos");
+        if (!produtosConcluidos && !missoes.MissaoAtiva("interagir_produtos"))
             return;
         var inventarios = ((JArray)visita["milestones"]).Values<string>()
             .Where(m => m.StartsWith("market.inventory.", StringComparison.Ordinal)).ToArray();
-        if (inventarios.Length != 1 || !int.TryParse(inventarios[0].Substring("market.inventory.".Length), out int mascara)
+        int? mascara = null;
+        if (inventarios.Length == 1 && int.TryParse(inventarios[0].Substring("market.inventory.".Length), out int valor))
+            mascara = valor;
+        if ((!produtosConcluidos && !mascara.HasValue) || inventarios.Length > 1
             || ProdutoManager.Instance?.RestaurarInventarioCheckpoint((string)visita["level"], mascara) != true)
             throw new InvalidDataException("O inventário do corredor não corresponde ao checkpoint.");
     }

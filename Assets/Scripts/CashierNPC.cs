@@ -866,6 +866,8 @@ using UnityEngine.Networking;
 using System.IO;
 using TMPro;
 using System;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public class CashierNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 {
@@ -1579,7 +1581,7 @@ else if (nivelAtual == "A2-B1")
 
     protected override Task IniciarInteracao() => ExecutarAtendimento(0);
 
-    private async Task ExecutarAtendimento(int inicio, string total = null)
+    private async Task ExecutarAtendimento(int inicio, string total = null, bool sacolaJaColetada = false)
     {
         int versao = SessaoCenario.Atual.Versao;
         if (total != null || GameProgress.Instance.PodeFalarComCaixa())
@@ -1599,7 +1601,7 @@ else if (nivelAtual == "A2-B1")
             else
             {
                 checkoutVisualJaFeito = true;
-                PrepararSacolaVisual();
+                if (!sacolaJaColetada) PrepararSacolaVisual();
             }
 
 
@@ -1634,7 +1636,7 @@ else if (nivelAtual == "A2-B1")
             missaoSacolaLiberada = true;
 
             aguardandoPegarSacola = true;
-            sacolaFoiPega = false;
+            sacolaFoiPega = sacolaJaColetada;
 
             GameProgress.EstaEmDialogo = false;
             
@@ -1674,6 +1676,10 @@ else if (nivelAtual == "A2-B1")
             || (cursor.Situacao[2] != "chocolate.hidden" && cursor.Situacao[2] != "chocolate.visible"))
             throw new System.IO.InvalidDataException("Total ou estado do caixa inválido.");
         string total = cursor.Situacao[1].Substring(6).Replace("-comma-", ",");
+        var sacola = ((JArray)visita["missions"]).FirstOrDefault(m => (string)m["mission_key"] == "pegar_sacola");
+        bool saiuDoMarket = (string)sacola?["status"] == "completed";
+        bool sacolaJaColetada = saiuDoMarket || (sacola?["satisfied_events"] as JArray)?.Any(e =>
+            (string)e["tipo"] == "marco_fluxo" && (string)e["alvo"] == "sacola_coletada") == true;
         await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
         return async () =>
         {
@@ -1684,7 +1690,9 @@ else if (nivelAtual == "A2-B1")
                 chocolateFoiOcultado = true;
                 produtoChocolate.SetActive(false);
             }
-            await ExecutarAtendimento(cursor.Indice, total);
+            await ExecutarAtendimento(cursor.Indice, total, sacolaJaColetada);
+            if (saiuDoMarket && SessaoCenario.Atual.Permite("Market", versao))
+                await ExecutarAtividadesAposSaida();
         };
     }
 

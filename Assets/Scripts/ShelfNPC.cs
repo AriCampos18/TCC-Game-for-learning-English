@@ -122,7 +122,9 @@ public class ShelfNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 
         ValidarVisita(versao);
         await CriarRoteiro(versao).Executar(inicio);
-        LiberarProdutosDoRoteiro();
+        if (!retomada || (!missaoManager.MissaoAtiva("interagir_produtos")
+            && !missaoManager.MissaoConcluida("interagir_produtos")))
+            LiberarProdutosDoRoteiro();
 
         if (!intermediario)
             MissionManager.Instance.ConcluirMissaoMarket("falar_atendente", "conversa_encerrada", "shelf_npc");
@@ -170,7 +172,9 @@ public class ShelfNPC : InteracaoNPC, IRoteiroNpcCheckpoint
             || rota == null || destino < 0 || destino > rota.Count || paradas < 0 || paradas != destino
             || (destino > 0 && (rota[destino - 1] == null || agent == null || !agent.isOnNavMesh)))
             throw new InvalidDataException("A rota salva das prateleiras não pode ser reconstruída.");
-        await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        if (!RoteiroNpcCheckpoint.CursorFinal(visita))
+            await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
+        token.ThrowIfCancellationRequested();
         return async () =>
         {
             ValidarVisita(versao);

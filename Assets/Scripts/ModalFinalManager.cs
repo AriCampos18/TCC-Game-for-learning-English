@@ -629,6 +629,35 @@ public class ModalFinalManager : MonoBehaviour
             modalFinal.SetActive(true);
     }
 
+    internal void LiberarCenarioAtivo()
+    {
+        if (modalBarraProgressao != null)
+            modalBarraProgressao.SetActive(true);
+
+        if (modalMissoes != null)
+            modalMissoes.SetActive(true);
+
+        if (botaoAjuda != null)
+            botaoAjuda.gameObject.SetActive(true);
+
+        if (crosshair != null)
+            crosshair.SetActive(true);
+
+        FirstPlayerController player =
+            FindObjectOfType<FirstPlayerController>();
+
+        if (player != null)
+            player.AtivarControle();
+
+        // No desktop, retoma o cursor travado para movimentação com mouse.
+        // No VR, não há cursor de mouse para controlar.
+        if (!ModoVR)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+
     public void Continuar()
     {
         var sessao = SessaoCenario.Atual;
@@ -678,31 +707,7 @@ public class ModalFinalManager : MonoBehaviour
                 gerenciador.IniciarCenario();
             CheckpointJogo.Instance?.Inicio();
 
-            if (modalBarraProgressao != null)
-                modalBarraProgressao.SetActive(true);
-
-            if (modalMissoes != null)
-                modalMissoes.SetActive(true);
-
-            if (botaoAjuda != null)
-                botaoAjuda.gameObject.SetActive(true);
-
-            if (crosshair != null)
-                crosshair.SetActive(true);
-
-            FirstPlayerController player =
-                FindObjectOfType<FirstPlayerController>();
-
-            if (player != null)
-                player.AtivarControle();
-
-            // No desktop, retoma o cursor travado para movimentação com mouse.
-            // No VR, não há cursor de mouse para controlar.
-            if (!ModoVR)
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-            }
+            LiberarCenarioAtivo();
 
             return;
         }

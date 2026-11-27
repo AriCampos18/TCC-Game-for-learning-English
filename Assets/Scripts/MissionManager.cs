@@ -323,47 +323,12 @@ public class MissionManager : MonoBehaviour
             return;
         }
 
-        if (cenario == "Airport")
+        if (cenario == "Airport" || cenario == "Market")
         {
-            switch (DadosJogador.nivelUsuario)
-            {
-                case "A1":
-                    AdicionarMissao("aeroporto_a1_1", "Arrive at the airport and find the information desk", "Chegue ao aeroporto e procure o balcão de informações");
-                    break;
-                case "A1-A2":
-                    AdicionarMissao("aeroporto_a1a2_1", "Arrive at the airport and find the information desk", "Chegue ao aeroporto e procure o balcão de informações");
-                    break;
-                case "A2":
-                    AdicionarMissao("aeroporto_a2_1", "Arrive at the airport and find the check-in desk", "Chegue ao aeroporto e procure o balcão de check-in");
-                    break;
-                case "A2-B1":
-                    AdicionarMissao("aeroporto_a2b1_1", "Go to the information desk and explain that you need to find the check-in desks", "Dirija-se ao balcão de informações e explique que precisa encontrar o check-in");
-                    break;
-                case "B1":
-                    AdicionarMissao("aeroporto_b1_1", "Arrive at the airport and find the information desk", "Chegue ao aeroporto e procure o balcão de informações");
-                    break;
-            }
-        }
-
-        // A missão inicial da cesta existe somente no Market.
-        if (cenario == "Market" && NivelMarketIntermediario(DadosJogador.nivelUsuario))
-        {
-            bool iniciante = DadosJogador.nivelUsuario == "A1-A2";
-            AdicionarMissao("pegar_cesta",
-                iniciante ? "Enter the market and pick up a shopping basket."
-                    : "Enter the market and collect a basket for your shopping.",
-                iniciante ? "Entre no mercado e pegue uma cesta de compras."
-                    : "Entre no mercado e pegue uma cesta para suas compras.");
-            return;
-        }
-
-        if (cenario == "Market")
-        {
-            AdicionarMissao(
-                "pegar_cesta",
-                "Enter the market and get a shopping basket",
-                "Entre no mercado e pegue uma cesta de compras"
-            );
+            catalogoMissoes = MissoesLocaisMarketAirport.Criar(cenario, SessaoCenario.Atual.Nivel);
+            cenarioCatalogo = cenario;
+            Debug.Log($"Checkpoint diagnóstico: catálogo local de {cenario}/{SessaoCenario.Atual.Nivel}.", this);
+            AvaliarEvento("cenario_iniciado", cenario);
         }
     }
 

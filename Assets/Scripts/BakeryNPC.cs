@@ -794,7 +794,7 @@ public class BakeryNPC : InteracaoNPC, IRoteiroNpcCheckpoint
                 "Hello! What are you looking for in the bakery section?",
                 "Yes, we do. Which sandwich would you like, and would you like some juice too?",
                 "Can I help you with anything else, or do you already have everything you need?",
-                "Here is your order. You are welcome."
+                "Here is your order."
             };
 
             exerciciosSpeaking.Add(

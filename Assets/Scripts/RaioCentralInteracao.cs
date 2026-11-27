@@ -32,6 +32,31 @@ public class RaioCentralInteracao : MonoBehaviour
         ClearLast();
     }
 
+    private const string PrefixoCestaCheckpoint = "market.basket.";
+
+    internal string MarcoCestaCheckpoint() => cestasRecolhidas.Count == 0
+        ? null : PrefixoCestaCheckpoint + RoteiroNpcCheckpoint.Hash(cestasRecolhidas[0].name);
+
+    internal void RestaurarCestaColetada(string marco)
+    {
+        if (cestasRecolhidas.Count != 0) return;
+        var mercado = GameObject.Find("MercadoCompleto");
+        if (mercado == null) return;
+        GameObject primeira = null;
+        foreach (var filho in mercado.GetComponentsInChildren<Transform>(true))
+        {
+            var cesta = filho.gameObject;
+            if (EncontrarCesta(cesta) != cesta) continue;
+            primeira ??= cesta;
+            if (marco != PrefixoCestaCheckpoint + RoteiroNpcCheckpoint.Hash(cesta.name)) continue;
+            primeira = cesta;
+            break;
+        }
+        if (primeira == null) return;
+        cestasRecolhidas.Add(primeira);
+        primeira.SetActive(false);
+    }
+
     private bool ModoVR => XRSettings.isDeviceActive;
 
     private void Update()

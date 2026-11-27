@@ -13,6 +13,164 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
+public sealed class CheckpointMissionRegressionTests
+{
+    private const BindingFlags Interno = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
+    private static readonly Assembly Jogo = typeof(MissionManager).Assembly;
+
+    [Test]
+    public void EditingDialogueLeavesTheCheckpointSignatureStable()
+    {
+        var classe = Jogo.GetType("RoteiroNpcCheckpoint");
+        object Criar(string fala, string acao)
+        {
+            object roteiro = Activator.CreateInstance(classe, Interno, null, new object[] { "npc_teste" }, null);
+            classe.GetMethod("Fala", Interno).Invoke(roteiro, new object[] { fala, null, null, null });
+            classe.GetMethod("Acao", Interno).Invoke(roteiro, new object[] { acao, null });
+            return classe.GetProperty("Assinatura", Interno).GetValue(roteiro);
+        }
+
+        object original = Criar("Old dialogue", "checkpoint.action");
+        Assert.That(Criar("Updated dialogue", "checkpoint.action"), Is.EqualTo(original));
+        Assert.That(Criar("Old dialogue", "changed.action"), Is.Not.EqualTo(original));
+    }
+
+    [Test]
+    public void MarketBasketCanResumeAsActiveBeforeAnyNpc()
+    {
+        var catalogo = CriarCatalogo("Market", "A1");
+        var concluidas = new System.Collections.Generic.List<string>();
+        Registrar(catalogo, "cenario_iniciado", "Market", concluidas.Add);
+        Registrar(catalogo, "marco_fluxo", "cesta_coletada", concluidas.Add);
+        Assert.That(concluidas, Does.Contain("pegar_cesta"));
+
+        var missoes = JArray.Parse(@"[
+            {""mission_key"":""pegar_cesta"",""status"":""completed"",""satisfied_events"":[]},
+            {""mission_key"":""falar_atendente"",""status"":""active"",""satisfied_events"":[]},
+            {""mission_key"":""falar_padaria"",""status"":""active"",""satisfied_events"":[]}]");
+        VerificarRestauracao(catalogo, CriarCatalogo("Market", "A1"), missoes, "pegar_cesta");
+        var estado = new JObject
+        {
+            ["phase"] = "scenario_active",
+            ["pose"] = new JObject { ["anchor_key"] = "market.entrance" },
+            ["visit"] = new JObject { ["step_key"] = "scenario.started", ["missions"] = missoes, ["exercises"] = new JArray() }
+        };
+        var entrada = Jogo.GetType("CheckpointJogo").GetMethod("TemEntradaAtiva", Interno);
+        Assert.That(entrada.Invoke(null, new object[] { estado, "market" }), Is.True);
+        estado["phase"] = "scenario_intro";
+        estado["visit"]["step_key"] = "scenario.intro";
+        Assert.That(entrada.Invoke(null, new object[] { estado, "market" }), Is.True);
+        estado["visit"]["missions"] = new JArray();
+        Assert.That(entrada.Invoke(null, new object[] { estado, "market" }), Is.False);
+    }
+
+    [Test]
+    public void ShelfA1AcceptsOnlyVerifiedHistoricalTerminalCursor()
+    {
+        var objeto = new GameObject("Shelf checkpoint regression");
+        objeto.SetActive(false);
+        try
+        {
+            var npc = objeto.AddComponent<ShelfNPC>();
+            var roteiro = typeof(ShelfNPC).GetMethod("DescreverRoteiro", Interno).Invoke(npc, new object[] { "A1" });
+            var validar = roteiro.GetType().GetMethod("Validar", Interno);
+            var visita = JObject.Parse(@"{
+                ""npc_key"":""shelf_npc"", ""level"":""A1"",
+                ""safe_steps"":[""script.1DB99ECF96F13AD9450E7969768D937E73C6B6CA4D36839172CF08F3E4E003CF"",
+                    ""action.route.finished"",""route.2"",""stops.2""],
+                ""exercises"":[
+                    {""key"":{""npc_key"":""shelf_npc"",""point_key"":""product_location"",""ordem"":1}},
+                    {""key"":{""npc_key"":""shelf_npc"",""point_key"":""additional_product"",""ordem"":1}},
+                    {""key"":{""npc_key"":""shelf_npc"",""point_key"":""additional_product"",""ordem"":2}},
+                    {""key"":{""npc_key"":""shelf_npc"",""point_key"":""shopping_complete"",""ordem"":1}}]
+            }");
+            Assert.DoesNotThrow(() => validar.Invoke(roteiro, new object[] { visita }));
+            ((JArray)visita["exercises"]).RemoveAt(3);
+            var erro = Assert.Throws<TargetInvocationException>(() => validar.Invoke(roteiro, new object[] { visita }));
+            Assert.That(erro.InnerException, Is.TypeOf<InvalidDataException>());
+        }
+        finally { UnityEngine.Object.DestroyImmediate(objeto); }
+    }
+
+    [Test]
+    public void VisitorParkRestoresTwoCompletedMissionsAndFinishesPendingOne()
+    {
+        var classe = Jogo.GetType("MissoesVisitorCenter");
+        object Novo() => classe.GetMethod("Criar", Interno).Invoke(null, new object[] { "A1" });
+        var origem = Novo();
+        Registrar(origem, "cenario_iniciado", "Visitor Center", _ => { });
+        Registrar(origem, "npc_interagido", "visitor_center_npc", _ => { });
+        Registrar(origem, "conversa_encerrada", "visitor_center_npc", _ => { });
+        var destino = Novo();
+        VerificarRestauracao(origem, destino, JArray.Parse(@"[
+            {""mission_key"":""visitor_center_a1_conversa"",""status"":""completed"",""satisfied_events"":[]},
+            {""mission_key"":""visitor_center_a1_atracoes"",""status"":""completed"",""satisfied_events"":[]},
+            {""mission_key"":""visitor_center_a1_city_park"",""status"":""active"",""satisfied_events"":[]}]"),
+            "visitor_center_a1_conversa", "visitor_center_a1_atracoes");
+        var concluidas = new System.Collections.Generic.List<string>();
+        Registrar(destino, "permanencia_confirmada", "city_park", concluidas.Add);
+        Assert.That(concluidas, Is.EqualTo(new[] { "visitor_center_a1_city_park" }));
+    }
+
+    [Test]
+    public void AirportLocalCatalogsCoverAllLevelsAndPreservePartialConditions()
+    {
+        foreach (var nivel in new[] { "A1", "A1-A2", "A2", "A2-B1", "B1" })
+            foreach (var cenario in new[] { "Market", "Airport" })
+                Assert.That(CriarCatalogo(cenario, nivel), Is.Not.Null);
+
+        var origem = CriarCatalogo("Airport", "A1-A2");
+        Registrar(origem, "cenario_iniciado", "Airport", _ => { });
+        Registrar(origem, "npc_interagido", "airport_info_npc", _ => { });
+        Registrar(origem, "conversa_encerrada", "airport_info_npc", _ => { });
+        Registrar(origem, "npc_interagido", "checkin_npc", _ => { });
+        Registrar(origem, "marco_fluxo", "documentos_solicitados", _ => { });
+        Registrar(origem, "exercicio_encerrado", "checkin_npc/travel_documents/1", _ => { });
+        Registrar(origem, "cartao_embarque_consultado", "cartao_embarque", _ => { });
+        var eventos = (JArray)origem.GetType().GetMethod("CapturarEventosCheckpoint", Interno)
+            .Invoke(origem, new object[] { "aeroporto_a1a2_5" });
+        Assert.That(eventos.Count, Is.EqualTo(1));
+        var missoes = new JArray();
+        for (int i = 1; i <= 5; i++)
+            missoes.Add(new JObject { ["mission_key"] = "aeroporto_a1a2_" + i,
+                ["status"] = i == 5 ? "active" : "completed", ["satisfied_events"] = i == 5 ? eventos : new JArray() });
+        var destino = CriarCatalogo("Airport", "A1-A2");
+        VerificarRestauracao(origem, destino, missoes,
+            "aeroporto_a1a2_1", "aeroporto_a1a2_2", "aeroporto_a1a2_3", "aeroporto_a1a2_4");
+        var concluidas = new System.Collections.Generic.List<string>();
+        Registrar(destino, "permanencia_confirmada", "portao_18", concluidas.Add);
+        Assert.That(concluidas, Is.EqualTo(new[] { "aeroporto_a1a2_5" }));
+    }
+
+    private static object CriarCatalogo(string cenario, string nivel) =>
+        Jogo.GetType("MissoesLocaisMarketAirport").GetMethod("Criar", Interno).Invoke(null, new object[] { cenario, nivel });
+
+    private static void Ignorar<T>(T _) { }
+
+    private static Delegate InicioIgnorado(MethodInfo metodo, int indice)
+    {
+        var tipo = metodo.GetParameters()[indice].ParameterType;
+        var ignorar = typeof(CheckpointMissionRegressionTests).GetMethod(nameof(Ignorar), Interno);
+        return ignorar.MakeGenericMethod(tipo.GetGenericArguments()[0]).CreateDelegate(tipo);
+    }
+
+    private static void Registrar(object catalogo, string tipo, string alvo, Action<string> concluir)
+    {
+        var metodo = catalogo.GetType().GetMethod("Registrar");
+        metodo.Invoke(catalogo, new object[] { tipo, alvo, InicioIgnorado(metodo, 2), concluir });
+    }
+
+    private static void VerificarRestauracao(object origem, object destino, JArray missoes, params string[] esperadas)
+    {
+        var inicios = origem.GetType().GetMethod("CapturarIniciosCheckpoint", Interno).Invoke(origem, null);
+        var concluidas = new System.Collections.Generic.List<string>();
+        var metodo = destino.GetType().GetMethod("RestaurarRoteiro", Interno);
+        Assert.That(metodo.Invoke(destino, new object[] { missoes, inicios,
+            InicioIgnorado(metodo, 2), (Action<string>)concluidas.Add, null }), Is.True);
+        Assert.That(concluidas, Is.EqualTo(esperadas));
+    }
+}
+
 public sealed class ScenarioIntroTests
 {
     [Test]

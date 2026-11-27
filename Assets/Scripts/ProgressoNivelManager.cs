@@ -61,38 +61,39 @@ public class ProgressoNivelManager : MonoBehaviour
         idsJaPontuados.Clear();
         chavesCheckpoint.Clear();
 
-        if (nivelAtual == "A1")
+        totalExercicios = nivelAtual switch
         {
-            totalExercicios = 14;
+            "A1" => 14,
+            "A2" => 16,
+            _ => 12
+        };
 
-            if (textoInicioNivel != null)
-                textoInicioNivel.text = "A1";
-
-            if (textoFimNivel != null)
-                textoFimNivel.text = "A2";
-        }
-        else if (nivelAtual == "A2")
+        var (inicio, fim) = nivelAtual switch
         {
-            totalExercicios = 16;
-
-            if (textoInicioNivel != null)
-                textoInicioNivel.text = "A2";
-
-            if (textoFimNivel != null)
-                textoFimNivel.text = "B1";
-        }
-        else
-        {
-            totalExercicios = 12;
-
-            if (textoInicioNivel != null)
-                textoInicioNivel.text = "B1";
-
-            if (textoFimNivel != null)
-                textoFimNivel.text = "";
-        }
-
+            "A1" => ("A1", "A1-A2"),
+            "A1-A2" => ("A1-A2", "A2"),
+            "A2" => ("A2", "A2-B1"),
+            "A2-B1" => ("A2-B1", "B1"),
+            "B1" => ("B1", ""),
+            _ => ("", "")
+        };
+        ExibirRotulo(textoInicioNivel, inicio);
+        ExibirRotulo(textoFimNivel, fim);
         AtualizarVisual();
+    }
+
+    private static void ExibirRotulo(TextMeshProUGUI rotulo, string nivel)
+    {
+        if (rotulo == null)
+            return;
+
+        if (!rotulo.enableAutoSizing)
+        {
+            rotulo.fontSizeMax = rotulo.fontSize;
+            rotulo.enableAutoSizing = true;
+        }
+        rotulo.textWrappingMode = TextWrappingModes.NoWrap;
+        rotulo.text = nivel;
     }
 
     public void RegistrarAcerto(ExercicioBase exercicio, InteracaoNPC origem = null)

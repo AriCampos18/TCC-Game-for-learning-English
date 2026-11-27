@@ -158,7 +158,7 @@ using UnityEngine.XR;
 public class FirstPlayerController : MonoBehaviour
 {
     [Header("Movimentação PC")]
-    public float speed = 5f;
+    public float speed = 7f;
     public float mouseSensitivity = 2f;
     public float jumpHeight = 1.5f;
     public float gravity = -15f;
