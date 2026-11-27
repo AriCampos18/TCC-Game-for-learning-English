@@ -94,6 +94,14 @@ public class RaioCentralInteracao : MonoBehaviour
             interactLayer
         ); //guarda um bool que indica se houve colisão com algum objeto na layer de interação
 
+        // Alguns avatares mantêm o collider na camada Default do modelo importado.
+        // Considere apenas o primeiro sólido fora da máscara, para não mirar um NPC através de uma parede.
+        if (TentarAtingirNpcForaDaMascara(ray, hitSomething ? hit.distance : distance, out var hitNpc))
+        {
+            hit = hitNpc;
+            hitSomething = true;
+        }
+
         // No PC: F interage com NPC.
         // No VR: botão A interage com NPC ou pega objetos.
         bool solicitouInteracaoVR =
@@ -170,18 +178,7 @@ public class RaioCentralInteracao : MonoBehaviour
 
             if (npc != null)
             {
-                // A missão da cesta é uma exigência exclusiva do Market.
-                bool npcDoMercado =
-                    npc is ShelfNPC ||
-                    npc is BakeryNPC ||
-                    npc is CashierNPC;
-
-                bool missaoCestaConcluida =
-                    MissionManager.Instance != null &&
-                    MissionManager.Instance.MissaoConcluida("pegar_cesta");
-
-                if ((npcDoMercado && !missaoCestaConcluida) ||
-                    !npc.PodeInteragir())
+                if (!NpcDisponivel(npc))
                 {
                     h = null;
                     npc = null;
@@ -203,28 +200,17 @@ public class RaioCentralInteracao : MonoBehaviour
         {
             ClearLast();
 
-            if (h != null)
-            {
-                lastHighlighted = h;
-                lastNPC = npc;
-                objetoAtual = novoObjeto;
-
+            lastNPC = npc;
+            objetoAtual = novoObjeto;
+            lastHighlighted = h;
+            if (lastHighlighted != null)
                 lastHighlighted.SetHighlight(true);
 
-                if (lastNPC != null)
-                {
-                    lastNPC.MostrarAviso(true); //mostrar aviso é o 'Clicar em F'
+            if (lastNPC != null)
+                lastNPC.MostrarAviso(true);
 
-                    if (modalAvisoMouse != null)
-                        modalAvisoMouse.SetActive(false);
-                }
-                else if (modalAvisoMouse != null)
-                {
-                    // No VR, o aviso visual pode ser adaptado depois para
-                    // mostrar o botão A, em vez do aviso de mouse.
-                    modalAvisoMouse.SetActive(podeInteragirObjeto);
-                }
-            }
+            if (modalAvisoMouse != null)
+                modalAvisoMouse.SetActive(podeInteragirObjeto);
         }
 
         //Esse if lida com a interação com avatar pelo desktop e com o interação com o avatar ou pegar objetos pelo VR.
@@ -254,6 +240,28 @@ public class RaioCentralInteracao : MonoBehaviour
 
             ClearLast();
         }
+    }
+
+    private bool TentarAtingirNpcForaDaMascara(Ray raio, float alcance, out RaycastHit hit)
+    {
+        int outrasCamadas = Physics.DefaultRaycastLayers & ~interactLayer.value;
+        if (!Physics.Raycast(raio, out hit, alcance, outrasCamadas, QueryTriggerInteraction.Ignore))
+            return false;
+
+        var npc = hit.collider.GetComponentInParent<InteracaoNPC>();
+        return NpcDisponivel(npc);
+    }
+
+    private static bool NpcDisponivel(InteracaoNPC npc)
+    {
+        if (npc == null || !npc.PertenceAoCenarioAtivo)
+            return false;
+
+        // A cesta faz parte da entrada no Market, independentemente da camada do NPC.
+        if (npc.Cenario == "Market" && MissionManager.Instance?.MissaoConcluida("pegar_cesta") != true)
+            return false;
+
+        return npc.PodeInteragir();
     }
 
     private static GameObject EncontrarCesta(GameObject objeto)
