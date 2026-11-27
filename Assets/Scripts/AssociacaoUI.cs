@@ -25,6 +25,12 @@ public class AssociacaoUI : MonoBehaviour
     private int indiceInglesSelecionado = -1;
     private int tentativasRestantes;
     private bool processandoPar;
+    private RectTransform areaAssociacao, areaColunas;
+    private ScrollRect rolagem;
+    private TextMeshProUGUI feedbackAssociacao;
+    private bool? feedbackCompartilhadoAtivo;
+    private const float AlturaFeedback = 52f;
+    private const float AlturaCabecalho = 30f;
 
     public event Action EstadoFinalizado;
 
@@ -32,7 +38,8 @@ public class AssociacaoUI : MonoBehaviour
     public bool TentativasEsgotadas { get; private set; }
     public bool PodeContinuar { get; private set; }
 
-    public bool InicializarExercicio(ExercicioAssociacao novoExercicio)
+    public bool InicializarExercicio(ExercicioAssociacao novoExercicio,
+        RectTransform enunciado = null, RectTransform continuar = null)
     {
         LimparBotoes();
         exercicio = novoExercicio;
@@ -44,6 +51,7 @@ public class AssociacaoUI : MonoBehaviour
         indiceInglesSelecionado = -1;
         processandoPar = false;
         OcultarControlesAntigos();
+        CriarContainersSeNecessario();
 
         if (!ValidarExercicio(novoExercicio))
         {
@@ -53,7 +61,6 @@ public class AssociacaoUI : MonoBehaviour
 
         portuguesConcluido = new bool[novoExercicio.opcoesPort.Count];
         inglesConcluido = new bool[novoExercicio.opcoesIngles.Count];
-        CriarContainersSeNecessario();
 
         for (int i = 0; i < novoExercicio.opcoesPort.Count; i++)
         {
@@ -73,6 +80,7 @@ public class AssociacaoUI : MonoBehaviour
             botao.onClick.AddListener(() => SelecionarIngles(indice));
         }
 
+        AjustarLayout(enunciado, continuar, Mathf.Max(botoesPortugues.Count, botoesIngles.Count));
         ExibirFeedback("Selecione uma palavra em cada coluna para formar um par.");
         return true;
     }
@@ -121,34 +129,119 @@ public class AssociacaoUI : MonoBehaviour
 
     private void CriarContainersSeNecessario()
     {
-        if (containerPortugues != null && containerIngles != null)
+        if (areaAssociacao != null) return;
+
+        areaAssociacao = (RectTransform)new GameObject("AreaAssociacao", typeof(RectTransform)).transform;
+        areaAssociacao.SetParent(transform, false);
+
+        var viewport = new GameObject("ViewportAssociacao", typeof(RectTransform), typeof(Image),
+            typeof(RectMask2D), typeof(ScrollRect));
+        var rectViewport = (RectTransform)viewport.transform;
+        rectViewport.SetParent(areaAssociacao, false);
+        rectViewport.anchorMin = Vector2.zero;
+        rectViewport.anchorMax = Vector2.one;
+        rectViewport.offsetMin = new Vector2(0f, AlturaFeedback + 8f);
+        rectViewport.offsetMax = Vector2.zero;
+        viewport.GetComponent<Image>().color = Color.clear;
+
+        rolagem = viewport.GetComponent<ScrollRect>();
+        rolagem.viewport = rectViewport;
+        rolagem.horizontal = false;
+        rolagem.movementType = ScrollRect.MovementType.Clamped;
+        rolagem.scrollSensitivity = 30f;
+
+        var colunas = new GameObject("ColunasAssociacao", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        areaColunas = (RectTransform)colunas.transform;
+        areaColunas.SetParent(rectViewport, false);
+        areaColunas.anchorMin = new Vector2(0f, 1f);
+        areaColunas.anchorMax = Vector2.one;
+        areaColunas.pivot = new Vector2(0.5f, 1f);
+        rolagem.content = areaColunas;
+
+        var layout = colunas.GetComponent<HorizontalLayoutGroup>();
+        layout.spacing = 20f;
+        layout.childControlWidth = layout.childControlHeight = layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        layout.childAlignment = TextAnchor.UpperCenter;
+
+        containerPortugues = PrepararColuna(containerPortugues, "ColunaPortugues");
+        containerIngles = PrepararColuna(containerIngles, "ColunaIngles");
+        CriarFeedbackAssociacao();
+    }
+
+    private Transform PrepararColuna(Transform coluna, string nome)
+    {
+        if (coluna == null) return CriarColuna(nome, areaColunas);
+        coluna.SetParent(areaColunas, false);
+        return coluna;
+    }
+
+    private void AjustarLayout(RectTransform enunciado, RectTransform continuar, int linhas)
+    {
+        var corpo = (RectTransform)transform;
+        if (corpo.parent is RectTransform card)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(card);
+        float topo = corpo.rect.yMax;
+        if (enunciado != null)
         {
-            GarantirTextoFeedback();
-            return;
+            float bordaEnunciado = enunciado.rect.yMin;
+            if (enunciado.TryGetComponent<TMP_Text>(out var texto))
+            {
+                texto.ForceMeshUpdate();
+                bordaEnunciado = Mathf.Min(bordaEnunciado, texto.textBounds.min.y);
+            }
+            topo = BordaVertical(corpo, enunciado, bordaEnunciado) - 8f;
+        }
+        float baseArea = continuar != null ? BordaVertical(corpo, continuar, continuar.rect.yMax) + 8f : corpo.rect.yMin;
+        if (textoFeedback != null && !feedbackCompartilhadoAtivo.HasValue)
+        {
+            // Deixa o espa?o do feedback original no Card para manter o Continue em sua posi??o.
+            feedbackCompartilhadoAtivo = textoFeedback.enabled;
+            textoFeedback.enabled = false;
         }
 
-        GameObject colunas = new GameObject(
-            "ColunasAssociacao",
-            typeof(RectTransform),
-            typeof(HorizontalLayoutGroup));
-        colunas.transform.SetParent(transform, false);
+        areaAssociacao.anchorMin = Vector2.zero;
+        areaAssociacao.anchorMax = Vector2.right;
+        areaAssociacao.offsetMin = new Vector2(20f, baseArea - corpo.rect.yMin);
+        areaAssociacao.offsetMax = new Vector2(-20f, topo - corpo.rect.yMin);
 
-        RectTransform rectColunas = colunas.GetComponent<RectTransform>();
-        rectColunas.anchorMin = Vector2.zero;
-        rectColunas.anchorMax = Vector2.one;
-        rectColunas.offsetMin = new Vector2(20f, 72f);
-        rectColunas.offsetMax = new Vector2(-20f, -62f);
+        float espaco = linhas >= 9 ? 4f : 8f;
+        float alturaVisivel = Mathf.Max(0f, topo - baseArea - AlturaFeedback - 8f);
+        float alturaLinha = Mathf.Clamp((alturaVisivel - AlturaCabecalho) / Mathf.Max(1, linhas) - espaco, 36f, 48f);
+        AjustarColuna(containerPortugues, botoesPortugues, alturaLinha, espaco);
+        AjustarColuna(containerIngles, botoesIngles, alturaLinha, espaco);
+        float alturaConteudo = AlturaCabecalho + linhas * (alturaLinha + espaco);
+        areaColunas.sizeDelta = new Vector2(0f, Mathf.Max(alturaVisivel, alturaConteudo));
+        areaColunas.anchoredPosition = Vector2.zero;
+        rolagem.vertical = alturaConteudo > alturaVisivel + 0.5f;
+        rolagem.StopMovement();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(areaColunas);
+        rolagem.verticalNormalizedPosition = 1f;
+    }
 
-        HorizontalLayoutGroup layoutColunas = colunas.GetComponent<HorizontalLayoutGroup>();
-        layoutColunas.spacing = 20f;
-        layoutColunas.childControlWidth = true;
-        layoutColunas.childControlHeight = true;
-        layoutColunas.childForceExpandWidth = true;
-        layoutColunas.childForceExpandHeight = false;
+    private static float BordaVertical(RectTransform corpo, RectTransform elemento, float borda) =>
+        corpo.InverseTransformPoint(elemento.TransformPoint(new Vector3(elemento.rect.center.x, borda, 0f))).y;
 
-        containerPortugues = CriarColuna("ColunaPortugues", colunas.transform);
-        containerIngles = CriarColuna("ColunaIngles", colunas.transform);
-        GarantirTextoFeedback();
+    private static void AjustarColuna(Transform coluna, List<Button> botoes, float altura, float espaco)
+    {
+        if (coluna.TryGetComponent<VerticalLayoutGroup>(out var layout))
+        {
+            layout.spacing = espaco;
+            layout.childControlHeight = true;
+        }
+        foreach (var botao in botoes)
+        {
+            var elemento = botao.GetComponent<LayoutElement>();
+            elemento.minHeight = elemento.preferredHeight = altura;
+            elemento.flexibleHeight = 0f;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (textoFeedback != null && feedbackCompartilhadoAtivo.HasValue)
+            textoFeedback.enabled = feedbackCompartilhadoAtivo.Value;
+        feedbackCompartilhadoAtivo = null;
     }
 
     private Transform CriarColuna(string nome, Transform pai)
@@ -163,7 +256,7 @@ public class AssociacaoUI : MonoBehaviour
         VerticalLayoutGroup layout = coluna.GetComponent<VerticalLayoutGroup>();
         layout.spacing = 8f;
         layout.childControlWidth = true;
-        layout.childControlHeight = false;
+        layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
@@ -190,7 +283,9 @@ public class AssociacaoUI : MonoBehaviour
         texto.fontSize = 22f;
         texto.color = Color.white;
 
-        objetoTexto.GetComponent<LayoutElement>().preferredHeight = 32f;
+        texto.raycastTarget = false;
+        var elemento = objetoTexto.GetComponent<LayoutElement>();
+        elemento.minHeight = elemento.preferredHeight = AlturaCabecalho;
     }
 
     private Button CriarBotao(string palavra, Transform container)
@@ -430,35 +525,27 @@ public class AssociacaoUI : MonoBehaviour
 
     private void ExibirFeedback(string mensagem)
     {
-        if (textoFeedback != null)
-            textoFeedback.text = mensagem;
+        if (feedbackAssociacao != null)
+            feedbackAssociacao.text = mensagem;
     }
 
-    private void GarantirTextoFeedback()
+    private void CriarFeedbackAssociacao()
     {
-        if (textoFeedback != null)
-            return;
+        var objeto = new GameObject("FeedbackAssociacao", typeof(RectTransform), typeof(TextMeshProUGUI));
+        var rect = (RectTransform)objeto.transform;
+        rect.SetParent(areaAssociacao, false);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.right;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = new Vector2(0f, AlturaFeedback);
 
-        GameObject objetoTexto = new GameObject(
-            "FeedbackAssociacao",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
-        objetoTexto.transform.SetParent(transform, false);
-
-        RectTransform rect = objetoTexto.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.anchoredPosition = new Vector2(0f, -12f);
-        rect.sizeDelta = new Vector2(-40f, 42f);
-
-        TextMeshProUGUI texto = objetoTexto.GetComponent<TextMeshProUGUI>();
-        texto.font = TMP_Settings.defaultFontAsset;
-        texto.alignment = TextAlignmentOptions.Center;
-        texto.fontSize = 20f;
-        texto.color = Color.white;
-        texto.raycastTarget = false;
-        textoFeedback = texto;
+        feedbackAssociacao = objeto.GetComponent<TextMeshProUGUI>();
+        feedbackAssociacao.font = textoFeedback != null && textoFeedback.font != null
+            ? textoFeedback.font : TMP_Settings.defaultFontAsset;
+        feedbackAssociacao.alignment = TextAlignmentOptions.Center;
+        feedbackAssociacao.fontSize = 22f;
+        feedbackAssociacao.color = textoFeedback != null ? textoFeedback.color : Color.white;
+        feedbackAssociacao.raycastTarget = false;
     }
 
     private void OcultarControlesAntigos()
@@ -487,13 +574,19 @@ public class AssociacaoUI : MonoBehaviour
         foreach (Button botao in botoesPortugues)
         {
             if (botao != null)
+            {
+                botao.gameObject.SetActive(false);
                 Destroy(botao.gameObject);
+            }
         }
 
         foreach (Button botao in botoesIngles)
         {
             if (botao != null)
+            {
+                botao.gameObject.SetActive(false);
                 Destroy(botao.gameObject);
+            }
         }
 
         botoesPortugues.Clear();

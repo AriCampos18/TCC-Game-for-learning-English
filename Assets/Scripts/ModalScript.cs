@@ -1367,7 +1367,9 @@ public class ModalExercicio : MonoBehaviour
             exercicioAssociacao.SetActive(true);
             associacaoUI.EstadoFinalizado -= AtualizarBotaoContinueAssociacao;
             associacaoUI.EstadoFinalizado += AtualizarBotaoContinueAssociacao;
-            if (!associacaoUI.InicializarExercicio((ExercicioAssociacao)ex))
+            if (!associacaoUI.InicializarExercicio((ExercicioAssociacao)ex,
+                enunciado != null ? enunciado.rectTransform : null,
+                confirmarResposta != null ? confirmarResposta.transform as RectTransform : null))
                 Debug.LogError("Não foi possível inicializar o exercício de associação.");
         }
         else if (tipo == TipoExercicio.CompletarFrase)
