@@ -1490,12 +1490,7 @@ public class BakeryNPC : InteracaoNPC, IRoteiroNpcCheckpoint
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
-            
-            while (audioSource.isPlaying)
-            {
-                await Task.Yield();
-            }
+            await ReproduzirVoz(audioSource, visita);
             ValidarVisita(visita);
 
             if (modalLegenda != null)

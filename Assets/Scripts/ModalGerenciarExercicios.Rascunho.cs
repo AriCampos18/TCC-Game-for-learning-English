@@ -14,6 +14,8 @@ public sealed partial class ModalGerenciarExercicios
     private List<Linha> roteiro;
     private (int cenario, string nivel) filtro;
     private GameObject submodal, aviso;
+    internal GameObject SubmodalAberto => submodal;
+    internal GameObject AvisoAberto => aviso;
     private CanvasGroup bloqueio;
     private int indiceSubmodal;
     private bool interagiaAntes, bloqueavaAntes;
@@ -259,6 +261,7 @@ public sealed partial class ModalGerenciarExercicios
             status.text = titulo + " · " + mensagem;
             return;
         }
+        AvisoCompacto.EncerrarNoPainel(painel);
         aviso = painel;
         int indiceAviso = painel.transform.GetSiblingIndex();
         painel.transform.SetAsLastSibling();

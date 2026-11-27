@@ -1019,6 +1019,10 @@ public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
 
     private float tempoParadoCityPark;
     private Vector3 ultimaPosicaoPlayer;
+    private int versaoChegadaCityPark;
+    private GameObject painelAvisoCityPark;
+    private AvisoCompacto avisoCityPark;
+    private string mensagemChegadaCityPark;
 
     private const float DistanciaChegadaCityPark = 2f;
     private const float TempoNecessarioCityPark = 3f;
@@ -1064,26 +1068,29 @@ public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
     private void Update()
     {
         if (!PertenceAoCenarioAtivo || !atendimentoConcluido || !aguardandoChegadaCityPark || finalizacaoIniciada)
-            return;
-
-        if (VisitaAtual != visitaAtendida)
         {
+            FecharAvisoCityPark();
+            return;
+        }
+
+        if (!SessaoCenario.Atual.Corresponde(versaoChegadaCityPark) || VisitaAtual != visitaAtendida)
+        {
+            FecharAvisoCityPark();
             aguardandoChegadaCityPark = false;
             if (marcadorCityPark != null)
                 marcadorCityPark.SetActive(false);
             return;
         }
 
-        if (GameProgress.EstaEmDialogo)
+        if (pontoChegadaCityPark == null || movimentoPlayer == null)
         {
-            tempoParadoCityPark = 0f;
+            FecharAvisoCityPark();
             return;
         }
 
-        if (pontoChegadaCityPark == null || movimentoPlayer == null)
-            return;
-
         Vector3 posicaoAtual = movimentoPlayer.transform.position;
+        Vector3 movimento = posicaoAtual - ultimaPosicaoPlayer;
+        ultimaPosicaoPlayer = posicaoAtual;
 
         // Verifica a distância até o marcador, ignorando a altura.
         Vector3 deslocamento = posicaoAtual - pontoChegadaCityPark.position;
@@ -1093,10 +1100,10 @@ public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
             deslocamento.sqrMagnitude <=
             DistanciaChegadaCityPark * DistanciaChegadaCityPark;
 
-        if (dentroDaArea)
+        if (dentroDaArea && !GameProgress.EstaEmDialogo)
         {
-            // Calcula quanto o jogador se movimentou.
-            Vector3 movimento = posicaoAtual - ultimaPosicaoPlayer;
+            if (avisoCityPark == null && painelAvisoCityPark != null && !painelAvisoCityPark.activeSelf)
+                avisoCityPark = AvisoCompacto.AbrirNoPainel(painelAvisoCityPark, mensagemChegadaCityPark, inferior: true);
             movimento.y = 0f;
 
             float velocidade = movimento.magnitude /
@@ -1129,6 +1136,7 @@ public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
                 }
 
                 aguardandoChegadaCityPark = false;
+                FecharAvisoCityPark();
 
                 if (marcadorCityPark != null)
                     marcadorCityPark.SetActive(false);
@@ -1144,12 +1152,18 @@ public class VisitorCenterNPC: InteracaoNPC, IRoteiroNpcCheckpoint
         }
         else
         {
-            // Saiu da área: zera o contador.
             tempoParadoCityPark = 0f;
+            FecharAvisoCityPark();
         }
-
-        ultimaPosicaoPlayer = posicaoAtual;
     }
+
+    private void FecharAvisoCityPark()
+    {
+        avisoCityPark?.Dispose();
+        avisoCityPark = null;
+    }
+
+    private void OnDisable() => FecharAvisoCityPark();
 
     private async void FinalizarCenarioAposChegada()
     {
@@ -2002,6 +2016,10 @@ else if (nivelAtual == "A2-B1")
         if (idMissaoChegadaCityPark == null)
             return;
 
+        FecharAvisoCityPark();
+        versaoChegadaCityPark = SessaoCenario.Atual.Versao;
+        painelAvisoCityPark = VinculosModaisTcc.Painel(gameObject, "ModalErroAviso");
+        mensagemChegadaCityPark = $"Fique parado por {TempoNecessarioCityPark} segundos para completar a missão.";
         tempoParadoCityPark = 0f;
         ultimaPosicaoPlayer = movimentoPlayer.transform.position;
         atendimentoConcluido = true;
@@ -2295,12 +2313,7 @@ else if (nivelAtual == "A2-B1")
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
-            
-            while (audioSource.isPlaying)
-            {
-                await Task.Yield();
-            }
+            await ReproduzirVoz(audioSource, visita);
             ValidarVisita(visita);
 
             if (modalLegenda != null)

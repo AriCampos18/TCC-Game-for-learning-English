@@ -30,6 +30,9 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
     private bool shiftEnabled;
     private Func<bool> isVrActive = () => XRSettings.isDeviceActive;
 
+    internal GameObject PainelPara(Transform origem) =>
+        focusedField != null && focusedField.transform.IsChildOf(origem) ? keyboardPanel : null;
+
     private void Awake()
     {
         SetAllowedFields(allowedFields);

@@ -2121,12 +2121,6 @@ else if (nivelAtual == "A2-B1")
     private async Task AguardarAvancoComDocumento(bool apresentarDocumento)
     {
         int visita = SessaoCenario.Atual.Versao;
-        async Task AguardarQuadro()
-        {
-            await Task.Yield();
-            ValidarVisita(visita);
-        }
-
         if (apresentarDocumento && (documentoCurso == null || !documentoCurso.Disponibilizar(nivelAtual)))
             Debug.LogWarning("SecretaryCollegeNPC: configure o documento do curso para completar esta missão.", this);
 
@@ -2140,27 +2134,19 @@ else if (nivelAtual == "A2-B1")
         documentoCurso.MostrarBotao(true);
         try
         {
-            while (AvancoDialogoPressionado())
-                await AguardarQuadro();
-
             while (true)
             {
-                while (!AvancoDialogoPressionado())
-                    await AguardarQuadro();
-
-                int quadroPressionado = Time.frameCount;
-                bool painelEstavaAberto = documentoCurso.Aberto;
-                while (AvancoDialogoPressionado())
-                    await AguardarQuadro();
-
-                // O EventSystem pode abrir ou fechar o painel ao soltar o botão.
-                await AguardarQuadro();
+                int quadroPressionado = 0;
+                bool painelEstavaAberto = false;
+                await BotaoConfiguracoes.AguardarComandoDialogo(AvancoDialogoPressionado,
+                    () => ValidarVisita(visita), () =>
+                    {
+                        quadroPressionado = Time.frameCount;
+                        painelEstavaAberto = documentoCurso.Aberto;
+                    });
                 if (!painelEstavaAberto && !documentoCurso.Aberto
                     && documentoCurso.UltimoQuadroInteracao < quadroPressionado)
                     return;
-
-                while (AvancoDialogoPressionado())
-                    await AguardarQuadro();
             }
         }
         finally
@@ -2254,12 +2240,7 @@ else if (nivelAtual == "A2-B1")
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSourceComum.Play();
-            
-            while (audioSourceComum.isPlaying)
-            {
-                await Task.Yield();
-            }
+            await ReproduzirVoz(audioSourceComum, visita);
             ValidarVisita(visita);
 
             if (modalLegenda != null)

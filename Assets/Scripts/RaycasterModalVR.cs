@@ -57,6 +57,7 @@ public sealed class RaycasterModalVR : GraphicRaycaster
             {
                 if (candidato.module is not GraphicRaycaster || candidato.gameObject == null) continue;
                 var alvo = candidato.gameObject.transform;
+                if (!BotaoConfiguracoes.PermitePonteiro(alvo)) continue;
                 var canvasAlvo = alvo.GetComponentInParent<Canvas>();
                 if (canvasAlvo == null || canvasAlvo.rootCanvas != canvasLocal) continue;
                 if (manager.PainelDe(alvo) == painel)

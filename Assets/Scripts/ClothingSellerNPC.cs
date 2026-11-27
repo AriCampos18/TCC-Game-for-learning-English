@@ -2742,12 +2742,7 @@ respostaCorreta = 2
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSourceComum.Play();
-            
-            while (audioSourceComum.isPlaying)
-            {
-                await Task.Yield();
-            }
+            await ReproduzirVoz(audioSourceComum, visita);
             ValidarVisita(visita);
 
             if (modalLegenda != null)

@@ -382,10 +382,10 @@ public sealed class AuthenticationUIController : MonoBehaviour
         virtualKeyboard.HideKeyboard();
         BloquearControleDoJogador();
         CheckpointJogo checkpoint = null;
-        AvisoCarregamentoProgresso aviso = null;
+        AvisoCompacto aviso = null;
         try
         {
-            aviso = AvisoCarregamentoProgresso.Abrir(gameObject);
+            aviso = AvisoCompacto.Abrir(gameObject, "Carregando progresso...");
             if (await CheckpointJogo.Conectar(this))
             {
                 if (this == null) return false;
@@ -440,121 +440,6 @@ public sealed class AuthenticationUIController : MonoBehaviour
             "Não foi possível abrir um checkpoint seguro para esta conta.",
             "A safe checkpoint could not be opened for this account.");
         return false;
-    }
-
-    private sealed class AvisoCarregamentoProgresso : IDisposable
-    {
-        private readonly GameObject painel, titulo, botao;
-        private readonly TMP_Text mensagem;
-        private readonly RectTransform rect, rectMensagem;
-        private readonly Vector2 ancoraMin, ancoraMax, tamanho, posicao;
-        private readonly Vector2 ancoraMinMensagem, ancoraMaxMensagem, tamanhoMensagem, posicaoMensagem;
-        private readonly VerticalLayoutGroup layout;
-        private readonly bool layoutAtivo, autoSize;
-        private readonly Vector4 margensMensagem;
-        private readonly float tamanhoFonte;
-        private readonly TextWrappingModes quebraTexto;
-        private readonly bool tituloAtivo, botaoAtivo, mensagemAtiva, richText;
-        private readonly int indice;
-        private readonly string texto;
-        private readonly TextAlignmentOptions alinhamento;
-        private bool encerrado;
-
-        internal static AvisoCarregamentoProgresso Abrir(GameObject origem)
-        {
-            var painel = VinculosModaisTcc.Painel(origem, "ModalErroAviso");
-            var titulo = painel?.transform.Find("Titulo");
-            var botao = painel?.transform.Find("Ok");
-            var mensagem = VinculosModaisTcc.Filho<TMP_Text>(painel, "MsgErroAviso");
-            if (painel == null || painel.activeSelf || titulo == null || botao == null || mensagem == null
-                || painel.transform is not RectTransform)
-                return null;
-
-            return new AvisoCarregamentoProgresso(painel, titulo.gameObject, botao.gameObject, mensagem);
-        }
-
-        private AvisoCarregamentoProgresso(GameObject painel, GameObject titulo, GameObject botao, TMP_Text mensagem)
-        {
-            this.painel = painel;
-            this.titulo = titulo;
-            this.botao = botao;
-            this.mensagem = mensagem;
-            rect = (RectTransform)painel.transform;
-            rectMensagem = mensagem.rectTransform;
-            ancoraMin = rect.anchorMin;
-            ancoraMax = rect.anchorMax;
-            tamanho = rect.sizeDelta;
-            posicao = rect.anchoredPosition;
-            ancoraMinMensagem = rectMensagem.anchorMin;
-            ancoraMaxMensagem = rectMensagem.anchorMax;
-            tamanhoMensagem = rectMensagem.sizeDelta;
-            posicaoMensagem = rectMensagem.anchoredPosition;
-            layout = painel.GetComponent<VerticalLayoutGroup>();
-            layoutAtivo = layout != null && layout.enabled;
-            autoSize = mensagem.enableAutoSizing;
-            tamanhoFonte = mensagem.fontSize;
-            margensMensagem = mensagem.margin;
-            quebraTexto = mensagem.textWrappingMode;
-            tituloAtivo = titulo.activeSelf;
-            botaoAtivo = botao.activeSelf;
-            mensagemAtiva = mensagem.gameObject.activeSelf;
-            richText = mensagem.richText;
-            texto = mensagem.text;
-            alinhamento = mensagem.alignment;
-            indice = painel.transform.GetSiblingIndex();
-
-            titulo.SetActive(false);
-            botao.SetActive(false);
-            mensagem.gameObject.SetActive(true);
-            if (layout != null) layout.enabled = false;
-            rectMensagem.anchorMin = Vector2.zero;
-            rectMensagem.anchorMax = Vector2.one;
-            rectMensagem.offsetMin = new Vector2(20f, 12f);
-            rectMensagem.offsetMax = -rectMensagem.offsetMin;
-            mensagem.margin = Vector4.zero;
-            mensagem.enableAutoSizing = false;
-            mensagem.fontSize = 26f;
-            mensagem.textWrappingMode = TextWrappingModes.NoWrap;
-            mensagem.alignment = TextAlignmentOptions.Center;
-            VinculosModaisTcc.Texto(mensagem, "Carregando progresso...");
-            var canvas = painel.GetComponentInParent<Canvas>(true);
-            bool overlay = canvas != null && canvas.rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay;
-            var centro = Vector2.one * 0.5f;
-            var meiaFracaoDesktop = new Vector2(0.175f, 0.075f);
-            rect.anchorMin = overlay ? centro - meiaFracaoDesktop : centro;
-            rect.anchorMax = overlay ? centro + meiaFracaoDesktop : centro;
-            rect.sizeDelta = overlay ? Vector2.zero : new Vector2(340f, 108f);
-            rect.anchoredPosition = Vector2.zero;
-            painel.transform.SetAsLastSibling();
-            painel.SetActive(true);
-        }
-
-        public void Dispose()
-        {
-            if (encerrado || painel == null) return;
-            encerrado = true;
-            painel.SetActive(false);
-            rect.anchorMin = ancoraMin;
-            rect.anchorMax = ancoraMax;
-            rect.sizeDelta = tamanho;
-            rect.anchoredPosition = posicao;
-            painel.transform.SetSiblingIndex(indice);
-            titulo.SetActive(tituloAtivo);
-            botao.SetActive(botaoAtivo);
-            mensagem.gameObject.SetActive(mensagemAtiva);
-            mensagem.richText = richText;
-            mensagem.text = texto;
-            mensagem.alignment = alinhamento;
-            mensagem.margin = margensMensagem;
-            mensagem.enableAutoSizing = autoSize;
-            mensagem.fontSize = tamanhoFonte;
-            mensagem.textWrappingMode = quebraTexto;
-            rectMensagem.anchorMin = ancoraMinMensagem;
-            rectMensagem.anchorMax = ancoraMaxMensagem;
-            rectMensagem.sizeDelta = tamanhoMensagem;
-            rectMensagem.anchoredPosition = posicaoMensagem;
-            if (layout != null) layout.enabled = layoutAtivo;
-        }
     }
 
     private static void BloquearControleDoJogador()
@@ -922,6 +807,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
     {
         if (errorModal != null)
         {
+            AvisoCompacto.EncerrarNoPainel(errorModal);
             errorModal.SetActive(false);
         }
     }

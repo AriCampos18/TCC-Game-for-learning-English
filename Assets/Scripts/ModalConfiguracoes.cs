@@ -41,7 +41,8 @@ public class ModalConfiguracoes : MonoBehaviour
 
     private void OnEnable()
     {
-        modalGerenciarExs ??= VinculosModaisTcc.Painel(gameObject, "ModalGerenciarExercicios");
+        if (modalGerenciarExs == null)
+            modalGerenciarExs = VinculosModaisTcc.Painel(gameObject, "ModalGerenciarExercicios");
         AtualizarBotoes();
     }
 
@@ -62,7 +63,8 @@ public class ModalConfiguracoes : MonoBehaviour
 
     public void AbrirGerenciarExs()
     {
-        modalGerenciarExs ??= VinculosModaisTcc.Painel(gameObject, "ModalGerenciarExercicios");
+        if (modalGerenciarExs == null)
+            modalGerenciarExs = VinculosModaisTcc.Painel(gameObject, "ModalGerenciarExercicios");
         if (!ModalGerenciarExercicios.TemAcesso)
             return;
         if (modalGerenciarExs != null && modalGerenciarExs.TryGetComponent<ModalGerenciarExercicios>(out var gerenciar)

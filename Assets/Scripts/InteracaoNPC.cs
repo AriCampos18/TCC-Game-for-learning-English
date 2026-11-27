@@ -275,6 +275,7 @@ public class InteracaoNPC : MonoBehaviour
 
         try
         {
+            await AguardarConfiguracoes(visita);
             if (avisoAvanco != null)
                 avisoAvanco.gameObject.SetActive(false);
             if (exibirLegenda && legenda != null)
@@ -283,12 +284,7 @@ public class InteracaoNPC : MonoBehaviour
             if (clip != null)
             {
                 fonte.clip = clip;
-                fonte.Play();
-                while (fonte.isPlaying)
-                {
-                    ValidarVisita(visita);
-                    await Task.Yield();
-                }
+                await ReproduzirVoz(fonte, visita);
             }
 
             if (aguardarAvanco || clip == null)
@@ -321,6 +317,46 @@ public class InteracaoNPC : MonoBehaviour
                     legenda.SetActive(false);
             }
         }
+    }
+
+    private async Task AguardarConfiguracoes(int visita)
+    {
+        while (BotaoConfiguracoes.DialogoSuspenso)
+        {
+            ValidarVisita(visita);
+            await Awaitable.NextFrameAsync();
+        }
+        ValidarVisita(visita);
+    }
+
+    protected async Task ReproduzirVoz(AudioSource fonte, int visita)
+    {
+        await AguardarConfiguracoes(visita);
+        fonte.Play();
+        while (fonte.isPlaying)
+        {
+            ValidarVisita(visita);
+            if (BotaoConfiguracoes.DialogoSuspenso)
+            {
+                AudioClip clip = fonte.clip;
+                fonte.Pause();
+                try
+                {
+                    await AguardarConfiguracoes(visita);
+                }
+                catch (System.OperationCanceledException)
+                {
+                    if (fonte != null && fonte.clip == clip)
+                        fonte.Stop();
+                    throw;
+                }
+                if (fonte == null || fonte.clip != clip)
+                    return;
+                fonte.UnPause();
+            }
+            await Awaitable.NextFrameAsync();
+        }
+        await AguardarConfiguracoes(visita);
     }
 
     private async Task<AudioClip> CarregarAudioDaFala(BackendManager backend, string fala, string voz, int visita)
@@ -373,22 +409,7 @@ public class InteracaoNPC : MonoBehaviour
     protected async Task AguardarAvancoDialogo()
     {
         int visita = SessaoCenario.Atual.Versao;
-        while (AvancoDialogoPressionado())
-        {
-            ValidarVisita(visita);
-            await Task.Yield();
-        }
-        while (!AvancoDialogoPressionado())
-        {
-            ValidarVisita(visita);
-            await Task.Yield();
-        }
-        while (AvancoDialogoPressionado())
-        {
-            ValidarVisita(visita);
-            await Task.Yield();
-        }
-        ValidarVisita(visita);
+        await BotaoConfiguracoes.AguardarComandoDialogo(AvancoDialogoPressionado, () => ValidarVisita(visita));
     }
 
     protected bool AvancoDialogoPressionado()

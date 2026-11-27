@@ -2703,12 +2703,7 @@ else if (nivelAtual == "A2-B1")
                     .MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSourceComum.Play();
-            
-            while (audioSourceComum.isPlaying)
-            {
-                await Task.Yield();
-            }
+            await ReproduzirVoz(audioSourceComum, visita);
             ValidarVisita(visita);
 
             if (modalLegenda != null)

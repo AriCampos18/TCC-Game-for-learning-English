@@ -76,6 +76,8 @@ public class ModoJogoManager : MonoBehaviour
     private readonly System.Collections.Generic.List<Canvas> interfacesSimulador = new();
     private ModalSelecaoCenario selecaoCenario;
     private ModalConfiguracoes configuracoes;
+    private BotaoConfiguracoes aberturaConfiguracoes;
+    private ModalFinalManager hud;
     private FirstPlayerController controleJogador;
     private LocomotionMediator mediadorXR;
     private ContinuousMoveProvider movimentoXR;
@@ -107,6 +109,7 @@ public class ModoJogoManager : MonoBehaviour
     private int quadroInteracaoUi = -1;
     private const string NomeRaioCanvas = "ISDK_RayCanvasInteraction";
     private VRVirtualKeyboard tecladoVR;
+    internal GameObject TecladoPara(Transform painel) => tecladoVR != null ? tecladoVR.PainelPara(painel) : null;
     private bool apresentacaoXRAtiva;
     private readonly List<(PointableCanvas ponto, RectTransform painel, Canvas canvas, BoundsClipper limites,
         RenderMode modo, Camera camera)> raiosModais = new();
@@ -142,8 +145,6 @@ public class ModoJogoManager : MonoBehaviour
         private readonly Vector2 ancoraMin, ancoraMax, tamanho, pivo;
         private readonly Vector2 resolucaoDesktop;
         private readonly ModalSelecaoCenario selecao;
-        private readonly RectTransform botaoConfiguracoes;
-        private readonly Vector2 ancoraMinBotaoVR, ancoraMaxBotaoVR, posicaoBotaoVR;
         private readonly RectTransform instrucoes;
         private readonly Vector2 posicaoInstrucoesVR;
         private readonly List<PainelRecuperacaoDesktop> paineisRecuperacao = new();
@@ -182,14 +183,6 @@ public class ModoJogoManager : MonoBehaviour
                 AdicionarPainelRecuperacao("ModalCodigoEmail", 448f);
                 AdicionarPainelRecuperacao("ModalNovaSenha", 460f);
             }
-            botaoConfiguracoes = canvas.GetComponentInChildren<BotaoConfiguracoes>(true)
-                ?.botaoConfiguracoes?.transform as RectTransform;
-            if (botaoConfiguracoes != null)
-            {
-                ancoraMinBotaoVR = botaoConfiguracoes.anchorMin;
-                ancoraMaxBotaoVR = botaoConfiguracoes.anchorMax;
-                posicaoBotaoVR = botaoConfiguracoes.anchoredPosition;
-            }
         }
 
         private void AdicionarPainelRecuperacao(string nome, float altura)
@@ -220,12 +213,6 @@ public class ModoJogoManager : MonoBehaviour
                 scaler.referenceResolution = resolucaoDesktop;
                 scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.Expand;
             }
-            if (botaoConfiguracoes != null)
-            {
-                botaoConfiguracoes.anchorMin = Vector2.one;
-                botaoConfiguracoes.anchorMax = Vector2.one;
-                botaoConfiguracoes.anchoredPosition = new Vector2(-56, -56);
-            }
             if (selecao != null) selecao.DefinirLayoutDesktop(true);
             if (instrucoes != null) instrucoes.anchoredPosition = Vector2.zero;
             foreach (var painel in paineisRecuperacao) painel.Aplicar();
@@ -252,12 +239,6 @@ public class ModoJogoManager : MonoBehaviour
             rect.anchoredPosition3D = posicao;
             rect.localRotation = rotacao;
             rect.localScale = escala;
-            if (botaoConfiguracoes != null)
-            {
-                botaoConfiguracoes.anchorMin = ancoraMinBotaoVR;
-                botaoConfiguracoes.anchorMax = ancoraMaxBotaoVR;
-                botaoConfiguracoes.anchoredPosition = posicaoBotaoVR;
-            }
             if (selecao != null) selecao.DefinirLayoutDesktop(false);
             if (instrucoes != null) instrucoes.anchoredPosition = posicaoInstrucoesVR;
             foreach (var painel in paineisRecuperacao) painel.Restaurar();
@@ -399,6 +380,7 @@ public class ModoJogoManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+            hud = FindAnyObjectByType<ModalFinalManager>(FindObjectsInactive.Include);
             uiMode = false;
             if (canvasesInterface != null)
                 foreach (var canvas in canvasesInterface)
@@ -408,6 +390,8 @@ public class ModoJogoManager : MonoBehaviour
                         selecaoCenario = canvas.GetComponentInChildren<ModalSelecaoCenario>(true);
                     if (configuracoes == null)
                         configuracoes = canvas.GetComponentInChildren<ModalConfiguracoes>(true);
+                    if (aberturaConfiguracoes == null)
+                        aberturaConfiguracoes = canvas.GetComponentInChildren<BotaoConfiguracoes>(true);
                     if (tecladoVR == null)
                         tecladoVR = canvas.GetComponentInChildren<VRVirtualKeyboard>(true);
                 }
@@ -465,7 +449,6 @@ public class ModoJogoManager : MonoBehaviour
         AtualizarInterfaceXR(vr);
         AtualizarPoseLogin(vr);
         if (eventosConfiguradosRV != vr) ConfigurarEventoUi(vr);
-        AtualizarSuperficiesXR(vr);
         if (vr && canvasesInterface != null)
             foreach (var canvas in canvasesInterface)
                 if (canvas != null) camerasInterfaceAntesDoRaycast[canvas] = canvas.worldCamera;
@@ -478,9 +461,15 @@ public class ModoJogoManager : MonoBehaviour
         if (mediadorXR != null) mediadorXR.enabled = vr;
         if (movimentoXR != null) movimentoXR.enabled = permitirLocomocao;
         var checkpoint = CheckpointJogo.Instance;
+        aberturaConfiguracoes?.AtualizarVisibilidade(!autenticacaoAberta && !entradaAberta
+            && AuthenticationUIController.Instance?.Session?.IsAuthenticated == true
+            && checkpoint != null && CheckpointJogo.PodeAvancar && hud != null
+            && hud.modalBarraProgressao != null && hud.modalBarraProgressao.activeInHierarchy
+            && hud.modalMissoes != null && hud.modalMissoes.activeInHierarchy);
+        AtualizarSuperficiesXR(vr);
         if (configuracoes != null)
             configuracoes.AplicarPreferenciaTurn(checkpoint != null ? checkpoint.ModoGiro : "snap", permitirLocomocao);
-        if (!ModoVR && !entradaAberta && !autenticacaoAberta
+        if (!ModoVR && !entradaAberta && !autenticacaoAberta && !BotaoConfiguracoes.DialogoSuspenso
             && Input.GetKeyDown(KeyCode.LeftAlt))
         {
             AlternarModoUI();
@@ -800,6 +789,8 @@ public class ModoJogoManager : MonoBehaviour
     internal static bool PermitePonteiro(Transform painel)
     {
         if (!painel.gameObject.activeInHierarchy) return false;
+        if (!BotaoConfiguracoes.PermitePonteiro(painel))
+            return false;
         for (var atual = painel; atual != null; atual = atual.parent)
             if (atual.TryGetComponent<CanvasGroup>(out var grupo))
             {
@@ -809,12 +800,28 @@ public class ModoJogoManager : MonoBehaviour
         return true;
     }
 
+    internal bool GarantirSuperficieConfiguracoesRV(Canvas canvas)
+    {
+        if (canvas == null || canvas.transform is not RectTransform painel)
+            return false;
+
+        bool SuperficieVinculada() => raiosModais.Exists(item =>
+            item.painel == painel && item.canvas == canvas && item.ponto != null && item.limites != null);
+
+        if (!SuperficieVinculada())
+            PrepararSuperficieXR(painel);
+        return SuperficieVinculada() && canvas.TryGetComponent<RaycasterModalVR>(out var raycaster)
+            && raycaster != null && raycaster.enabled;
+    }
+
     private void PrepararRaycaster(Canvas canvas)
     {
         if (canvas == null || canvas.TryGetComponent<RaycasterModalVR>(out _)) return;
 
         var anterior = canvas.GetComponent<GraphicRaycaster>();
         var scoped = canvas.gameObject.AddComponent<RaycasterModalVR>();
+        if (scoped == null)
+            throw new MissingComponentException($"Não foi possível preparar o raycaster de {canvas.name}.");
         if (anterior == null) return;
 
         scoped.ignoreReversedGraphics = anterior.ignoreReversedGraphics;
@@ -836,6 +843,11 @@ public class ModoJogoManager : MonoBehaviour
     private void EncaminharPonteiro(Canvas raiz, RectTransform painel, PointerEvent evento)
     {
         if (!ModoVR || moduloMeta == null || !moduloMeta.isActiveAndEnabled) return;
+        if (!PermitePonteiro(painel) && evento.Type != PointerEventType.Unhover && evento.Type != PointerEventType.Cancel)
+        {
+            CancelarPonteirosDoPainel(painel, raiz);
+            return;
+        }
         var paineis = RaycasterModalVR.PaineisPorPonteiro;
         if (evento.Type == PointerEventType.Hover)
         {

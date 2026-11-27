@@ -49,40 +49,19 @@ public sealed class ProvadorClothingStore : MonoBehaviour
     internal async Task<bool> AguardarEscolha(bool podeAvancarDialogo, Action validarVisita = null)
     {
         int visita = SessaoCenario.Atual.Versao;
-        async Task AguardarQuadro()
-        {
-            await ProximoFrame();
-            validarVisita?.Invoke();
-        }
-
         bool avisoEstavaVisivel = avisoProvarRoupa != null && avisoProvarRoupa.activeSelf;
         if (avisoProvarRoupa != null)
             avisoProvarRoupa.SetActive(true);
 
         try
         {
-            // A confirmação que fechou o exercício ou a fala anterior já foi consumida.
-            await AguardarQuadro();
-            while (Pressionado())
-                await AguardarQuadro();
-
             while (true)
             {
-                if (Pressionado())
-                {
-                    bool acertouPeca = AtingiuPeca();
-                    if (acertouPeca || podeAvancarDialogo)
-                    {
-                        while (Pressionado())
-                            await AguardarQuadro();
-                        return acertouPeca;
-                    }
-
-                    while (Pressionado())
-                        await AguardarQuadro();
-                }
-
-                await AguardarQuadro();
+                bool acertouPeca = false;
+                await BotaoConfiguracoes.AguardarComandoDialogo(Pressionado, validarVisita,
+                    () => acertouPeca = AtingiuPeca());
+                if (acertouPeca || podeAvancarDialogo)
+                    return acertouPeca;
             }
         }
         finally

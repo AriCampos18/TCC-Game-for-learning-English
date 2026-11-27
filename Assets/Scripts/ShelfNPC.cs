@@ -899,12 +899,7 @@ else if (nivelAtual == "A2-B1")
                 modalLegenda.GetComponent<ModalLegenda>().MostrarLegenda(nomeExibicaoLegenda, textoParaFalar);
             }
             
-            audioSource.Play();
-            
-            while (audioSource.isPlaying)
-            {
-                await Task.Yield();
-            }
+            await ReproduzirVoz(audioSource, visita);
             ValidarVisita(visita);
         }
     }
