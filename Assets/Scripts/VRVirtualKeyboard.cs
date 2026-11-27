@@ -29,12 +29,32 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
     private GameObject ultimaSelecao;
     private bool shiftEnabled;
     private Func<bool> isVrActive = () => XRSettings.isDeviceActive;
+    private Transform paiOriginal;
+    private int indiceOriginal;
+    private Vector2 ancoraMinOriginal, ancoraMaxOriginal, pivoOriginal, tamanhoOriginal;
+    private Vector3 posicaoOriginal, escalaOriginal;
+    private Quaternion rotacaoOriginal;
+    private bool posicionado;
+
+    internal GameObject Painel => keyboardPanel;
 
     internal GameObject PainelPara(Transform origem) =>
         focusedField != null && focusedField.transform.IsChildOf(origem) ? keyboardPanel : null;
 
     private void Awake()
     {
+        if (keyboardPanel == gameObject && transform is RectTransform rect)
+        {
+            paiOriginal = rect.parent;
+            indiceOriginal = rect.GetSiblingIndex();
+            ancoraMinOriginal = rect.anchorMin;
+            ancoraMaxOriginal = rect.anchorMax;
+            pivoOriginal = rect.pivot;
+            tamanhoOriginal = rect.sizeDelta;
+            posicaoOriginal = rect.anchoredPosition3D;
+            escalaOriginal = rect.localScale;
+            rotacaoOriginal = rect.localRotation;
+        }
         SetAllowedFields(allowedFields);
         if (keyboardPanel == gameObject && keyboardPanel.GetComponentsInChildren<Button>(true).Length == 0)
             CriarTeclas();
@@ -50,7 +70,7 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
         if (campo != null && campo.isActiveAndEnabled && campo.IsInteractable() && !campo.readOnly)
         {
             if (focusedField != campo) AbrirCampo(campo);
-            Posicionar(camera);
+            if (!posicionado) Posicionar(camera);
         }
         else if (selecao != null && keyboardPanel != null && !selecao.transform.IsChildOf(keyboardPanel.transform))
         {
@@ -119,7 +139,7 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
             return false;
         }
 
-        if (field == null || !allowedFieldSet.Contains(field))
+        if (!CampoDisponivel(field) || !allowedFieldSet.Contains(field))
         {
             return false;
         }
@@ -130,40 +150,54 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
 
     private void AbrirCampo(TMP_InputField campo)
     {
+        if (!CampoDisponivel(campo))
+            return;
+        if (focusedField == campo && keyboardPanel != null && keyboardPanel.activeSelf)
+            return;
+        var modo = ModoJogoManager.Instance;
+        if (modo != null) modo.CancelarEntradaTecladoRV();
         focusedField = campo;
         shiftEnabled = false;
         if (keyboardPanel == gameObject)
-            Posicionar(Camera.main);
+            Posicionar(modo != null ? modo.CameraDaInterfaceRV : Camera.main);
         if (keyboardPanel != null) keyboardPanel.SetActive(true);
     }
 
     private void Posicionar(Camera camera)
     {
-        if (camera == null || keyboardPanel != gameObject || transform is not RectTransform rect
-            || !TryGetComponent<Canvas>(out var canvas))
+        if (posicionado || camera == null || keyboardPanel != gameObject || transform is not RectTransform rect
+            || !TryGetComponent<Canvas>(out var canvas) || canvas == null)
             return;
 
         rect.SetParent(null, false);
         rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * 0.5f;
         rect.sizeDelta = new Vector2(520f, 234f);
-        rect.localScale = Vector3.one * 0.0015f;
+        rect.localScale = Vector3.one * 0.00105f;
+        canvas.renderMode = RenderMode.WorldSpace;
         canvas.worldCamera = camera;
         var vista = camera.transform;
-        rect.SetPositionAndRotation(vista.position + vista.forward * 1.1f - vista.up * 0.32f, vista.rotation);
+        Vector3 frente = Vector3.ProjectOnPlane(vista.forward, Vector3.up).normalized;
+        if (frente.sqrMagnitude < 0.01f)
+            frente = Vector3.Cross(vista.right, Vector3.up).normalized;
+        var rotacao = Quaternion.LookRotation(frente, Vector3.up) * Quaternion.Euler(22f, 0f, 0f);
+        rect.SetPositionAndRotation(vista.position + frente * 0.60f - Vector3.up * 0.26f, rotacao);
+        posicionado = true;
     }
 
     private void Update()
     {
         if (keyboardPanel != null && keyboardPanel.activeSelf
-            && (!isVrActive() || focusedField == null || !focusedField.isActiveAndEnabled
-                || !focusedField.IsInteractable() || focusedField.readOnly))
+            && (!isVrActive() || !CampoDisponivel(focusedField)))
             HideKeyboard();
     }
 
+    private static bool CampoDisponivel(TMP_InputField campo) =>
+        campo != null && campo.isActiveAndEnabled && campo.IsInteractable() && !campo.readOnly
+        && ModoJogoManager.PermitePonteiro(campo.transform);
+
     public void PressKey(string key)
     {
-        if (focusedField == null || !focusedField.isActiveAndEnabled || !focusedField.IsInteractable()
-            || focusedField.readOnly || string.IsNullOrEmpty(key))
+        if (!CampoDisponivel(focusedField) || string.IsNullOrEmpty(key))
         {
             return;
         }
@@ -199,6 +233,9 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
 
     public void HideKeyboard()
     {
+        var modo = ModoJogoManager.Instance;
+        if (modo != null && keyboardPanel != null && keyboardPanel.activeSelf)
+            modo.CancelarEntradaTecladoRV();
         if (keyboardPanel != null && keyboardPanel.activeSelf)
         {
             keyboardPanel.SetActive(false);
@@ -206,6 +243,19 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
 
         focusedField = null;
         shiftEnabled = false;
+        if (posicionado && transform is RectTransform rect && paiOriginal != null)
+        {
+            rect.SetParent(paiOriginal, false);
+            rect.SetSiblingIndex(indiceOriginal);
+            rect.anchorMin = ancoraMinOriginal;
+            rect.anchorMax = ancoraMaxOriginal;
+            rect.pivot = pivoOriginal;
+            rect.sizeDelta = tamanhoOriginal;
+            rect.anchoredPosition3D = posicaoOriginal;
+            rect.localScale = escalaOriginal;
+            rect.localRotation = rotacaoOriginal;
+        }
+        posicionado = false;
     }
 
     private void BindKeyboardButtons()

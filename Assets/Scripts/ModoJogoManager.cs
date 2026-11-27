@@ -88,6 +88,8 @@ public class ModoJogoManager : MonoBehaviour
     private ApresentacaoCanvas[] apresentacoesRV;
     private Canvas canvasGameplayRV;
     private ApresentacaoCanvas gameplayRV;
+    private RectTransform quadroHudRV;
+    private ElementoHudRV[] elementosHudRV;
     private GameObject[] paineisExclusivosGameplay;
     private PointableCanvasModule moduloMeta;
     private InputSystemUIInputModule moduloDesktop;
@@ -109,6 +111,46 @@ public class ModoJogoManager : MonoBehaviour
     private int quadroInteracaoUi = -1;
     private const string NomeRaioCanvas = "ISDK_RayCanvasInteraction";
     private VRVirtualKeyboard tecladoVR;
+    internal Camera CameraDaInterfaceRV => cameraCompartilhada;
+    private RectTransform painelTecladoRV;
+    private PokeInteractable toqueTecladoRV;
+    private bool filtroToqueTecladoRV;
+    private MaoTecladoRV[] maosTecladoRV;
+    private int? pressionandoTecladoRV;
+    private int quadroUltimaTeclaRV = -1;
+    private OVRInput.Controller controlesDoToqueRV;
+
+    private sealed class FiltroTecladoRV : IGameObjectFilter
+    {
+        private readonly System.Func<GameObject, bool> aceita;
+        internal FiltroTecladoRV(System.Func<GameObject, bool> aceita) => this.aceita = aceita;
+        public bool Filter(GameObject objeto) => aceita(objeto);
+    }
+
+    private sealed class MaoTecladoRV
+    {
+        internal OVRHand Mao;
+        internal OVRSkeleton Esqueleto;
+        internal OVRInput.Handedness Lado;
+        internal OVRInput.Controller Controle;
+        internal PokeInteractor Interator;
+
+        internal bool Rastreada => Mao != null && Mao.isActiveAndEnabled && Mao.IsTracked
+            && Esqueleto != null && Esqueleto.IsDataValid
+            && OVRInput.GetActiveControllerForHand(Lado) != Controle;
+
+        internal Transform PontaDoIndicador()
+        {
+            if (Esqueleto.Bones == null) return null;
+            var tipo = Esqueleto.GetSkeletonType();
+            var indicador = tipo == OVRSkeleton.SkeletonType.XRHandLeft || tipo == OVRSkeleton.SkeletonType.XRHandRight
+                ? OVRSkeleton.BoneId.XRHand_IndexTip : OVRSkeleton.BoneId.Hand_IndexTip;
+            foreach (var osso in Esqueleto.Bones)
+                if (osso != null && osso.Id == indicador)
+                    return osso.Transform;
+            return null;
+        }
+    }
     internal GameObject TecladoPara(Transform painel) => tecladoVR != null ? tecladoVR.PainelPara(painel) : null;
     private bool apresentacaoXRAtiva;
     private readonly List<(PointableCanvas ponto, RectTransform painel, Canvas canvas, BoundsClipper limites,
@@ -126,6 +168,36 @@ public class ModoJogoManager : MonoBehaviour
         "ModalExercíciosPanel", "ModalAvisoErroLoginRegister", "Configuracoes", "ModalEscolhaCenario", "ModalInstrucoes",
         "ModalAvisoCamposVazio", "ModalAvisoRevisao", "ModalErroSpeaking", "ModalFinal"
     };
+
+    private sealed class ElementoHudRV
+    {
+        private readonly RectTransform elemento;
+        private readonly Transform pai;
+        private readonly int indice;
+        private readonly Vector3 posicao;
+
+        internal ElementoHudRV(RectTransform elemento)
+        {
+            this.elemento = elemento;
+            pai = elemento.parent;
+            indice = elemento.GetSiblingIndex();
+            posicao = elemento.anchoredPosition3D;
+        }
+
+        internal void Montar(RectTransform quadro)
+        {
+            elemento.SetParent(quadro, false);
+            elemento.anchoredPosition3D = new Vector3(posicao.x, posicao.y, 0f);
+        }
+
+        internal void Restaurar()
+        {
+            if (elemento == null || pai == null) return;
+            elemento.SetParent(pai, false);
+            elemento.SetSiblingIndex(indice);
+            elemento.anchoredPosition3D = posicao;
+        }
+    }
 
     private sealed class ApresentacaoCanvas
     {
@@ -433,6 +505,7 @@ public class ModoJogoManager : MonoBehaviour
     {
         if (Instance != this) return;
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= AoCarregarCena;
+        RestaurarHudRV();
         LimparPonteirosRaiz();
         Instance = null;
     }
@@ -452,6 +525,12 @@ public class ModoJogoManager : MonoBehaviour
         if (vr && canvasesInterface != null)
             foreach (var canvas in canvasesInterface)
                 if (canvas != null) camerasInterfaceAntesDoRaycast[canvas] = canvas.worldCamera;
+        if (vr && painelTecladoRV != null && painelTecladoRV.gameObject.activeInHierarchy
+            && painelTecladoRV.TryGetComponent<Canvas>(out var canvasTeclado) && canvasTeclado != null)
+        {
+            var raiz = canvasTeclado.rootCanvas;
+            if (raiz != null) camerasInterfaceAntesDoRaycast[raiz] = raiz.worldCamera;
+        }
         AtualizarBotaoDireito(vr);
         if (vr && tecladoVR != null) tecladoVR.ObservarSelecao(cameraCompartilhada);
         bool entradaAberta = selecaoCenario != null && selecaoCenario.EntradaAberta;
@@ -615,9 +694,12 @@ public class ModoJogoManager : MonoBehaviour
                     }
                 }
             apresentacoesRV = estados.ToArray();
+            MontarHudRV();
         }
         else
         {
+            AtualizarMaosTecladoRV(false);
+            RestaurarHudRV();
             RestaurarGameplayRV();
             if (apresentacoesRV != null)
                 foreach (var estado in apresentacoesRV) estado.Restaurar();
@@ -634,6 +716,54 @@ public class ModoJogoManager : MonoBehaviour
             if (seletorDireito != null) seletorDireito.ControllerButtonUsage = botoesDireito;
             if (tecladoVR != null) tecladoVR.HideKeyboard();
         }
+    }
+
+    private void MontarHudRV()
+    {
+        if (quadroHudRV != null || hud == null || hud.modalBarraProgressao == null || hud.modalMissoes == null
+            || aberturaConfiguracoes == null || aberturaConfiguracoes.botaoConfiguracoes == null
+            || hud.modalBarraProgressao.transform is not RectTransform barra
+            || hud.modalMissoes.transform is not RectTransform missoes
+            || aberturaConfiguracoes.botaoConfiguracoes.transform is not RectTransform icone)
+            return;
+
+        // O Canvas de interface usa a MainCamera, que já herda a pose do CenterEyeAnchor.
+        // O ícone continua no mesmo Canvas raiz que o PointableCanvas Meta usa.
+        var canvas = icone.GetComponentInParent<Canvas>(true);
+        if (canvas == null || canvas.rootCanvas == null
+            || canvas.rootCanvas.transform is not RectTransform raiz
+            || !raiz.IsChildOf(cameraCompartilhada.transform)
+            || barra.parent is not RectTransform referenciaHud)
+            return;
+
+        elementosHudRV = new[] { new ElementoHudRV(barra), new ElementoHudRV(missoes), new ElementoHudRV(icone) };
+        var objeto = new GameObject("HUD RV", typeof(RectTransform));
+        quadroHudRV = (RectTransform)objeto.transform;
+        quadroHudRV.SetParent(raiz, false);
+        quadroHudRV.SetAsFirstSibling();
+        quadroHudRV.anchorMin = quadroHudRV.anchorMax = Vector2.one * 0.5f;
+        quadroHudRV.sizeDelta = referenciaHud.rect.size;
+        // Aproveita a distância de 1,5 m da interface e reduz o tamanho angular do HUD.
+        quadroHudRV.localScale = Vector3.one * 0.72f;
+        quadroHudRV.anchoredPosition3D = new Vector3(0f, 0f, 10f);
+        foreach (var elemento in elementosHudRV)
+            elemento.Montar(quadroHudRV);
+    }
+
+    private void RestaurarHudRV()
+    {
+        if (elementosHudRV == null) return;
+        if (quadroHudRV != null)
+            quadroHudRV.SetAsLastSibling();
+        foreach (var elemento in elementosHudRV)
+            elemento.Restaurar();
+        elementosHudRV = null;
+        if (quadroHudRV != null)
+        {
+            quadroHudRV.gameObject.SetActive(false);
+            Destroy(quadroHudRV.gameObject);
+        }
+        quadroHudRV = null;
     }
 
     private void RestaurarGameplayRV()
@@ -737,7 +867,14 @@ public class ModoJogoManager : MonoBehaviour
             Canvas raiz = canvas.rootCanvas;
             ponto.enabled = false;
             ponto.InjectCanvas(raiz);
-            ponto.WhenPointerEventRaised += evento => EncaminharPonteiro(raiz, painel, evento);
+            ponto.WhenPointerEventRaised += evento =>
+            {
+                if (canvas == null || ponto == null) return;
+                var raizAtual = canvas.rootCanvas;
+                if (raizAtual == null) return;
+                if (ponto.Canvas != raizAtual) ponto.InjectCanvas(raizAtual);
+                EncaminharPonteiro(raizAtual, painel, evento);
+            };
             componente = nameof(RayInteractable);
             interacao.InjectSurface(superficie);
             interacao.InjectOptionalPointableElement(ponto);
@@ -747,6 +884,14 @@ public class ModoJogoManager : MonoBehaviour
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = cameraCompartilhada;
             raiosModais.Add((ponto, painel, canvas, limites, modoAnterior, cameraAnterior));
+            if (tecladoVR != null && painel.gameObject == tecladoVR.Painel)
+            {
+                painelTecladoRV = painel;
+                toqueTecladoRV = ObterOuCriar<PokeInteractable>(raio.gameObject);
+                toqueTecladoRV.InjectAllPokeInteractable(superficie);
+                toqueTecladoRV.InjectOptionalPointableElement(ponto);
+                filtroToqueTecladoRV = false;
+            }
         }
         catch (System.Exception erro)
         {
@@ -784,6 +929,135 @@ public class ModoJogoManager : MonoBehaviour
             if (!ativo) CancelarPonteirosDoPainel(item.painel, item.canvas.rootCanvas);
             if (item.ponto.gameObject.activeSelf != ativo) item.ponto.gameObject.SetActive(ativo);
         }
+        AtualizarMaosTecladoRV(painelTecladoRV != null && PermitePonteiro(painelTecladoRV));
+    }
+
+    private void AtualizarMaosTecladoRV(bool ativo)
+    {
+        // Awake do SDK inicializa os filtros a partir dos campos serializados.
+        // Injete filtros de runtime depois da primeira ativação.
+        if (ativo && toqueTecladoRV != null && toqueTecladoRV.isActiveAndEnabled && !filtroToqueTecladoRV)
+        {
+            toqueTecladoRV.InjectOptionalInteractorFilters(new List<IGameObjectFilter>
+            {
+                new FiltroTecladoRV(objeto => maosTecladoRV != null && System.Array.Exists(maosTecladoRV,
+                    mao => mao.Interator != null && mao.Interator.gameObject == objeto))
+            });
+            filtroToqueTecladoRV = true;
+        }
+        if (maosTecladoRV == null && ativo && rigMeta != null)
+        {
+            var maos = new List<MaoTecladoRV>();
+            foreach (var mao in rigMeta.GetComponentsInChildren<OVRHand>(true))
+            {
+                if (mao == null || !mao.TryGetComponent<OVRSkeleton>(out var esqueleto) || esqueleto == null)
+                    continue;
+                var tipo = esqueleto.GetSkeletonType();
+                bool esquerda = tipo == OVRSkeleton.SkeletonType.HandLeft
+                    || tipo == OVRSkeleton.SkeletonType.XRHandLeft;
+                if (!esquerda && tipo != OVRSkeleton.SkeletonType.HandRight
+                    && tipo != OVRSkeleton.SkeletonType.XRHandRight)
+                    continue;
+                maos.Add(new MaoTecladoRV
+                {
+                    Mao = mao, Esqueleto = esqueleto,
+                    Lado = esquerda ? OVRInput.Handedness.LeftHanded : OVRInput.Handedness.RightHanded,
+                    Controle = esquerda ? OVRInput.Controller.LTouch : OVRInput.Controller.RTouch
+                });
+            }
+            maosTecladoRV = maos.ToArray();
+        }
+
+        if (maosTecladoRV == null) return;
+        if (pressionandoTecladoRV is int id && ControlesAtivosRV() != controlesDoToqueRV && MaoDoPonteiro(id) == null)
+            CancelarEntradaTecladoRV();
+        foreach (var mao in maosTecladoRV)
+        {
+            var ponta = ativo && filtroToqueTecladoRV && toqueTecladoRV != null && mao.Rastreada
+                ? mao.PontaDoIndicador() : null;
+            if (ponta != null && mao.Interator == null)
+            {
+                var objeto = new GameObject("Toque do indicador no teclado");
+                objeto.SetActive(false);
+                objeto.transform.SetParent(mao.Mao.transform, false);
+                mao.Interator = objeto.AddComponent<PokeInteractor>();
+                mao.Interator.InjectAllPokeInteractor(ponta);
+                objeto.SetActive(true);
+                mao.Interator.InjectOptionalInteractableFilters(new List<IGameObjectFilter>
+                {
+                    new FiltroTecladoRV(alvo => toqueTecladoRV != null && toqueTecladoRV.gameObject == alvo)
+                });
+            }
+            if (mao.Interator == null) continue;
+            if (ponta != null)
+                mao.Interator.InjectPointTransform(ponta);
+            else if (mao.Interator.gameObject.activeSelf)
+                CancelarPonteiroTecladoRV(mao.Interator.Identifier);
+            if (mao.Interator.gameObject.activeSelf != (ponta != null))
+                mao.Interator.gameObject.SetActive(ponta != null);
+        }
+    }
+
+    private static OVRInput.Controller ControlesAtivosRV() =>
+        OVRInput.GetActiveController() & OVRInput.Controller.Touch;
+
+    private MaoTecladoRV MaoDoPonteiro(int id) => maosTecladoRV == null ? null
+        : System.Array.Find(maosTecladoRV, mao => mao.Interator != null && mao.Interator.Identifier == id);
+
+    private bool AceitarEventoTecladoRV(PointerEvent evento)
+    {
+        int id = evento.Identifier;
+        if (evento.Type == PointerEventType.Cancel || evento.Type == PointerEventType.Unhover)
+        {
+            if (pressionandoTecladoRV == id) pressionandoTecladoRV = null;
+            return true;
+        }
+
+        var mao = MaoDoPonteiro(id);
+        if ((mao != null && !mao.Rastreada) || (mao == null && pressionandoTecladoRV == id
+            && ControlesAtivosRV() != controlesDoToqueRV))
+        {
+            CancelarPonteiroTecladoRV(id);
+            return false;
+        }
+
+        if (evento.Type == PointerEventType.Select)
+        {
+            if (pressionandoTecladoRV.HasValue || quadroUltimaTeclaRV == Time.frameCount)
+                return false;
+            pressionandoTecladoRV = id;
+            controlesDoToqueRV = ControlesAtivosRV();
+        }
+        else if (evento.Type == PointerEventType.Unselect)
+        {
+            if (pressionandoTecladoRV != id) return false;
+            pressionandoTecladoRV = null;
+            quadroUltimaTeclaRV = Time.frameCount;
+        }
+        return true;
+    }
+
+    internal void CancelarEntradaTecladoRV()
+    {
+        pressionandoTecladoRV = null;
+        foreach (var item in raiosModais)
+            if (painelTecladoRV != null && item.painel == painelTecladoRV && item.canvas != null)
+            {
+                CancelarPonteirosDoPainel(item.painel, item.canvas.rootCanvas);
+                if (item.ponto != null) item.ponto.gameObject.SetActive(false);
+                break;
+            }
+    }
+
+    private void CancelarPonteiroTecladoRV(int id)
+    {
+        if (pressionandoTecladoRV == id) pressionandoTecladoRV = null;
+        if (!RaycasterModalVR.PaineisPorPonteiro.TryGetValue(id, out var painel) || painel != painelTecladoRV)
+            return;
+        RaycasterModalVR.PaineisPorPonteiro.Remove(id);
+        if (painel != null && painel.TryGetComponent<Canvas>(out var canvas) && canvas != null
+            && canvas.rootCanvas != null && ponteirosRaiz.TryGetValue(canvas.rootCanvas, out var ponteiro))
+            ponteiro.ProcessPointerEvent(new PointerEvent(id, PointerEventType.Cancel, Pose.identity));
     }
 
     internal static bool PermitePonteiro(Transform painel)
@@ -852,6 +1126,7 @@ public class ModoJogoManager : MonoBehaviour
         if (evento.Type == PointerEventType.Hover)
         {
             if (!PermitePonteiro(painel)) return;
+            if (painel == painelTecladoRV && !AceitarEventoTecladoRV(evento)) return;
             if (!ponteirosRaiz.TryGetValue(raiz, out var ponteiro))
             {
                 ponteiro = new PonteiroCanvasRaiz(raiz);
@@ -867,6 +1142,7 @@ public class ModoJogoManager : MonoBehaviour
         if (!paineis.TryGetValue(evento.Identifier, out var painelAtual) || painelAtual != painel ||
             !ponteirosRaiz.TryGetValue(raiz, out var existente))
             return;
+        if (painel == painelTecladoRV && !AceitarEventoTecladoRV(evento)) return;
         if (evento.Type == PointerEventType.Unhover || evento.Type == PointerEventType.Cancel)
             paineis.Remove(evento.Identifier);
         existente.ProcessPointerEvent(evento);
@@ -874,7 +1150,9 @@ public class ModoJogoManager : MonoBehaviour
 
     private void CancelarPonteirosDoPainel(RectTransform painel, Canvas raiz)
     {
-        if (!ponteirosRaiz.TryGetValue(raiz, out var ponteiro)) return;
+        if (painel != null && painel == painelTecladoRV)
+            pressionandoTecladoRV = null;
+        if (raiz == null || !ponteirosRaiz.TryGetValue(raiz, out var ponteiro)) return;
 
         var paineis = RaycasterModalVR.PaineisPorPonteiro;
         foreach (var item in paineis)
