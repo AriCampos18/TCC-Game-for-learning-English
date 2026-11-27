@@ -66,9 +66,19 @@ internal sealed class AvisoCompacto : IDisposable
     private readonly string texto;
     private readonly TextAlignmentOptions alinhamento;
     private bool encerrado;
+    private ModoJogoManager apresentacaoAutenticacao;
 
-    internal static AvisoCompacto Abrir(GameObject origem, string texto, bool inferior = false) =>
-        AbrirNoPainel(VinculosModaisTcc.Painel(origem, "ModalErroAviso"), texto, inferior);
+    internal static AvisoCompacto AbrirAutenticacao(GameObject origem, string texto)
+    {
+        var aviso = AbrirNoPainel(VinculosModaisTcc.Painel(origem, "ModalErroAviso"), texto, inferior: false);
+        var modo = ModoJogoManager.Instance;
+        if (aviso != null && modo != null)
+        {
+            aviso.apresentacaoAutenticacao = modo;
+            modo.AproximarPainelAutenticacaoRV(aviso.rect);
+        }
+        return aviso;
+    }
 
     internal static AvisoCompacto AbrirNoPainel(GameObject painel, string texto, bool inferior)
     {
@@ -168,6 +178,8 @@ internal sealed class AvisoCompacto : IDisposable
         if (atual == this) atual = null;
         if (painel == null) return;
         painel.SetActive(false);
+        if (apresentacaoAutenticacao != null)
+            apresentacaoAutenticacao.RestaurarPainelAutenticacaoRV(rect);
         rect.anchorMin = ancoraMin;
         rect.anchorMax = ancoraMax;
         rect.sizeDelta = tamanho;

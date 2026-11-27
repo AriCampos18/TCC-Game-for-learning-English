@@ -54,6 +54,7 @@ public class ModoJogoManager : MonoBehaviour
 
     [Header("Apresentação desktop")]
     [SerializeField] private Camera cameraCompartilhada;
+    [SerializeField, Min(0.5f)] private float distanciaAutenticacaoRV = 1f;
     [SerializeField] private Transform jogador;
     [SerializeField] private Canvas[] canvasesInterface;
 
@@ -89,6 +90,7 @@ public class ModoJogoManager : MonoBehaviour
     private Canvas canvasGameplayRV;
     private ApresentacaoCanvas gameplayRV;
     private RectTransform quadroHudRV;
+    private readonly Dictionary<RectTransform, float> profundidadesAutenticacaoRV = new();
     private ElementoHudRV[] elementosHudRV;
     private GameObject[] paineisExclusivosGameplay;
     private PointableCanvasModule moduloMeta;
@@ -118,6 +120,7 @@ public class ModoJogoManager : MonoBehaviour
     private MaoTecladoRV[] maosTecladoRV;
     private int? pressionandoTecladoRV;
     private int quadroUltimaTeclaRV = -1;
+    private bool yPressionadoRV;
     private OVRInput.Controller controlesDoToqueRV;
 
     private sealed class FiltroTecladoRV : IGameObjectFilter
@@ -167,6 +170,12 @@ public class ModoJogoManager : MonoBehaviour
         "AuthenticationUI/VirtualKeyboard", "ModalBoasVindas", "ModalNivelamento", "ModalRespostaNivelamento",
         "ModalExercíciosPanel", "ModalAvisoErroLoginRegister", "Configuracoes", "ModalEscolhaCenario", "ModalInstrucoes",
         "ModalAvisoCamposVazio", "ModalAvisoRevisao", "ModalErroSpeaking", "ModalFinal"
+    };
+
+    private static readonly string[] PaineisAutenticacaoRV =
+    {
+        "AuthenticationUI/ModalLogin", "AuthenticationUI/ModalRegister",
+        "ModalEsqueciSenha", "ModalCodigoEmail", "ModalNovaSenha", "ModalAvisoErroLoginRegister"
     };
 
     private sealed class ElementoHudRV
@@ -505,6 +514,7 @@ public class ModoJogoManager : MonoBehaviour
     {
         if (Instance != this) return;
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= AoCarregarCena;
+        RestaurarDistanciasAutenticacaoRV();
         RestaurarHudRV();
         LimparPonteirosRaiz();
         Instance = null;
@@ -545,6 +555,7 @@ public class ModoJogoManager : MonoBehaviour
             && checkpoint != null && CheckpointJogo.PodeAvancar && hud != null
             && hud.modalBarraProgressao != null && hud.modalBarraProgressao.activeInHierarchy
             && hud.modalMissoes != null && hud.modalMissoes.activeInHierarchy);
+        AtualizarAtalhoConfiguracoesRV(vr);
         AtualizarSuperficiesXR(vr);
         if (configuracoes != null)
             configuracoes.AplicarPreferenciaTurn(checkpoint != null ? checkpoint.ModoGiro : "snap", permitirLocomocao);
@@ -553,6 +564,40 @@ public class ModoJogoManager : MonoBehaviour
         {
             AlternarModoUI();
         }
+    }
+
+    private void AtualizarAtalhoConfiguracoesRV(bool vr)
+    {
+        if (!vr)
+        {
+            yPressionadoRV = false;
+            return;
+        }
+        var controle = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
+        bool pressionado = controle.TryGetFeatureValue(CommonUsages.secondaryButton, out bool valor) && valor;
+        bool acionado = pressionado && !yPressionadoRV;
+        yPressionadoRV = pressionado;
+        if (acionado && aberturaConfiguracoes != null)
+            aberturaConfiguracoes.AlternarPeloControleRV();
+    }
+
+    internal bool TecladoEmUsoRV(RectTransform painel)
+    {
+        if (pressionandoTecladoRV.HasValue) return true;
+        if (maosTecladoRV == null) return false;
+
+        var area = painel.rect;
+        foreach (var mao in maosTecladoRV)
+        {
+            var ponta = mao.Rastreada ? mao.PontaDoIndicador() : null;
+            if (ponta == null) continue;
+            var local = painel.InverseTransformPoint(ponta.position);
+            var maisProximo = painel.TransformPoint(new Vector3(
+                Mathf.Clamp(local.x, area.xMin, area.xMax), Mathf.Clamp(local.y, area.yMin, area.yMax), 0f));
+            if ((ponta.position - maisProximo).sqrMagnitude <= 0.09f * 0.09f)
+                return true;
+        }
+        return false;
     }
 
     internal void DefinirEnquadramentoLogin(bool ativo)
@@ -678,6 +723,9 @@ public class ModoJogoManager : MonoBehaviour
                         var estado = new ApresentacaoCanvas(raiz);
                         estados.Add(estado);
                         estado.DefinirVR(cameraCompartilhada);
+                        foreach (string caminho in PaineisAutenticacaoRV)
+                            if (raiz.transform.Find(caminho) is RectTransform painel)
+                                AproximarPainelAutenticacaoRV(painel);
                     }
                     else
                     {
@@ -699,6 +747,7 @@ public class ModoJogoManager : MonoBehaviour
         else
         {
             AtualizarMaosTecladoRV(false);
+            RestaurarDistanciasAutenticacaoRV();
             RestaurarHudRV();
             RestaurarGameplayRV();
             if (apresentacoesRV != null)
@@ -716,6 +765,48 @@ public class ModoJogoManager : MonoBehaviour
             if (seletorDireito != null) seletorDireito.ControllerButtonUsage = botoesDireito;
             if (tecladoVR != null) tecladoVR.HideKeyboard();
         }
+    }
+
+    internal void AproximarPainelAutenticacaoRV(RectTransform painel)
+    {
+        if (!ModoVR || cameraCompartilhada == null || painel == null || painel.parent == null
+            || !painel.IsChildOf(cameraCompartilhada.transform) || profundidadesAutenticacaoRV.ContainsKey(painel))
+            return;
+
+        profundidadesAutenticacaoRV.Add(painel, painel.localPosition.z);
+        var vista = cameraCompartilhada.transform;
+        float profundidade = vista.InverseTransformPoint(painel.position).z;
+        painel.position += vista.TransformVector(Vector3.forward * (distanciaAutenticacaoRV - profundidade));
+    }
+
+    internal RectTransform PainelAutenticacaoDoCampoRV(Transform campo)
+    {
+        if (!ModoVR || campo == null) return null;
+        for (var atual = campo; atual != null; atual = atual.parent)
+            if (atual is RectTransform painel && profundidadesAutenticacaoRV.ContainsKey(painel))
+                return painel;
+        return null;
+    }
+
+    internal void RestaurarPainelAutenticacaoRV(RectTransform painel)
+    {
+        if (painel != null && profundidadesAutenticacaoRV.Remove(painel, out float profundidade))
+            RestaurarProfundidade(painel, profundidade);
+    }
+
+    private static void RestaurarProfundidade(RectTransform painel, float profundidade)
+    {
+        if (painel == null) return;
+        var local = painel.localPosition;
+        local.z = profundidade;
+        painel.localPosition = local;
+    }
+
+    private void RestaurarDistanciasAutenticacaoRV()
+    {
+        foreach (var item in profundidadesAutenticacaoRV)
+            RestaurarProfundidade(item.Key, item.Value);
+        profundidadesAutenticacaoRV.Clear();
     }
 
     private void MontarHudRV()

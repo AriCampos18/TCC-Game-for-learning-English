@@ -1810,6 +1810,7 @@ else if (nivelAtual == "A2-B1")
 
         try
         {
+            GarantirDocumentoRV();
             documentoCurso?.Resetar();
             if (estadoDocumento == null)
                 MissionManager.Instance?.RegistrarEventoCollege(MissoesCollege.InicioConversa, NpcKey);
@@ -2068,6 +2069,7 @@ else if (nivelAtual == "A2-B1")
         TravarControlePlayer();
         try
         {
+            GarantirDocumentoRV();
             if (documentoCurso == null || !documentoCurso.Disponibilizar(nivelAtual))
                 throw new InvalidOperationException("College: configure a interface do documento para retomar a consulta.");
             if (!await ConfirmarConsultaDoDocumento())
@@ -2085,6 +2087,12 @@ else if (nivelAtual == "A2-B1")
             }
         }
         await RevisaoManager.Instance.ExecutarRevisaoEExibirModalFinal(this);
+    }
+
+    private void GarantirDocumentoRV()
+    {
+        if (ModoVR && documentoCurso == null)
+            documentoCurso = DocumentoCursoCollege.CriarParaRV(gameObject);
     }
 
     private async Task<bool> ConfirmarConsultaDoDocumento()

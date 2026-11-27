@@ -35,6 +35,8 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
     private Vector3 posicaoOriginal, escalaOriginal;
     private Quaternion rotacaoOriginal;
     private bool posicionado;
+    private float seguirDepoisDe;
+    private readonly Vector3[] cantosAutenticacaoRV = new Vector3[4];
 
     internal GameObject Painel => keyboardPanel;
 
@@ -175,13 +177,77 @@ public sealed class VRVirtualKeyboard : MonoBehaviour
         rect.localScale = Vector3.one * 0.00105f;
         canvas.renderMode = RenderMode.WorldSpace;
         canvas.worldCamera = camera;
-        var vista = camera.transform;
+        ObterPose(camera.transform, out var posicao, out var rotacao);
+        posicao = AfastarDosCamposDeAutenticacao(camera.transform, rect, posicao, rotacao);
+        rect.SetPositionAndRotation(posicao, rotacao);
+        seguirDepoisDe = Time.unscaledTime;
+        posicionado = true;
+    }
+
+    private static void ObterPose(Transform vista, out Vector3 posicao, out Quaternion rotacao)
+    {
         Vector3 frente = Vector3.ProjectOnPlane(vista.forward, Vector3.up).normalized;
         if (frente.sqrMagnitude < 0.01f)
             frente = Vector3.Cross(vista.right, Vector3.up).normalized;
-        var rotacao = Quaternion.LookRotation(frente, Vector3.up) * Quaternion.Euler(22f, 0f, 0f);
-        rect.SetPositionAndRotation(vista.position + frente * 0.60f - Vector3.up * 0.26f, rotacao);
-        posicionado = true;
+        rotacao = Quaternion.LookRotation(frente, Vector3.up) * Quaternion.Euler(22f, 0f, 0f);
+        posicao = vista.position + frente * 0.60f - Vector3.up * 0.26f;
+    }
+
+    private Vector3 AfastarDosCamposDeAutenticacao(Transform vista, RectTransform teclado,
+        Vector3 posicao, Quaternion rotacao)
+    {
+        var modo = ModoJogoManager.Instance;
+        if (modo == null || focusedField == null) return posicao;
+        var painel = modo.PainelAutenticacaoDoCampoRV(focusedField.transform);
+        if (painel == null) return posicao;
+
+        // Compare as bordas na perspectiva da câmera, pois o teclado está mais perto.
+        painel.GetWorldCorners(cantosAutenticacaoRV);
+        float bordaInferior = float.PositiveInfinity;
+        foreach (var canto in cantosAutenticacaoRV)
+        {
+            var local = vista.InverseTransformPoint(canto);
+            if (local.z <= 0f) return posicao;
+            bordaInferior = Mathf.Min(bordaInferior, local.y / local.z);
+        }
+
+        float abaixar = 0f;
+        var escala = teclado.lossyScale;
+        var area = teclado.rect;
+        void ConferirCanto(float x, float y)
+        {
+            var canto = rotacao * new Vector3(x * escala.x, y * escala.y, 0f);
+            var local = vista.InverseTransformPoint(posicao + canto);
+            if (local.z > 0f)
+                abaixar = Mathf.Max(abaixar, local.y - local.z * (bordaInferior - 0.04f));
+        }
+        ConferirCanto(area.xMin, area.yMin);
+        ConferirCanto(area.xMin, area.yMax);
+        ConferirCanto(area.xMax, area.yMin);
+        ConferirCanto(area.xMax, area.yMax);
+        return posicao - vista.TransformVector(Vector3.up * abaixar);
+    }
+
+    private void LateUpdate()
+    {
+        var modo = ModoJogoManager.Instance;
+        if (!posicionado || !isVrActive() || modo == null || modo.CameraDaInterfaceRV == null
+            || !CampoDisponivel(focusedField) || transform is not RectTransform rect)
+            return;
+        if (modo.TecladoEmUsoRV(rect))
+        {
+            seguirDepoisDe = Time.unscaledTime + 0.22f;
+            return;
+        }
+        if (Time.unscaledTime < seguirDepoisDe) return;
+
+        var vista = modo.CameraDaInterfaceRV.transform;
+        ObterPose(vista, out var posicao, out var rotacao);
+        posicao = AfastarDosCamposDeAutenticacao(vista, rect, posicao, rotacao);
+        float peso = 1f - Mathf.Exp(-5f * Time.unscaledDeltaTime);
+        rotacao = Quaternion.Slerp(rect.rotation, rotacao, peso);
+        posicao = AfastarDosCamposDeAutenticacao(vista, rect, Vector3.Lerp(rect.position, posicao, peso), rotacao);
+        rect.SetPositionAndRotation(posicao, rotacao);
     }
 
     private void Update()

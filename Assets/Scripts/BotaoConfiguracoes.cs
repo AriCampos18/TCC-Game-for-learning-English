@@ -279,6 +279,22 @@ public class BotaoConfiguracoes : MonoBehaviour
         }
     }
 
+    internal void AlternarPeloControleRV()
+    {
+        if (aberto)
+        {
+            // As telas secundárias mantêm seus próprios fluxos de retorno.
+            if (modalConfiguracoes != null && modalConfiguracoes.activeInHierarchy
+                && painelSuperior == modalConfiguracoes.transform)
+                FecharConfiguracoes();
+        }
+        else if (botaoConfiguracoes != null && botaoConfiguracoes.isActiveAndEnabled
+            && botaoConfiguracoes.IsInteractable())
+        {
+            AbrirConfiguracoes();
+        }
+    }
+
     private void CancelarAbertura(Exception erro)
     {
         Debug.LogException(erro, this);

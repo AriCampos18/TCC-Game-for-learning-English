@@ -385,7 +385,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
         AvisoCompacto aviso = null;
         try
         {
-            aviso = AvisoCompacto.Abrir(gameObject, "Carregando progresso...");
+            aviso = AvisoCompacto.AbrirAutenticacao(gameObject, "Carregando progresso...");
             if (await CheckpointJogo.Conectar(this))
             {
                 if (this == null) return false;

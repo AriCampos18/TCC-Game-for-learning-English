@@ -960,6 +960,8 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
     [SerializeField] private TMP_Text instrucoesCartaoEmbarque;
 
     private bool botaoCartaoVRPressionado;
+    private bool cartaoGeradoSomenteRV;
+    private readonly DocumentoNaVistaRV vistaCartaoRV = new();
     private bool cartaoEmbarqueAberto;
 
     private bool aguardandoChegadaPortao;
@@ -1012,7 +1014,12 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
     private void Update()
     {
         if (!PertenceAoCenarioAtivo)
+        {
+            vistaCartaoRV.Restaurar();
+            if (ModoVR && cartaoEmbarqueAberto && painelCartaoEmbarque != null)
+                painelCartaoEmbarque.SetActive(false);
             return;
+        }
 
         AtualizarVisita();
         AtualizarConsultaCartaoEmbarque();
@@ -1055,7 +1062,8 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
         cartaoEmbarqueConsultado = cartaoEmbarqueAberto = botaoCartaoVRPressionado = false;
         tempoParadoPortao = 0f;
         DesativarMarcadoresPortoes();
-        if (CartaoEmbarqueConfigurado())
+        vistaCartaoRV.Restaurar();
+        if (painelCartaoEmbarque != null && !transform.IsChildOf(painelCartaoEmbarque.transform))
             painelCartaoEmbarque.SetActive(false);
         if (instrucoesCartaoEmbarque != null)
             instrucoesCartaoEmbarque.enabled = false;
@@ -1074,6 +1082,10 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 
     private void AtualizarConsultaCartaoEmbarque()
     {
+        if (ModoVR && cartaoEmbarqueAberto)
+            vistaCartaoRV.Acompanhar(painelCartaoEmbarque);
+        else if (!ModoVR)
+            vistaCartaoRV.Restaurar();
         bool acionado = !ModoVR && Input.GetKeyDown(KeyCode.B);
         if (ModoVR)
         {
@@ -1083,11 +1095,12 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
             botaoCartaoVRPressionado = pressionado;
         }
 
-        if (!acionado || !fluxoCheckinConcluido)
+        if (!acionado || !fluxoCheckinConcluido || (ModoVR && BotaoConfiguracoes.DialogoSuspenso))
             return;
 
         if (cartaoEmbarqueAberto)
         {
+            vistaCartaoRV.Restaurar();
             if (painelCartaoEmbarque != null)
                 painelCartaoEmbarque.SetActive(false);
             cartaoEmbarqueAberto = false;
@@ -1112,7 +1125,7 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
         string dadosEmbarque = nivelAtual == "A1" ? "Gate: 12"
             : nivelAtual == "A1-A2" ? "Gate: 18\nBoarding: 2:30 p.m."
             : "Connecting flight — Gate: 24\nBoarding: 2:30 p.m.";
-        textoCartaoEmbarque.text = $"Boarding pass\n{dadosEmbarque}\n\n{(ModoVR ? "Secondary button" : "B")}: Close";
+        textoCartaoEmbarque.text = $"Boarding pass\n{dadosEmbarque}\n\nB: Close";
         painelCartaoEmbarque.SetActive(true);
         if (!textoCartaoEmbarque.isActiveAndEnabled)
         {
@@ -1121,6 +1134,7 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
             return;
         }
 
+        if (ModoVR) vistaCartaoRV.Acompanhar(painelCartaoEmbarque);
         cartaoEmbarqueAberto = true;
         GameProgress.EstaEmDialogo = true;
         TravarControlePlayer();
@@ -1131,6 +1145,12 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
 
     private bool CartaoEmbarqueConfigurado()
     {
+        if (ModoVR && painelCartaoEmbarque == null && fluxoCheckinConcluido && MissaoConsultaCartao() != null)
+        {
+            painelCartaoEmbarque = DocumentoNaVistaRV.Criar(transform, "Boarding pass RV", out textoCartaoEmbarque);
+            cartaoGeradoSomenteRV = true;
+        }
+        if (cartaoGeradoSomenteRV && !ModoVR) return false;
         return painelCartaoEmbarque != null && textoCartaoEmbarque != null
             && !transform.IsChildOf(painelCartaoEmbarque.transform)
             && textoCartaoEmbarque.transform.IsChildOf(painelCartaoEmbarque.transform)
@@ -1270,7 +1290,7 @@ public class checkinNPC : InteracaoNPC, IRoteiroNpcCheckpoint
         if (!cartaoEmbarqueConsultado && MissaoConsultaCartao() != null && instrucoesCartaoEmbarque != null
             && CartaoEmbarqueConfigurado())
         {
-            instrucoesCartaoEmbarque.text = ModoVR ? "Secondary button: View boarding pass" : "B: View boarding pass";
+            instrucoesCartaoEmbarque.text = "B: View boarding pass";
             instrucoesCartaoEmbarque.enabled = true;
         }
         LiberarControlePlayer();
@@ -2021,7 +2041,7 @@ else if (nivelAtual == "A2-B1")
                 Debug.LogError("Airport: configure Painel Cartao Embarque e Texto Cartao Embarque para permitir a consulta.", this);
             else if (instrucoesCartaoEmbarque != null)
             {
-                instrucoesCartaoEmbarque.text = ModoVR ? "Secondary button: View boarding pass" : "B: View boarding pass";
+                instrucoesCartaoEmbarque.text = "B: View boarding pass";
                 instrucoesCartaoEmbarque.enabled = true;
             }
         }
