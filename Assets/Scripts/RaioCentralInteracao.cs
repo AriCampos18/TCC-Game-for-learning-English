@@ -62,7 +62,7 @@ public class RaioCentralInteracao : MonoBehaviour
     private void Update()
     {
         var sessao = SessaoCenario.Atual;
-        if (!sessao.EmJogo || !CheckpointJogo.PodeAvancar)
+        if (!sessao.EmJogo || !CheckpointJogo.PodeAvancar || InteracaoRestaurant.EmTransicaoRefeicao)
         {
             ClearLast();
             if (modalAvisoMouse != null)
@@ -163,7 +163,24 @@ public class RaioCentralInteracao : MonoBehaviour
 
         if (etapaRestaurant != null)
         {
-            ClearLast();
+            if (BotaoConfiguracoes.DialogoSuspenso)
+            {
+                ClearLast();
+                return;
+            }
+            if (etapaRestaurant.MirarRefeicao(ray, hitSomething ? hit.distance : distance, interactLayer, out var refeicao))
+            {
+                hit = refeicao;
+                hitSomething = true;
+            }
+            var destaque = hitSomething && etapaRestaurant.AlvoDaRefeicao(hit.collider)
+                ? etapaRestaurant.DestaqueRefeicao : null;
+            if (lastHighlighted != destaque || lastNPC != null || objetoAtual != null)
+            {
+                ClearLast();
+                lastHighlighted = destaque;
+                if (destaque != null) destaque.SetHighlight(true);
+            }
             if (modalAvisoMouse != null)
                 modalAvisoMouse.SetActive(false);
 

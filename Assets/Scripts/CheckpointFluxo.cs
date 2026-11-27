@@ -23,6 +23,8 @@ internal sealed partial class RoteiroNpcCheckpoint
     private readonly int visita;
     private readonly Func<string[]> situacao;
     private int indiceEmExecucao = -1;
+    internal int QuantidadeEtapas => etapas.Count;
+    internal Action<int> PrepararEtapa { private get; set; }
     private sealed class Etapa
     {
         internal readonly string Chave, Fala, Ponto;
@@ -170,13 +172,21 @@ internal sealed partial class RoteiroNpcCheckpoint
         return cursor;
     }
 
-    internal void AtualizarCursor()
+    internal void AtualizarCursor() => CapturarCursor(indiceEmExecucao);
+
+    internal void RegistrarProximaEtapa()
     {
-        if (indiceEmExecucao < 0)
+        if (indiceEmExecucao >= 0 && indiceEmExecucao < etapas.Count)
+            CapturarCursor(indiceEmExecucao + 1);
+    }
+
+    private void CapturarCursor(int indice)
+    {
+        if (indice < 0)
             return;
         npc.ValidarRoteiroCheckpoint(visita);
-        var etapa = indiceEmExecucao == etapas.Count
-            ? new Etapa(Fim, null, null, null, 0, npc) : etapas[indiceEmExecucao];
+        var etapa = indice == etapas.Count
+            ? new Etapa(Fim, null, null, null, 0, npc) : etapas[indice];
         var dados = new JArray(Assinatura, etapa.ChaveCheckpoint);
         var marcos = situacao == null ? Array.Empty<string>() : situacao();
         if (marcos == null)
@@ -203,11 +213,13 @@ internal sealed partial class RoteiroNpcCheckpoint
             for (int indice = inicio; indice < etapas.Count; indice++)
             {
                 indiceEmExecucao = indice;
+                PrepararEtapa?.Invoke(indice);
                 AtualizarCursor();
                 await etapas[indice].Executar();
                 npc.ValidarRoteiroCheckpoint(visita);
             }
             indiceEmExecucao = etapas.Count;
+            PrepararEtapa?.Invoke(indiceEmExecucao);
             AtualizarCursor();
         }
         finally { indiceEmExecucao = -1; }

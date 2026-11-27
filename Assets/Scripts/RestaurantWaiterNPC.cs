@@ -2051,11 +2051,23 @@ else if (nivelAtual == "A2-B1")
         }
     }
 
-    private async Task Comer()
+    private async Task Comer(InteracaoRestaurant.EstadoRefeicao estadoFinal, Action registrarProximaEtapa)
     {
+        string missao = MissoesRestaurant.ChaveRefeicao(SessaoCenario.Atual.Nivel);
+        if (missao != null && MissionManager.Instance?.MissaoConcluida(missao) == true)
+        {
+            // Checkpoints antigos podem ter persistido a missão antes de avançar o cursor.
+            mesaAtual.ApresentarRefeicao(estadoFinal);
+            registrarProximaEtapa();
+            return;
+        }
+
         await AguardarSentado(InteracaoRestaurant.Etapa.Comer);
-        await mesaAtual.SimularRefeicao();
-        Emitir("marco_fluxo", "refeicao_concluida");
+        await mesaAtual.SimularRefeicao(estadoFinal, () =>
+        {
+            Emitir("marco_fluxo", MissoesRestaurant.RefeicaoConcluida);
+            registrarProximaEtapa();
+        });
     }
 
     private InteracaoRestaurant[] MesasCheckpoint() =>
@@ -2209,7 +2221,19 @@ else if (nivelAtual == "A2-B1")
             roteiro.Acao("table.customer", ConversarComCliente);
             roteiro.Acao("table.return", RetornarParaMesa);
         }
-        void Refeicao() => roteiro.Acao("table.meal", Comer);
+        int entrega = -1, embalagem = -1;
+        void Refeicao()
+        {
+            entrega = roteiro.QuantidadeEtapas;
+            roteiro.Acao("table.meal", () => Comer(embalagem > entrega
+                ? InteracaoRestaurant.EstadoRefeicao.Restante : InteracaoRestaurant.EstadoRefeicao.Oculta,
+                roteiro.RegistrarProximaEtapa));
+        }
+        void Embalagem(int indice)
+        {
+            Fala(indice);
+            embalagem = roteiro.QuantidadeEtapas;
+        }
 
         switch (nivelAtual)
         {
@@ -2225,7 +2249,7 @@ else if (nivelAtual == "A2-B1")
                 Fala(5);
                 Exercicio("takeaway", 1, exerciciosCriarFrases[0]);
                 Fala(6);
-                Fala(7);
+                Embalagem(7);
                 Exercicio("bill_request", 1, exerciciosSpeaking[1]);
                 Fala(8);
                 Exercicio("payment", 1, exerciciosAlternativas[1]);
@@ -2243,7 +2267,7 @@ else if (nivelAtual == "A2-B1")
                 Refeicao();
                 Fala(5);
                 Exercicio("takeaway", 1, exerciciosCompletarFrase[0]);
-                Fala(6);
+                Embalagem(6);
                 Exercicio("bill_request", 1, exerciciosCompletarFrase[1]);
                 Fala(7);
                 Exercicio("payment", 1, exerciciosAlternativas[1]);
@@ -2267,7 +2291,7 @@ else if (nivelAtual == "A2-B1")
                 Exercicio("meal_feedback", 1, exerciciosWriting[0]);
                 Exercicio("takeaway", 1, exerciciosSpeaking[2]);
                 Fala(6);
-                Fala(7);
+                Embalagem(7);
                 Exercicio("bill_request", 1, exerciciosSpeaking[3]);
                 Fala(8);
                 Exercicio("payment", 1, exerciciosSpeaking[4]);
@@ -2287,7 +2311,7 @@ else if (nivelAtual == "A2-B1")
                 Fala(5);
                 Exercicio("takeaway", 1, exerciciosCriarFrases[0]);
                 Fala(6);
-                Fala(7);
+                Embalagem(7);
                 Exercicio("bill_request", 1, exerciciosSpeaking[1]);
                 Fala(8);
                 Exercicio("payment", 1, exerciciosAlternativas[1]);
@@ -2308,7 +2332,7 @@ else if (nivelAtual == "A2-B1")
                 Fala(4);
                 Exercicio("takeaway", 1, exerciciosCompletarFrase[0]);
                 Fala(5);
-                Fala(6);
+                Embalagem(6);
                 Exercicio("meal_feedback", 1, exerciciosWriting[0]);
                 Exercicio("bill_request", 1, exerciciosSpeaking[1]);
                 Fala(7);
@@ -2317,6 +2341,11 @@ else if (nivelAtual == "A2-B1")
                 Exercicio("restaurant_vocabulary", 1, exerciciosAssociacao[0]);
                 break;
         }
+        roteiro.PrepararEtapa = indice => mesaAtual?.ApresentarRefeicao(indice == entrega
+            ? InteracaoRestaurant.EstadoRefeicao.Servida
+            : indice > entrega && indice < embalagem
+                ? InteracaoRestaurant.EstadoRefeicao.Restante
+                : InteracaoRestaurant.EstadoRefeicao.Oculta);
         return roteiro;
     }
 

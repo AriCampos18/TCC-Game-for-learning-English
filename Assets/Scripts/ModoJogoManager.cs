@@ -546,6 +546,7 @@ public class ModoJogoManager : MonoBehaviour
         bool entradaAberta = selecaoCenario != null && selecaoCenario.EntradaAberta;
         bool autenticacaoAberta = AuthenticationUIController.Instance?.EstaAberta == true;
         bool permitirLocomocao = vr && !entradaAberta && !autenticacaoAberta
+            && !InteracaoRestaurant.EmTransicaoRefeicao
             && (controleJogador == null || controleJogador.ControleAtivo);
         if (mediadorXR != null) mediadorXR.enabled = vr;
         if (movimentoXR != null) movimentoXR.enabled = permitirLocomocao;
@@ -560,6 +561,7 @@ public class ModoJogoManager : MonoBehaviour
         if (configuracoes != null)
             configuracoes.AplicarPreferenciaTurn(checkpoint != null ? checkpoint.ModoGiro : "snap", permitirLocomocao);
         if (!ModoVR && !entradaAberta && !autenticacaoAberta && !BotaoConfiguracoes.DialogoSuspenso
+            && !InteracaoRestaurant.EmTransicaoRefeicao
             && Input.GetKeyDown(KeyCode.LeftAlt))
         {
             AlternarModoUI();
@@ -1153,7 +1155,7 @@ public class ModoJogoManager : MonoBehaviour
 
     internal static bool PermitePonteiro(Transform painel)
     {
-        if (!painel.gameObject.activeInHierarchy) return false;
+        if (InteracaoRestaurant.EmTransicaoRefeicao || !painel.gameObject.activeInHierarchy) return false;
         if (!BotaoConfiguracoes.PermitePonteiro(painel))
             return false;
         for (var atual = painel; atual != null; atual = atual.parent)

@@ -6,6 +6,11 @@ internal static class MissoesRestaurant
     internal const string Cenario = "Restaurant";
     internal const string Garcom = "restaurant_waiter_npc";
     internal const string Cliente = "restaurant_client";
+    internal const string RefeicaoConcluida = "refeicao_concluida";
+
+    internal static string ChaveRefeicao(string nivel) => Definicoes(nivel)
+        .Find(m => m.conclusao.eventos.Exists(e => e.tipo == "marco_fluxo" && e.alvo == RefeicaoConcluida))
+        ?.mission_key;
 
     internal static HashSet<string> ChavesEsperadas(string nivel) =>
         new HashSet<string>(Definicoes(nivel).Select(d => d.mission_key));
@@ -23,7 +28,7 @@ internal static class MissoesRestaurant
             case "conversa_encerrada": return e.alvo == Cliente;
             case "marco_fluxo":
                 return e.alvo == "mesa_sentou" || e.alvo == "mesa_levantou"
-                    || e.alvo == "mesa_retornou" || e.alvo == "refeicao_concluida";
+                    || e.alvo == "mesa_retornou" || e.alvo == RefeicaoConcluida;
             case "exercicio_encerrado":
                 return e.alvo == Garcom + "/drink_order/1" || e.alvo == Garcom + "/meal_order/1"
                     || e.alvo == Garcom + "/menu_details/1" || e.alvo == Garcom + "/menu_details/2"
@@ -65,7 +70,7 @@ internal static class MissoesRestaurant
                 Adicionar("rest_a1_pedido", "Place your food order.",
                     "Faça seu pedido de comida.", Evento("exercicio_encerrado", Garcom + "/drink_order/1"));
                 Adicionar("rest_a1_comer", "Enjoy your food.",
-                    "Aproveite sua comida.", Evento("marco_fluxo", "refeicao_concluida"));
+                    "Aproveite sua comida.", Evento("marco_fluxo", RefeicaoConcluida));
                 Adicionar("rest_a1_viagem", "Ask for your meal to go.",
                     "Peça sua refeição para viagem.", Evento("exercicio_encerrado", Garcom + "/takeaway/1"));
                 Adicionar("rest_a1_pagamento", "Pay for your meal.",
@@ -77,7 +82,7 @@ internal static class MissoesRestaurant
                 Adicionar("rest_a1a2_pedido", "Tell the waiter what you would like to order.",
                     "Diga ao garçom o que você gostaria de pedir.", Evento("exercicio_encerrado", Garcom + "/drink_order/1"));
                 Adicionar("rest_a1a2_refeicao", "Enjoy the meal you ordered.",
-                    "Aproveite a refeição que você pediu.", Evento("marco_fluxo", "refeicao_concluida"));
+                    "Aproveite a refeição que você pediu.", Evento("marco_fluxo", RefeicaoConcluida));
                 Adicionar("rest_a1a2_viagem", "Ask to take your leftover food home.",
                     "Peça para levar para casa a comida que sobrou.", Evento("exercicio_encerrado", Garcom + "/takeaway/1"));
                 Adicionar("rest_a1a2_pagamento", "Ask for the bill and pay for your meal.",
@@ -89,7 +94,7 @@ internal static class MissoesRestaurant
                 Adicionar("rest_a2_pedido", "Order your meal from the waiter.",
                     "Faça seu pedido de refeição ao garçom.", Evento("exercicio_encerrado", Garcom + "/meal_order/1"));
                 Adicionar("rest_a2_comer", "Have your meal at the restaurant.",
-                    "Faça sua refeição no restaurante.", Evento("marco_fluxo", "refeicao_concluida"));
+                    "Faça sua refeição no restaurante.", Evento("marco_fluxo", RefeicaoConcluida));
                 Adicionar("rest_a2_embalagem", "Request a container for your leftovers.",
                     "Peça uma embalagem para levar a comida que sobrou.", Evento("exercicio_encerrado", Garcom + "/takeaway/1"));
                 Adicionar("rest_a2_pagamento", "Settle the bill before leaving.",
@@ -105,7 +110,7 @@ internal static class MissoesRestaurant
                 Adicionar("rest_a2b1_cliente", "Leave your table and have a conversation with another customer.",
                     "Saia da sua mesa e converse com outro cliente.", Evento("marco_fluxo", "mesa_levantou"), Evento("conversa_encerrada", Cliente));
                 Adicionar("rest_a2b1_refeicao", "Return to your table and enjoy your meal.",
-                    "Volte à sua mesa e aproveite sua refeição.", Evento("marco_fluxo", "mesa_retornou"), Evento("marco_fluxo", "refeicao_concluida"));
+                    "Volte à sua mesa e aproveite sua refeição.", Evento("marco_fluxo", "mesa_retornou"), Evento("marco_fluxo", RefeicaoConcluida));
                 Adicionar("rest_a2b1_viagem", "Ask the waiter to pack up your remaining food.",
                     "Peça ao garçom para embalar a comida que restou.", Evento("exercicio_encerrado", Garcom + "/takeaway/1"));
                 Adicionar("rest_a2b1_pagamento", "Pay the bill and request a receipt.",
@@ -121,7 +126,7 @@ internal static class MissoesRestaurant
                 Adicionar("rest_b1_cliente", "Step away from your table to chat with a fellow customer.",
                     "Afaste-se da mesa para conversar com outro cliente.", Evento("marco_fluxo", "mesa_levantou"), Evento("conversa_encerrada", Cliente));
                 Adicionar("rest_b1_comer", "Return to your seat and enjoy the food you ordered.",
-                    "Retorne ao seu lugar e aproveite a comida que pediu.", Evento("marco_fluxo", "mesa_retornou"), Evento("marco_fluxo", "refeicao_concluida"));
+                    "Retorne ao seu lugar e aproveite a comida que pediu.", Evento("marco_fluxo", "mesa_retornou"), Evento("marco_fluxo", RefeicaoConcluida));
                 Adicionar("rest_b1_viagem", "Arrange to take the remaining food home.",
                     "Solicite que a comida restante seja preparada para viagem.", Evento("exercicio_encerrado", Garcom + "/takeaway/1"));
                 Adicionar("rest_b1_pagamento", "Settle your restaurant bill.",

@@ -244,7 +244,7 @@ public class BotaoConfiguracoes : MonoBehaviour
 
     private void AbrirConfiguracoes()
     {
-        if (aberto || modalConfiguracoes == null)
+        if (aberto || modalConfiguracoes == null || InteracaoRestaurant.EmTransicaoRefeicao)
             return;
 
         visitaAoAbrir = SessaoCenario.Atual.Versao;

@@ -200,6 +200,11 @@ public class FirstPlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (InteracaoRestaurant.EmTransicaoRefeicao)
+        {
+            PararMovimentoVisual();
+            return;
+        }
         var modoJogo = ModoJogoManager.Instance;
         bool modoInterface = modoJogo != null && modoJogo.uiMode;
         bool enquadramentoLogin = modoJogo != null && modoJogo.EnquadramentoLoginAtivo;
