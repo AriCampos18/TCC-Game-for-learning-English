@@ -40,10 +40,11 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 
-[DefaultExecutionOrder(-50)]
+[DefaultExecutionOrder(-101)]
 public class ModoJogoManager : MonoBehaviour
 {
     public static ModoJogoManager Instance;
@@ -80,6 +81,17 @@ public class ModoJogoManager : MonoBehaviour
     private PointableCanvasModule moduloMeta;
     private InputSystemUIInputModule moduloDesktop;
     private bool? eventosConfiguradosRV;
+    private readonly Dictionary<Canvas, PonteiroCanvasRaiz> ponteirosRaiz = new();
+    private readonly List<int> ponteirosEncerrados = new();
+    private readonly Dictionary<Canvas, Camera> camerasInterfaceAntesDoRaycast = new();
+
+    private sealed class PonteiroCanvasRaiz : IPointableCanvas
+    {
+        public Canvas Canvas { get; }
+        public event System.Action<PointerEvent> WhenPointerEventRaised;
+        public PonteiroCanvasRaiz(Canvas canvas) => Canvas = canvas;
+        public void ProcessPointerEvent(PointerEvent evento) => WhenPointerEventRaised?.Invoke(evento);
+    }
     private RayInteractor raioDireito;
     private ControllerSelector seletorDireito;
     private ControllerButtonUsage botoesDireito;
@@ -87,7 +99,7 @@ public class ModoJogoManager : MonoBehaviour
     private const string NomeRaioCanvas = "ISDK_RayCanvasInteraction";
     private VRVirtualKeyboard tecladoVR;
     private bool apresentacaoXRAtiva;
-    private readonly List<(PointableCanvas ponto, RectTransform painel, BoundsClipper limites,
+    private readonly List<(PointableCanvas ponto, RectTransform painel, Canvas canvas, BoundsClipper limites,
         RenderMode modo, Camera camera)> raiosModais = new();
     private readonly List<GameObject> raiosCriados = new();
 
@@ -412,6 +424,9 @@ public class ModoJogoManager : MonoBehaviour
                 offsetCamera = paiCameraVR != null && paiCameraVR.name == "CameraOffSet" ? paiCameraVR : null;
                 if (offsetCamera != null) rotacaoOriginalOffset = offsetCamera.localRotation;
             }
+            DesabilitarUiDosInteratoresXri();
+            ConfigurarEventoUi(ModoVR);
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += AoCarregarCena;
             AtualizarApresentacao();
             AtualizarInterfaceXR(ModoVR);
         }
@@ -423,8 +438,10 @@ public class ModoJogoManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (Instance == this)
-            Instance = null;
+        if (Instance != this) return;
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= AoCarregarCena;
+        LimparPonteirosRaiz();
+        Instance = null;
     }
 
     private void Update()
@@ -435,8 +452,11 @@ public class ModoJogoManager : MonoBehaviour
         AtualizarApresentacao();
         bool vr = ModoVR;
         AtualizarInterfaceXR(vr);
-        ConfigurarEventoUi(vr);
+        if (eventosConfiguradosRV != vr) ConfigurarEventoUi(vr);
         AtualizarSuperficiesXR(vr);
+        if (vr && canvasesInterface != null)
+            foreach (var canvas in canvasesInterface)
+                if (canvas != null) camerasInterfaceAntesDoRaycast[canvas] = canvas.worldCamera;
         AtualizarBotaoDireito(vr);
         if (vr && tecladoVR != null) tecladoVR.ObservarSelecao(cameraCompartilhada);
         bool entradaAberta = selecaoCenario != null && selecaoCenario.EntradaAberta;
@@ -453,6 +473,16 @@ public class ModoJogoManager : MonoBehaviour
         {
             AlternarModoUI();
         }
+    }
+
+    private void LateUpdate()
+    {
+        // The Meta module temporarily assigns its projection camera to the root Canvas.
+        // Restore the presentation camera after the EventSystem has processed the pointers.
+        foreach (var item in camerasInterfaceAntesDoRaycast)
+            if (item.Key != null && item.Key.worldCamera == RaycasterModalVR.CameraDeProjecao)
+                item.Key.worldCamera = item.Value;
+        camerasInterfaceAntesDoRaycast.Clear();
     }
 
     private void AtualizarInterfaceXR(bool vr)
@@ -473,10 +503,10 @@ public class ModoJogoManager : MonoBehaviour
             ConfigurarEventoUi(true);
             PrepararSuperficiesXR();
             foreach (var item in raiosModais)
-                if (item.ponto != null && item.ponto.Canvas != null)
+                if (item.ponto != null && item.canvas != null)
                 {
-                    item.ponto.Canvas.renderMode = RenderMode.WorldSpace;
-                    item.ponto.Canvas.worldCamera = cameraCompartilhada;
+                    item.canvas.renderMode = RenderMode.WorldSpace;
+                    item.canvas.worldCamera = cameraCompartilhada;
                 }
             var estados = new List<ApresentacaoCanvas>();
             if (canvasesInterface != null)
@@ -512,11 +542,12 @@ public class ModoJogoManager : MonoBehaviour
                 foreach (var estado in apresentacoesRV) estado.Restaurar();
             apresentacoesRV = null;
             foreach (var item in raiosModais)
-                if (item.ponto != null && item.ponto.Canvas != null)
+                if (item.ponto != null && item.canvas != null)
                 {
-                    item.ponto.Canvas.renderMode = item.modo;
-                    item.ponto.Canvas.worldCamera = item.camera;
+                    item.canvas.renderMode = item.modo;
+                    item.canvas.worldCamera = item.camera;
                 }
+            LimparPonteirosRaiz();
             foreach (var raio in raiosCriados)
                 if (raio != null) raio.SetActive(false);
             if (seletorDireito != null) seletorDireito.ControllerButtonUsage = botoesDireito;
@@ -542,6 +573,9 @@ public class ModoJogoManager : MonoBehaviour
         foreach (var raiz in canvasesInterface)
         {
             if (raiz == null) continue;
+            foreach (var raycaster in raiz.GetComponentsInChildren<GraphicRaycaster>(true))
+                if (raycaster is not RaycasterModalVR)
+                    PrepararRaycaster(raycaster.GetComponent<Canvas>());
             foreach (string caminho in PaineisComRaioVR)
             {
                 if (raiz.transform.Find(caminho) is not RectTransform painel || !preparados.Add(painel))
@@ -582,7 +616,7 @@ public class ModoJogoManager : MonoBehaviour
                 raio.gameObject.SetActive(false);
 
             var canvas = ObterOuCriar<Canvas>(painel.gameObject);
-            ObterOuCriar<GraphicRaycaster>(painel.gameObject);
+            PrepararRaycaster(canvas);
             var ponto = ObterOuCriar<PointableCanvas>(raio.gameObject);
             var interacao = ObterOuCriar<RayInteractable>(raio.gameObject);
             var superficie = raio.GetComponentInChildren<ClippedPlaneSurface>(true);
@@ -619,7 +653,10 @@ public class ModoJogoManager : MonoBehaviour
             }
 
             componente = nameof(PointableCanvas);
-            ponto.InjectCanvas(canvas);
+            Canvas raiz = canvas.rootCanvas;
+            ponto.enabled = false;
+            ponto.InjectCanvas(raiz);
+            ponto.WhenPointerEventRaised += evento => EncaminharPonteiro(raiz, painel, evento);
             componente = nameof(RayInteractable);
             interacao.InjectSurface(superficie);
             interacao.InjectOptionalPointableElement(ponto);
@@ -628,7 +665,7 @@ public class ModoJogoManager : MonoBehaviour
             var cameraAnterior = canvas.worldCamera;
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = cameraCompartilhada;
-            raiosModais.Add((ponto, painel, limites, modoAnterior, cameraAnterior));
+            raiosModais.Add((ponto, painel, canvas, limites, modoAnterior, cameraAnterior));
         }
         catch (System.Exception erro)
         {
@@ -653,7 +690,7 @@ public class ModoJogoManager : MonoBehaviour
 
         foreach (var item in raiosModais)
         {
-            if (item.ponto == null || item.painel == null) continue;
+            if (item.ponto == null || item.painel == null || item.canvas == null) continue;
             bool ativo = PermitePonteiro(item.painel);
             if (ativo && item.limites != null)
             {
@@ -663,11 +700,12 @@ public class ModoJogoManager : MonoBehaviour
                 var altura = item.limites.transform.InverseTransformVector(item.painel.TransformVector(Vector3.up * rect.height));
                 item.limites.Size = new Vector3(largura.magnitude, altura.magnitude, item.limites.Size.z);
             }
+            if (!ativo) CancelarPonteirosDoPainel(item.painel, item.canvas.rootCanvas);
             if (item.ponto.gameObject.activeSelf != ativo) item.ponto.gameObject.SetActive(ativo);
         }
     }
 
-    private static bool PermitePonteiro(Transform painel)
+    internal static bool PermitePonteiro(Transform painel)
     {
         if (!painel.gameObject.activeInHierarchy) return false;
         for (var atual = painel; atual != null; atual = atual.parent)
@@ -677,6 +715,99 @@ public class ModoJogoManager : MonoBehaviour
                 if (grupo.ignoreParentGroups) break;
             }
         return true;
+    }
+
+    private void PrepararRaycaster(Canvas canvas)
+    {
+        if (canvas == null || canvas.TryGetComponent<RaycasterModalVR>(out _)) return;
+
+        var anterior = canvas.GetComponent<GraphicRaycaster>();
+        var scoped = canvas.gameObject.AddComponent<RaycasterModalVR>();
+        if (anterior == null) return;
+
+        scoped.ignoreReversedGraphics = anterior.ignoreReversedGraphics;
+        scoped.blockingObjects = anterior.blockingObjects;
+        scoped.blockingMask = anterior.blockingMask;
+        scoped.enabled = anterior.enabled;
+        anterior.enabled = false;
+        Destroy(anterior);
+    }
+
+    internal RectTransform PainelDe(Transform alvo)
+    {
+        for (var atual = alvo; atual != null; atual = atual.parent)
+            foreach (var item in raiosModais)
+                if (item.painel == atual) return item.painel;
+        return null;
+    }
+
+    private void EncaminharPonteiro(Canvas raiz, RectTransform painel, PointerEvent evento)
+    {
+        if (!ModoVR || moduloMeta == null || !moduloMeta.isActiveAndEnabled) return;
+        var paineis = RaycasterModalVR.PaineisPorPonteiro;
+        if (evento.Type == PointerEventType.Hover)
+        {
+            if (!PermitePonteiro(painel)) return;
+            if (!ponteirosRaiz.TryGetValue(raiz, out var ponteiro))
+            {
+                ponteiro = new PonteiroCanvasRaiz(raiz);
+                PointableCanvasModule.RegisterPointableCanvas(ponteiro);
+                ponteirosRaiz.Add(raiz, ponteiro);
+            }
+            if (paineis.ContainsKey(evento.Identifier)) return;
+            paineis.Add(evento.Identifier, painel);
+            ponteiro.ProcessPointerEvent(evento);
+            return;
+        }
+
+        if (!paineis.TryGetValue(evento.Identifier, out var painelAtual) || painelAtual != painel ||
+            !ponteirosRaiz.TryGetValue(raiz, out var existente))
+            return;
+        if (evento.Type == PointerEventType.Unhover || evento.Type == PointerEventType.Cancel)
+            paineis.Remove(evento.Identifier);
+        existente.ProcessPointerEvent(evento);
+    }
+
+    private void CancelarPonteirosDoPainel(RectTransform painel, Canvas raiz)
+    {
+        if (!ponteirosRaiz.TryGetValue(raiz, out var ponteiro)) return;
+
+        var paineis = RaycasterModalVR.PaineisPorPonteiro;
+        foreach (var item in paineis)
+            if (item.Value == painel) ponteirosEncerrados.Add(item.Key);
+
+        foreach (var id in ponteirosEncerrados)
+        {
+            paineis.Remove(id);
+            ponteiro.ProcessPointerEvent(new PointerEvent(id, PointerEventType.Cancel, Pose.identity));
+        }
+        ponteirosEncerrados.Clear();
+    }
+
+    private void LimparPonteirosRaiz()
+    {
+        RaycasterModalVR.PaineisPorPonteiro.Clear();
+        foreach (var ponteiro in ponteirosRaiz.Values)
+            PointableCanvasModule.UnregisterPointableCanvas(ponteiro);
+        ponteirosRaiz.Clear();
+    }
+
+    private void AoCarregarCena(UnityEngine.SceneManagement.Scene cena,
+        UnityEngine.SceneManagement.LoadSceneMode modo)
+    {
+        DesabilitarUiDosInteratoresXri();
+        ConfigurarEventoUi(ModoVR);
+    }
+
+    private static void DesabilitarUiDosInteratoresXri()
+    {
+        // XRI creates XRUIInputModule on registration when its UI integration is enabled.
+        foreach (var raio in FindObjectsByType<XRRayInteractor>(FindObjectsInactive.Include))
+            raio.enableUIInteraction = false;
+        foreach (var toque in FindObjectsByType<XRPokeInteractor>(FindObjectsInactive.Include))
+            toque.enableUIInteraction = false;
+        foreach (var interator in FindObjectsByType<NearFarInteractor>(FindObjectsInactive.Include))
+            interator.enableUIInteraction = false;
     }
 
     private void ConfigurarEventoUi(bool vr)
