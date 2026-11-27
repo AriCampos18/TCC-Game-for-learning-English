@@ -57,6 +57,15 @@ public class ModoJogoManager : MonoBehaviour
     [SerializeField] private Transform jogador;
     [SerializeField] private Canvas[] canvasesInterface;
 
+    [Header("Autenticação")]
+    [SerializeField] private Transform loginCameraAnchor;
+
+    private bool enquadramentoLogin, poseLoginAplicada, poseLoginVR;
+    private Transform paiAntesDoLogin;
+    private Vector3 posicaoAntesDoLogin;
+    private Quaternion rotacaoAntesDoLogin;
+    internal bool EnquadramentoLoginAtivo => enquadramentoLogin;
+
     private Transform paiCameraVR;
     private Vector3 posicaoCameraVR, escalaCameraVR;
     private Quaternion rotacaoCameraVR;
@@ -449,9 +458,12 @@ public class ModoJogoManager : MonoBehaviour
         // No PC, mantém o atalho original para liberar/travar o cursor.
         // No VR, a interação com a interface é feita pelo Ray Interactor
         // dos controles, então não usamos o cursor do mouse.
-        AtualizarApresentacao();
         bool vr = ModoVR;
+        if (poseLoginAplicada && poseLoginVR != vr)
+            RestaurarPoseAntesDoLogin();
+        AtualizarApresentacao();
         AtualizarInterfaceXR(vr);
+        AtualizarPoseLogin(vr);
         if (eventosConfiguradosRV != vr) ConfigurarEventoUi(vr);
         AtualizarSuperficiesXR(vr);
         if (vr && canvasesInterface != null)
@@ -473,6 +485,86 @@ public class ModoJogoManager : MonoBehaviour
         {
             AlternarModoUI();
         }
+    }
+
+    internal void DefinirEnquadramentoLogin(bool ativo)
+    {
+        enquadramentoLogin = ativo;
+        if (ativo)
+            AtualizarPoseLogin(ModoVR);
+        else
+            RestaurarPoseAntesDoLogin();
+    }
+
+    internal void PrepararDestinoDoCheckpoint()
+    {
+        // Em RV, o enquadramento é dono da origem do jogador até o transporte.
+        // No desktop, a câmera permanece na âncora enquanto o Player muda de posição.
+        if (ModoVR || (poseLoginAplicada && poseLoginVR))
+            DefinirEnquadramentoLogin(false);
+    }
+
+    private void AtualizarPoseLogin(bool vr)
+    {
+        if (!enquadramentoLogin || loginCameraAnchor == null || cameraCompartilhada == null
+            || jogador == null || vr != apresentacaoXRAtiva || vr == apresentacaoDesktop
+            || poseLoginAplicada)
+            return;
+
+        if (vr)
+        {
+            var headset = InputDevices.GetDeviceAtXRNode(XRNode.Head);
+            if (!headset.isValid
+                || (headset.TryGetFeatureValue(CommonUsages.isTracked, out bool rastreado) && !rastreado))
+                return;
+        }
+
+        var cameraTransform = cameraCompartilhada.transform;
+        var objeto = vr ? jogador : cameraTransform;
+        posicaoAntesDoLogin = vr ? objeto.position : objeto.localPosition;
+        rotacaoAntesDoLogin = vr ? objeto.rotation : objeto.localRotation;
+        poseLoginAplicada = true;
+        poseLoginVR = vr;
+
+        if (!vr)
+        {
+            paiAntesDoLogin = cameraTransform.parent;
+            cameraTransform.SetParent(loginCameraAnchor, true);
+            cameraTransform.SetPositionAndRotation(loginCameraAnchor.position, loginCameraAnchor.rotation);
+            return;
+        }
+
+        // Aplica somente o rumo à origem do jogador. A pose local do headset é dada pelo rastreamento.
+        var rumo = Quaternion.Euler(0f, loginCameraAnchor.eulerAngles.y, 0f);
+        var deslocamento = rumo * (Quaternion.Inverse(jogador.rotation) * (cameraTransform.position - jogador.position));
+        PosicionarOrigemJogador(loginCameraAnchor.position - deslocamento, rumo);
+    }
+
+    private void RestaurarPoseAntesDoLogin()
+    {
+        if (!poseLoginAplicada)
+            return;
+
+        poseLoginAplicada = false;
+        if (poseLoginVR && jogador != null)
+            PosicionarOrigemJogador(posicaoAntesDoLogin, rotacaoAntesDoLogin);
+        else if (!poseLoginVR && cameraCompartilhada != null)
+        {
+            var cameraTransform = cameraCompartilhada.transform;
+            cameraTransform.SetParent(paiAntesDoLogin, true);
+            cameraTransform.SetLocalPositionAndRotation(posicaoAntesDoLogin, rotacaoAntesDoLogin);
+            cameraTransform.localScale = escalaCameraVR;
+            if (controleJogador != null) controleJogador.SincronizarRotacaoInterna();
+        }
+    }
+
+    private void PosicionarOrigemJogador(Vector3 posicao, Quaternion rotacao)
+    {
+        var controlador = jogador.GetComponent<CharacterController>();
+        bool reativar = controlador != null && controlador.enabled;
+        if (reativar) controlador.enabled = false;
+        jogador.SetPositionAndRotation(posicao, rotacao);
+        if (reativar) controlador.enabled = true;
     }
 
     private void LateUpdate()

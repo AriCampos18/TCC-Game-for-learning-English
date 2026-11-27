@@ -193,6 +193,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
 
     private void OnDisable()
     {
+        if (modeManager != null) modeManager.DefinirEnquadramentoLogin(false);
         CancelarRetornoCadastro();
         recuperacao?.Limpar();
     }
@@ -705,6 +706,7 @@ public sealed class AuthenticationUIController : MonoBehaviour
             isOpen = true;
         }
 
+        if (modeManager != null) modeManager.DefinirEnquadramentoLogin(true);
         return true;
     }
 

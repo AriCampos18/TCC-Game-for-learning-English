@@ -415,6 +415,8 @@ public class ModalSelecaoCenario : MonoBehaviour
         Transform destino = ObterPontoDestino(cenario);
         if (player == null || destino == null)
             throw new InvalidOperationException("Entrada do cenário não está configurada.");
+        if (ModoJogoManager.Instance != null)
+            ModoJogoManager.Instance.PrepararDestinoDoCheckpoint();
         TransportarJogador(destino.position);
     }
 

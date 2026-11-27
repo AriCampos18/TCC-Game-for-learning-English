@@ -200,11 +200,13 @@ public class FirstPlayerController : MonoBehaviour
 
     private void Update()
     {
-        bool modoInterface = ModoJogoManager.Instance != null && ModoJogoManager.Instance.uiMode;
-        if (!controleAtivo || modoInterface)
+        var modoJogo = ModoJogoManager.Instance;
+        bool modoInterface = modoJogo != null && modoJogo.uiMode;
+        bool enquadramentoLogin = modoJogo != null && modoJogo.EnquadramentoLoginAtivo;
+        if (!controleAtivo || modoInterface || enquadramentoLogin)
         {
             PararMovimentoVisual();
-            if (!controleAtivo && !modoInterface && olharSemMover && !ModoVR)
+            if (!controleAtivo && !modoInterface && !enquadramentoLogin && olharSemMover && !ModoVR)
                 AtualizarOlharDesktop();
             return;
         }
