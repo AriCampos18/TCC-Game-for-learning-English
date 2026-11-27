@@ -318,6 +318,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
 
     internal Task SalvarManual()
     {
+        AtualizarCheckpointMissoes();
         if (dispositivo?.Atual == null)
             Status = "Ainda não há ponto seguro para salvar";
         return !preparado || semPosse || dispositivo?.Atual == null ? Task.CompletedTask : Persistir();
@@ -365,6 +366,7 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
     {
         if (encerrando)
             return false;
+        AtualizarCheckpointMissoes();
         encerrando = true;
         if (dispositivo?.Atual == null)
             return true;
@@ -397,7 +399,10 @@ internal sealed partial class CheckpointJogo : MonoBehaviour
     private void OnApplicationPause(bool pausado)
     {
         if (pausado && preparado && !encerrando && !semPosse && dispositivo?.Atual != null)
+        {
+            AtualizarCheckpointMissoes();
             _ = Persistir();
+        }
     }
 
     private void OnApplicationQuit()

@@ -311,6 +311,78 @@ internal sealed partial class CheckpointJogo
         Capturar("scenario_intro", NovaVisita(cenario, DadosJogador.nivelUsuario, "scenario.intro"));
     }
 
+    private int? visitaMissoesPendentes;
+
+    internal void AgendarCheckpointMissoes(int versao)
+    {
+        if (preparado && !restaurando && !encerrando && !semPosse && !descarregado)
+            visitaMissoesPendentes = versao;
+    }
+
+    private void LateUpdate()
+    {
+        if (AtualizarCheckpointMissoes())
+            _ = Persistir();
+    }
+
+    private bool AtualizarCheckpointMissoes()
+    {
+        if (!visitaMissoesPendentes.HasValue)
+            return false;
+        int versao = visitaMissoesPendentes.Value;
+        visitaMissoesPendentes = null;
+        var sessao = SessaoCenario.Atual;
+        var atual = dispositivo?.Atual;
+        string fase = (string)atual?["phase"];
+        if (restaurando || encerrando || semPosse || descarregado || !sessao.EmJogo
+            || !sessao.Corresponde(versao) || (fase != "scenario_intro" && fase != "scenario_active" && fase != "review")
+            || atual["visit"] is not JObject visita || VisitaId == null || (string)visita["visit_id"] != VisitaId
+            || NomeCenario((int?)visita["scenario_id"] ?? 0) != sessao.Nome
+            || (string)visita["level"] != sessao.Nivel)
+            return false;
+
+        var missoes = MissionManager.Instance;
+        if (missoes == null || !missoes.PodeCapturarMissoes(sessao.Nome))
+            return false;
+
+        // Preserve the complete exercise/review snapshot when a mission event
+        // arrives before the corresponding script step has been captured.
+        var progresso = GerenciadorProgressao.Instance;
+        if (progresso == null || !JToken.DeepEquals(visita["exercises"], progresso.ResultadosCheckpoint()))
+        {
+            visitaMissoesPendentes = versao;
+            return false;
+        }
+
+        var novo = (JObject)atual.DeepClone();
+        var estado = (JObject)novo["visit"];
+        estado["missions"] = missoes.CapturarMissoesCheckpoint();
+        const string inventario = "market.inventory.";
+        var marcos = ((JArray)visita["milestones"]).Values<string>()
+            .Where(m => !m.StartsWith("start.", StringComparison.Ordinal)
+                && (sessao.Nome != "Market" || !m.StartsWith(inventario, StringComparison.Ordinal)));
+        var inicios = missoes.CapturarIniciosCheckpoint();
+        estado["milestones"] = new JArray(marcos.Concat(inicios.Values<string>()).Distinct());
+        if (sessao.Nome == "Market" && missoes.MissaoAtiva("interagir_produtos") && ProdutoManager.Instance != null
+            && fase != "scenario_intro")
+            ((JArray)estado["milestones"]).Add(inventario + ProdutoManager.Instance.CapturarInventarioCheckpoint());
+        if (JToken.DeepEquals(novo, atual))
+            return false;
+
+        if (pendenteRejeitado)
+        {
+            dispositivo.Pendente = null;
+            pendenteRejeitado = false;
+        }
+        dispositivo.Atual = novo;
+        dispositivo.Alterado = true;
+        return true;
+    }
+
+    private static JArray IniciosDeMissoes(JObject visita) =>
+        new JArray(((JArray)visita["milestones"]).Values<string>()
+            .Where(m => m.StartsWith("start.", StringComparison.Ordinal)));
+
     internal void Inicio()
     {
         // A entrada permanece como último marco retomável durante a atividade.
@@ -657,14 +729,18 @@ internal sealed partial class CheckpointJogo
             {
                 await selecao.PrepararEntradaCheckpoint(cenario, versao, vida.Token);
                 ValidarConta();
+                var inicios = IniciosDeMissoes(visita);
+                if (!interno && inicios.Count > 0
+                    && MissionManager.Instance?.RestaurarMissoesRoteiro(cenario, (JArray)visita["missions"], inicios) != true)
+                    throw new InvalidDataException("As missões da entrada não correspondem ao catálogo.");
+
                 if (interno)
                 {
                     if (!contexto.Iniciar(versao)
-                        || (hotelInterno ? MissionManager.Instance?.RestaurarMissoesHotel((JArray)visita["missions"], passo != HotelCartao)
-                            : roteiro && ((JArray)visita["milestones"]).Count > 0
-                                ? MissionManager.Instance?.RestaurarMissoesRoteiro(cenario, (JArray)visita["missions"],
-                                    new JArray(((JArray)visita["milestones"]).Where(m => ((string)m).StartsWith("start.", StringComparison.Ordinal))))
-                                : MissionManager.Instance?.RestaurarMissoesMarco(cenario, (JArray)visita["missions"],
+                        || (inicios.Count > 0
+                            ? MissionManager.Instance?.RestaurarMissoesRoteiro(cenario, (JArray)visita["missions"], inicios)
+                            : hotelInterno ? MissionManager.Instance?.RestaurarMissoesHotel((JArray)visita["missions"], passo != HotelCartao)
+                            : MissionManager.Instance?.RestaurarMissoesMarco(cenario, (JArray)visita["missions"],
                                 caminhoCityPark ? MissoesVisitorCenter.ChaveChegada(contexto.Nivel)
                                     : caminhoCollege ? MissoesCollege.ChaveSegundaMissao(contexto.Nivel)
                                     : caminhoHome ? MissoesHome.UltimaMissao(contexto.Nivel)

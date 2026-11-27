@@ -216,7 +216,7 @@ internal sealed class CatalogoMissoes
     internal JArray CapturarIniciosCheckpoint() => new JArray(Definicoes.SelectMany(d => d.inicio.eventos)
         .Select(e => e.Chave).Distinct().Where(eventosInicio.Contains).Select(ChaveInicioCheckpoint));
 
-    internal bool RestaurarRoteiro(JArray missoes, JArray inicios, Action<Definicao> iniciar, Action<string> concluir)
+    internal bool RestaurarRoteiro(JArray missoes, JArray inicios, Action<Definicao> iniciar, Action<string> concluir, Action limpar = null)
     {
         var definicoes = Definicoes.ToDictionary(d => d.mission_key);
         var inicioPermitido = Definicoes.SelectMany(d => d.inicio.eventos).Select(e => e.Chave).Distinct()
@@ -251,6 +251,7 @@ internal sealed class CatalogoMissoes
             estados.Add(chave, (concluida, parciais));
         }
 
+        limpar?.Invoke();
         ativas.Clear();
         concluidas.Clear();
         eventosInicio.Clear();

@@ -30,8 +30,11 @@ public class MissionManager : MonoBehaviour
     internal JArray CapturarIniciosCheckpoint() => catalogoMissoes?.CapturarIniciosCheckpoint() ?? new JArray();
 
     internal bool RestaurarMissoesRoteiro(string cenario, JArray missoes, JArray inicios) =>
-        TemCatalogo(cenario) && catalogoMissoes != null
-        && catalogoMissoes.RestaurarRoteiro(missoes, inicios, AdicionarDoCatalogo, ConcluirMissao);
+        cenarioCatalogo == cenario && SessaoCenario.Atual.Nome == cenario && catalogoMissoes != null
+        && catalogoMissoes.RestaurarRoteiro(missoes, inicios, AdicionarDoCatalogo,
+            id => MarcarConcluida(id), LimparMissoes);
+
+    internal bool PodeCapturarMissoes(string cenario) => TemCatalogo(cenario);
 
     internal JArray CapturarMissoesCheckpoint() => new JArray(missoes.Select(m => new JObject
     {
@@ -240,7 +243,12 @@ public class MissionManager : MonoBehaviour
         if (sessao.Nome != cenarioCatalogo || (!sessao.EmJogo && tipo != "cenario_iniciado"))
             return;
 
-        catalogoMissoes?.Registrar(tipo, alvo, AdicionarDoCatalogo, ConcluirMissao);
+        if (catalogoMissoes == null)
+            return;
+
+        catalogoMissoes.Registrar(tipo, alvo, AdicionarDoCatalogo, ConcluirMissao);
+        if (sessao.EmJogo)
+            CheckpointJogo.Instance?.AgendarCheckpointMissoes(sessao.Versao);
     }
 
     private void AdicionarDoCatalogo(CatalogoMissoes.Definicao definicao)
@@ -491,15 +499,21 @@ public class MissionManager : MonoBehaviour
 
     public void ConcluirMissao(string id)
     {
-        Missao m = missoes.Find(x => x.id == id);
+        var sessao = SessaoCenario.Atual;
+        if (sessao.EmJogo && MarcarConcluida(id))
+            CheckpointJogo.Instance?.AgendarCheckpointMissoes(sessao.Versao);
+    }
 
-        if (SessaoCenario.Atual.EmJogo && m != null && !m.concluida)
-        {
-            m.concluida = true;
+    private bool MarcarConcluida(string id)
+    {
+        var missao = missoes.Find(m => m.id == id);
+        if (missao == null || missao.concluida)
+            return false;
 
-            if (m.itemUI != null)
-                m.itemUI.AtualizarVisual();
-        }
+        missao.concluida = true;
+        if (missao.itemUI != null)
+            missao.itemUI.AtualizarVisual();
+        return true;
     }
 
     public static void ConcluirMissaoNPC(string id)
