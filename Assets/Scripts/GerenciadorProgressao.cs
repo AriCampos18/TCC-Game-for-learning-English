@@ -24,9 +24,29 @@ public class GerenciadorProgressao : MonoBehaviour
 
     private int totalExerciciosCiclo;
     private int exerciciosAcertadosCiclo;
+    private int totalAvaliavel;
+    private readonly JArray cenariosAvaliados = new JArray();
+    private JArray acertosBarraLegada = new JArray();
+    private readonly Dictionary<string, JObject> recuperados = new Dictionary<string, JObject>();
 
-    private HashSet<ExercicioBase> exerciciosRegistrados =
-        new HashSet<ExercicioBase>();
+    internal float Aproveitamento => CalcularAproveitamento(
+        quantidadeCenariosIniciais, cenarioExtraSolicitado,
+        cenariosAvaliados.Sum(t => Fracao((int)t["correct"], (int)t["graded"])),
+        cenarioFinalizado ? 0f
+            : Fracao(exerciciosAcertados + recuperados.Count, totalAvaliavel));
+
+    private static float CalcularAproveitamento(int quantidade, bool extra, float anteriores, float atual) =>
+        extra ? 100f * atual : (100f / Math.Max(1, quantidade)) * (anteriores + atual);
+
+    private static float Fracao(int acertos, int total) =>
+        total > 0 ? Math.Clamp(acertos / (float)total, 0f, 1f) : 0f;
+
+    private static int ContarAvaliaveis(string cenario, string nivel) =>
+        LinhaDoTempoExercicios.Criar(cenario, nivel).Etapas
+            .Where(e => e.Tipo == TipoEtapaRoteiro.Exercicio)
+            .Select(e => (e.Npc, e.Ponto, e.Ordem)).Distinct().Count();
+
+    private void AtualizarBarra() => ProgressoNivelManager.Instance?.AtualizarVisual(Aproveitamento);
 
     private bool cenarioFinalizado;
     private int visitaCenario;
@@ -47,7 +67,13 @@ public class GerenciadorProgressao : MonoBehaviour
             ["visit_totals"] = incluirVisita ? Totais(totalExercicios, exerciciosAcertados) : Totais(0, 0),
             ["extra_pending"] = cenarioExtraSolicitado,
             ["recent_scenario_ids"] = new JArray(ultimosCenarios.Select(SessaoCenario.Id)),
-            ["bar_correct_keys"] = ProgressoNivelManager.Instance?.CapturarCheckpoint() ?? new JArray(),
+            ["bar_correct_keys"] = acertosBarraLegada.DeepClone(),
+            ["evaluation"] = new JObject
+            {
+                ["completed"] = cenariosAvaliados.DeepClone(),
+                ["planned"] = incluirVisita ? totalAvaliavel : 0,
+                ["recovered"] = incluirVisita ? new JArray(recuperados.Values.Select(c => c.DeepClone())) : new JArray()
+            },
             ["decision"] = decisao == null ? JValue.CreateNull() : (JToken)decisao.DeepClone(),
             ["processed_decision_ids"] = processadas.DeepClone()
         };
@@ -57,7 +83,7 @@ public class GerenciadorProgressao : MonoBehaviour
 
     internal JArray ResultadosCheckpoint() => (JArray)resultadosCheckpoint.DeepClone();
 
-    internal void RestaurarCheckpoint(JObject progresso, JArray resultados, bool jaFinalizado)
+    internal void RestaurarCheckpoint(JObject progresso, JArray resultados, bool jaFinalizado, JObject visita)
     {
         nivelAtual = DadosJogador.nivelUsuario;
         cicloInicializado = true;
@@ -75,10 +101,31 @@ public class GerenciadorProgressao : MonoBehaviour
         ultimosCenarios.AddRange(progresso["recent_scenario_ids"].Values<int>().Select(CheckpointJogo.NomeCenario));
         visitaCenario = SessaoCenario.Atual.EmResultado || SessaoCenario.Atual.EmJogo ? SessaoCenario.Atual.Versao : 0;
         cenarioFinalizado = jaFinalizado;
-        exerciciosRegistrados.Clear();
         resultadosCheckpoint.RemoveAll();
         foreach (var resultado in resultados)
             resultadosCheckpoint.Add(resultado.DeepClone());
+        cenariosAvaliados.RemoveAll();
+        recuperados.Clear();
+        acertosBarraLegada = (JArray)progresso["bar_correct_keys"].DeepClone();
+        var avaliacao = progresso["evaluation"];
+        if (avaliacao != null)
+        {
+            foreach (var item in avaliacao["completed"])
+                cenariosAvaliados.Add(item.DeepClone());
+            foreach (JObject chave in avaliacao["recovered"])
+                recuperados.Add(CheckpointJogo.IdentidadeExercicio(chave), (JObject)chave.DeepClone());
+        }
+        else if (visitasContabilizadas.Count == 1)
+        {
+            var anterior = Totais(totalExerciciosCiclo, exerciciosAcertadosCiclo);
+            anterior["visit_id"] = visitasContabilizadas[0];
+            cenariosAvaliados.Add(anterior);
+        }
+        totalAvaliavel = (int?)avaliacao?["planned"] ?? 0;
+        if (totalAvaliavel == 0 && visita != null && !jaFinalizado)
+            totalAvaliavel = ContarAvaliaveis(CheckpointJogo.NomeCenario((int)visita["scenario_id"]), (string)visita["level"]);
+        ProgressoNivelManager.Instance?.InicializarBarra();
+        AtualizarBarra();
     }
 
     private void Awake()
@@ -117,6 +164,7 @@ public class GerenciadorProgressao : MonoBehaviour
     {
         checkpointCiclo = Guid.NewGuid().ToString();
         visitasContabilizadas.Clear();
+        cenariosAvaliados.RemoveAll();
         cenariosConcluidos = 0;
         totalExerciciosCiclo = 0;
         exerciciosAcertadosCiclo = 0;
@@ -143,6 +191,7 @@ public class GerenciadorProgressao : MonoBehaviour
         }
 
         cicloInicializado = true;
+        AtualizarBarra();
 
         Debug.Log(
             $"Novo ciclo: nível {nivelAtual} | " +
@@ -167,11 +216,12 @@ public class GerenciadorProgressao : MonoBehaviour
         totalExercicios = 0;
         exerciciosAcertados = 0;
 
-        exerciciosRegistrados.Clear();
         resultadosCheckpoint.RemoveAll();
         cenarioFinalizado = false;
-
+        recuperados.Clear();
         nivelAtual = DadosJogador.nivelUsuario;
+        totalAvaliavel = ContarAvaliaveis(SessaoCenario.Atual.Nome, nivelAtual);
+        AtualizarBarra();
     }
 
     public void RegistrarResultado(
@@ -180,24 +230,27 @@ public class GerenciadorProgressao : MonoBehaviour
         InteracaoNPC origem = null)
     {
         if (!SessaoCenario.Atual.EmJogo || !SessaoCenario.Atual.Corresponde(visitaCenario)
-            || cenarioFinalizado || exercicio == null)
+            || cenarioFinalizado || exercicio == null || origem == null || origem.Cenario != SessaoCenario.Atual.Nome)
             return;
 
-        if (!exerciciosRegistrados.Add(exercicio))
+        var chave = CheckpointJogo.ChaveExercicio(exercicio, origem, incluirCenario: false);
+        if (chave == null)
+        {
+            Debug.LogError("Exerc?cio avali?vel sem chave de roteiro. O resultado n?o pode ser persistido.", this);
+            return;
+        }
+        string identidade = CheckpointJogo.IdentidadeExercicio(chave);
+        if (resultadosCheckpoint.Any(r => CheckpointJogo.IdentidadeExercicio((JObject)r["key"]) == identidade))
             return;
 
         totalExercicios++;
-        var chave = CheckpointJogo.ChaveExercicio(exercicio, origem, incluirCenario: false);
-        if (chave != null)
-        {
-            var resultado = new JObject { ["key"] = chave, ["outcome"] = acertou ? "correct" : "failed" };
-            if (!acertou)
-                resultado["incorrect_attempts"] = 3;
-            resultadosCheckpoint.Add(resultado);
-        }
-
+        var resultado = new JObject { ["key"] = chave, ["outcome"] = acertou ? "correct" : "failed" };
+        if (!acertou)
+            resultado["incorrect_attempts"] = 3;
+        resultadosCheckpoint.Add(resultado);
         if (acertou)
             exerciciosAcertados++;
+        AtualizarBarra();
 
         Debug.Log(
             $"Exercícios do cenário: {totalExercicios} | " +
@@ -205,25 +258,23 @@ public class GerenciadorProgressao : MonoBehaviour
         );
     }
 
-    // Acurácia somente do cenário atual.
-    public float CalcularAcuracia()
+    internal void RecuperarAcerto(ExercicioBase exercicio, InteracaoNPC origem)
     {
-        if (totalExercicios == 0)
-            return 0f;
+        if (!SessaoCenario.Atual.EmJogo || !SessaoCenario.Atual.Corresponde(visitaCenario)
+            || cenarioFinalizado || origem == null || origem.Cenario != SessaoCenario.Atual.Nome)
+            return;
 
-        return exerciciosAcertados /
-               (float)totalExercicios * 100f;
+        var chave = CheckpointJogo.ChaveExercicio(exercicio, origem, incluirCenario: false);
+        if (chave == null) return;
+        string identidade = CheckpointJogo.IdentidadeExercicio(chave);
+        if (!resultadosCheckpoint.Any(r => (string)r["outcome"] == "failed"
+            && CheckpointJogo.IdentidadeExercicio((JObject)r["key"]) == identidade))
+            return;
+        if (recuperados.TryAdd(identidade, chave))
+            AtualizarBarra();
     }
 
-    // Acurácia conjunta dos cenários iniciais.
-    private float CalcularAcuraciaCiclo()
-    {
-        if (totalExerciciosCiclo == 0)
-            return 0f;
-
-        return exerciciosAcertadosCiclo /
-               (float)totalExerciciosCiclo * 100f;
-    }
+    public float CalcularAcuracia() => Aproveitamento;
 
     // Chamado ao fechar o modal final do cenário.
     public string FinalizarCenario()
@@ -231,9 +282,10 @@ public class GerenciadorProgressao : MonoBehaviour
         if (!SessaoCenario.Atual.EmResultado || !SessaoCenario.Atual.Corresponde(visitaCenario) || cenarioFinalizado)
             return "CenarioJaFinalizado";
 
+        float aproveitamentoExtra = cenarioExtraSolicitado ? Aproveitamento : 0f;
         cenarioFinalizado = true;
 
-        if (totalExercicios == 0)
+        if (totalExercicios == 0 || totalAvaliavel == 0)
         {
             Debug.LogWarning(
                 "Cenário sem exercícios registrados. " +
@@ -247,7 +299,7 @@ public class GerenciadorProgressao : MonoBehaviour
         // O cenário extra é avaliado separadamente.
         if (cenarioExtraSolicitado)
         {
-            float acuraciaExtra = CalcularAcuracia();
+            float acuraciaExtra = aproveitamentoExtra;
 
             Debug.Log(
                 $"Acurácia do cenário extra: {acuraciaExtra:F1}%"
@@ -276,12 +328,16 @@ public class GerenciadorProgressao : MonoBehaviour
         exerciciosAcertadosCiclo += exerciciosAcertados;
         cenariosConcluidos++;
         string visitaId = CheckpointJogo.Instance?.VisitaId;
+        var registro = Totais(totalAvaliavel, exerciciosAcertados + recuperados.Count);
+        registro["visit_id"] = visitaId;
+        cenariosAvaliados.Add(registro);
         if (visitaId != null)
             visitasContabilizadas.Add(visitaId);
+        AtualizarBarra();
 
         Debug.Log(
             $"Cenários iniciais concluídos: {cenariosConcluidos} | " +
-            $"Acurácia inicial: {CalcularAcuraciaCiclo():F1}%"
+            $"Acurácia inicial: {Aproveitamento:F1}%"
         );
 
         // Ainda faltam cenários iniciais.
@@ -301,7 +357,7 @@ public class GerenciadorProgressao : MonoBehaviour
     // Avalia a acurácia dos cenários iniciais.
     private void AvaliarCiclo()
     {
-        float acuracia = CalcularAcuraciaCiclo();
+        float acuracia = Aproveitamento;
 
         nivelAtual = DadosJogador.nivelUsuario;
 

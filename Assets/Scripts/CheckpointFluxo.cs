@@ -215,7 +215,10 @@ internal sealed partial class RoteiroNpcCheckpoint
                 indiceEmExecucao = indice;
                 PrepararEtapa?.Invoke(indice);
                 AtualizarCursor();
-                await etapas[indice].Executar();
+                var etapa = etapas[indice];
+                if (etapa.Ponto != null)
+                    CheckpointJogo.IdentificarFallback(etapa.Modelo, etapa.Ponto, etapa.Ordem, SessaoCenario.Atual.Nivel);
+                await etapa.Executar();
                 npc.ValidarRoteiroCheckpoint(visita);
             }
             indiceEmExecucao = etapas.Count;
@@ -748,7 +751,7 @@ internal sealed partial class CheckpointJogo
             || (visita != null && ((int?)visita["flow_version"] != 1 || NomeCenario((int)visita["scenario_id"]) == null
                 || !NivelValido((string)visita["level"]) || !Guid.TryParse((string)visita["visit_id"], out _))))
             throw new InvalidDataException("A fase ou a versão do checkpoint não é retomável nesta etapa.");
-        if (!(progresso["bar_correct_keys"] is JArray barra)
+        if (!(progresso["bar_correct_keys"] is JArray)
             || !(progresso["completed_visit_ids"] is JArray) || !(progresso["recent_scenario_ids"] is JArray)
             || !(progresso["cycle_totals"] is JObject) || !(progresso["visit_totals"] is JObject)
             || (visita != null && !(visita["exercises"] is JArray))
@@ -940,8 +943,7 @@ internal sealed partial class CheckpointJogo
         }
 
         gerenciador.RestaurarCheckpoint(progresso, visita?["exercises"] as JArray ?? new JArray(),
-            fase == "progression_result" || visita == null);
-        ProgressoNivelManager.Instance?.RestaurarCheckpoint(barra);
+            fase == "progression_result" || visita == null, visita);
         if (visita == null)
             gerenciador.AbrirSelecaoCenario();
         else if (entradaAtiva)

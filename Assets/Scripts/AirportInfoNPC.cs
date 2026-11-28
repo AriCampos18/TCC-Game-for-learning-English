@@ -553,6 +553,14 @@ public class AirportInfoNPC : InteracaoNPC, IRoteiroNpcCheckpoint
     private Animator animator;
 
     private bool instrucoesJaApresentadas;
+    internal bool OrientacoesConcluidasNaVisita
+    {
+        get
+        {
+            AtualizarVisita();
+            return PertenceAoCenarioAtivo && instrucoesJaApresentadas;
+        }
+    }
 
     protected override void ReiniciarVisita() => instrucoesJaApresentadas = false;
     private const string NpcKey = "airport_info_npc";

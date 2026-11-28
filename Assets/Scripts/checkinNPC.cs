@@ -1965,6 +1965,11 @@ else if (nivelAtual == "A2-B1")
         if (!base.PodeInteragir())
             return false;
 
+        if (DadosJogador.nivelUsuario == "A2" &&
+            !System.Array.Exists(FindObjectsByType<AirportInfoNPC>(FindObjectsSortMode.None),
+                npc => npc.OrientacoesConcluidasNaVisita))
+            return false;
+
         MissionManager missoes = MissionManager.Instance;
         if (missoes == null)
             return true;
@@ -2059,7 +2064,7 @@ else if (nivelAtual == "A2-B1")
         InicializarConteudosPorNivel();
         var cursor = CriarRoteiro(versao).Validar(visita);
         var orientacoes = FindAnyObjectByType<AirportInfoNPC>();
-        if (orientacoes != null && nivelAtual != "A2")
+        if (orientacoes != null)
             orientacoes.RetomarAposOrientacoesCheckpoint(versao);
         await RoteiroNpcCheckpoint.ExigirCatalogo(this, versao, token);
         return async () =>

@@ -1125,8 +1125,8 @@ public class ModalExercicio : MonoBehaviour
         if (!modoRevisao)
             GerenciadorProgressao.Instance?.RegistrarResultado(exercicioAtual, acertou, npcAtual);
 
-        if (acertou)
-            ProgressoNivelManager.Instance?.RegistrarAcerto(exercicioAtual, npcAtual);
+        else if (acertou)
+            GerenciadorProgressao.Instance?.RecuperarAcerto(exercicioAtual, npcAtual);
     }
 
     private void MudarBotaoParaOK()
